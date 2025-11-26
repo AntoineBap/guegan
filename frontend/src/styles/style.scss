@@ -27,7 +27,7 @@ h1, h2, .logo {
   flex-direction: column;
 }
 
-/* Header */
+
 .header {
   padding: 2rem 4rem;
   display: flex;
@@ -51,7 +51,7 @@ h1, h2, .logo {
   }
 }
 
-/* Main Content */
+
 .main-content {
   display: flex;
   flex: 1;
@@ -59,7 +59,7 @@ h1, h2, .logo {
   @media (max-width: 900px) { flex-direction: column; }
 }
 
-/* Configuration Panel */
+
 .config-panel {
   flex: 1;
   padding: 3rem 4rem;
@@ -82,13 +82,13 @@ h1, h2, .logo {
   }
 }
 
-/* Inputs & Custom UI */
+
 input, select, textarea {
   width: 100%;
   padding: 1rem;
-  border: 1px solid #ccc; /* Bordure plus visible */
-  background: #f8f8f8;    /* Fond légèrement gris */
-  color: #1a1a1a;         /* Texte NOIR forcé */
+  border: 1px solid #ccc; 
+  background: #f8f8f8;    
+  color: #1a1a1a;        
   font-family: inherit;
   margin-bottom: 0.5rem;
   transition: 0.3s;
@@ -99,7 +99,7 @@ input, select, textarea {
 
   &:focus {
     outline: none;
-    border-color: #D4AF37; /* Or */
+    border-color: #D4AF37; 
     background: #ffffff;
     color: #000;
   }
@@ -115,9 +115,9 @@ input, select, textarea {
 .radio-group button, .grid-options button {
   flex: 1;
   padding: 1rem;
-  border: 1px solid #bbb; /* Bordure grise visible par défaut */
-  background: #ffffff;    /* Fond blanc */
-  color: #1a1a1a;         /* Texte NOIR par défaut */
+  border: 1px solid #bbb; 
+  background: #ffffff;   
+  color: #1a1a1a;        
   cursor: pointer;
   transition: all 0.2s ease;
   font-family: 'Lato';
@@ -128,12 +128,12 @@ input, select, textarea {
     background: #fafafa;
   }
 
-  /* État sélectionné */
+  
   &.active, &.active-small {
-    background: #1a1a1a;  /* Fond Noir */
-    color: #D4AF37;       /* Texte Or */
+    background: #1a1a1a;  
+    color: #D4AF37;      
     border-color: #1a1a1a;
-    transform: scale(1.02); /* Petit effet de "pop" */
+    transform: scale(1.02); 
     box-shadow: 0 4px 10px rgba(0,0,0,0.2);
   }
 }
@@ -204,11 +204,9 @@ input, select, textarea {
   .placeholder-art {
     width: 100%;
     height: 100%;
-    /* Un petit rendu 3D subtil en fond */
   }
 }
 
-/* Modal 3D */
 .modal-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;

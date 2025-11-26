@@ -5,16 +5,11 @@ import { Geometry, Base, Subtraction } from '@react-three/csg';
 import { AnimatePresence, motion } from 'framer-motion';
 import '../styles/style.scss';
 
-// --- Composant 3D : Représentation paramétrique de la vasque ---
-// --- Nouveau Composant 3D Réaliste ---
 const Vasque3D = ({ config }) => {
-  // --- CONFIGURATION ---
   const totalW = config.width / 10;
   const totalL = config.length / 10;
   const height = config.depth / 10;
-  const thickness = 0.15; // Épaisseur matière
-
-  // --- COULEUR ---
+  const thickness = 0.15;
   const materialColor = config.color === 'white' ? '#ffffff' : '#111111';
   const materialProps = {
     color: materialColor,
@@ -22,59 +17,37 @@ const Vasque3D = ({ config }) => {
     metalness: 0.1,
   };
 
-  // --- GEOMETRIE BASSIN ---
   const basinMargin = 0.8;
-  // Note: Ici je fixe la taille du bassin à un standard (ex: 50cm) ou proportionnel
-  // Pour l'exemple, disons que le bassin fait toujours 50cm de large ou max la moitié du plan
-  // Ajustez cette valeur si vous voulez un bassin plus grand/petit
-  const basinL = Math.min(5, totalL - 2); // Le bassin fait 50cm (5 unités) ou s'adapte si le plan est petit
+  const basinL = Math.min(5, totalL - 2); 
   const basinW = totalW - (basinMargin * 2);
   const basinH = height - 0.2;
 
-  // --- CALCUL DE LA POSITION DU BASSIN (X) ---
-  const edgeMargin = 1; // 10 cm du bord demandé
-  let basinX = 0; // Centre par défaut
+  const edgeMargin = 1; 
+  let basinX = 0;
 
   if (config.position === 'left') {
-    // Bord Gauche du plan (-totalL/2) + Marge (1) + Demi-longueur du bassin (pour avoir le centre)
     basinX = (-totalL / 2) + edgeMargin + (basinL / 2);
   } else if (config.position === 'right') {
-    // Bord Droit du plan (totalL/2) - Marge (1) - Demi-longueur du bassin
     basinX = (totalL / 2) - edgeMargin - (basinL / 2);
   }
-  // Si 'center', basinX reste à 0
 
   const floorY = (height / 2) - basinH;
-
-  // --- POSITION ROBINETTERIE ---
   let holeXGlobal = basinX;
   if (config.tapHole === 'left') holeXGlobal = basinX - (basinL/4);
   if (config.tapHole === 'right') holeXGlobal = basinX + (basinL/4);
-
-  // --- CALCUL DYNAMIQUE DES PLAQUES SUPERIEURES (PLAN DE TRAVAIL) ---
-  // On doit combler l'espace entre le bord du plan et le bord du bassin
-  
-  // 1. Plaque Gauche : Du bord gauche total jusqu'au début du bassin
   const leftPlateWidth = (basinX - basinL/2) - (-totalL/2);
   const leftPlateX = (-totalL/2) + (leftPlateWidth / 2);
-
-  // 2. Plaque Droite : De la fin du bassin jusqu'au bord droit total
   const rightPlateWidth = (totalL/2) - (basinX + basinL/2);
   const rightPlateX = (totalL/2) - (rightPlateWidth / 2);
 
   return (
     <group>
-      {/* --- 1. PLAN DE TRAVAIL (Ajustement dynamique) --- */}
-      
-      {/* Plaque Gauche (Variable) */}
       {leftPlateWidth > 0 && (
         <mesh position={[leftPlateX, height/2 - thickness/2, 0]}>
           <boxGeometry args={[leftPlateWidth, thickness, totalW]} />
           <meshStandardMaterial {...materialProps} />
         </mesh>
       )}
-
-      {/* Plaque Droite (Variable) */}
       {rightPlateWidth > 0 && (
         <mesh position={[rightPlateX, height/2 - thickness/2, 0]}>
           <boxGeometry args={[rightPlateWidth, thickness, totalW]} />
@@ -82,7 +55,7 @@ const Vasque3D = ({ config }) => {
         </mesh>
       )}
 
-      {/* Bandes Avant et Arrière (Qui suivent le bassin) */}
+      {/* bandes avant et arriere (qui suivent le bassin) */}
       <mesh position={[basinX, height/2 - thickness/2, totalW/2 - basinMargin/2]}>
          <boxGeometry args={[basinL, thickness, basinMargin]} />
          <meshStandardMaterial {...materialProps} />
@@ -93,7 +66,7 @@ const Vasque3D = ({ config }) => {
       </mesh>
 
 
-      {/* --- 2. FOND DE LA CUVE (Suit basinX) --- */}
+      {/* fond de la cuve */}
       <mesh position={[basinX, floorY + thickness/2, 0]} key={config.color}>
         <meshStandardMaterial {...materialProps} side={2} />
         <Geometry>
@@ -108,7 +81,7 @@ const Vasque3D = ({ config }) => {
         </Geometry>
       </mesh>
 
-      {/* --- 3. PAROIS DE LA CUVE (Suivent basinX) --- */}
+      {/* parois de la cuve */}
       <mesh position={[basinX, height/2 - basinH/2, basinW/2 - thickness/2]}>
         <boxGeometry args={[basinL, basinH, thickness]} />
         <meshStandardMaterial {...materialProps} />
@@ -126,7 +99,6 @@ const Vasque3D = ({ config }) => {
         <meshStandardMaterial {...materialProps} />
       </mesh>
 
-      {/* --- 4. EXTRAS (Dosseret & Rebords restent fixes par rapport au plan total) --- */}
       {config.splashback && (
         <mesh position={[0, height/2 + (config.splashbackHeight/10)/2, -totalW/2 + thickness/2]}>
           <boxGeometry args={[totalL, config.splashbackHeight/10, thickness]} />
@@ -146,7 +118,7 @@ const Vasque3D = ({ config }) => {
         </>
       )}
 
-      {/* --- 5. ANNEAU DORÉ --- */}
+      {/* percage de robinnetterie ou non */}
       {config.tapHole !== 'none' && (
         <group position={[holeXGlobal, floorY + thickness + 0.005, 0]}>
           <mesh rotation={[Math.PI/2, 0, 0]}>
@@ -158,17 +130,18 @@ const Vasque3D = ({ config }) => {
     </group>
   );
 };
-// --- Application Principale ---
+
+// app principale
 const VasqueConfigurator = () => {
   const [showModal, setShowModal] = useState(false);
   const [config, setConfig] = useState({
     color: 'white',
-    position: 'center', // left, right, center
-    length: 120, // cm
-    width: 50, // cm
-    depth: 12, // cm
-    tapHole: 'none', // none, left, right, bottom (center)
-    splashback: false, // goutte d'eau
+    position: 'center',
+    length: 120, // unites en cm
+    width: 50, 
+    depth: 12, 
+    tapHole: 'none', // choix de la position
+    splashback: false, // goutte d'eau et dimension
     splashbackHeight: 5,
     sideRims: false,
     sideRimHeight: 5,
@@ -184,7 +157,7 @@ const VasqueConfigurator = () => {
   };
 
   const handleCheckout = async () => {
-    // Petit feedback visuel pour dire que ça charge
+    // petit feedback pour dire que ca charge
     const btn = document.querySelector('.btn-primary');
     const originalText = btn.innerText;
     btn.innerText = "Chargement...";
@@ -196,13 +169,13 @@ const VasqueConfigurator = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ config }), // On envoie toute la config
+        body: JSON.stringify({ config }),
       });
 
       const data = await response.json();
 
       if (data.url) {
-        // Redirection vers la page de paiement Stripe sécurisée
+        // redirige vers la page stripe secure
         window.location.href = data.url;
       } else {
         alert("Erreur lors de la création de la commande");
@@ -231,7 +204,7 @@ const VasqueConfigurator = () => {
 
       <main className="main-content">
         
-        {/* Colonne Gauche : Configuration */}
+        {/* bloc de configuration (options lavabo) a decomposer en components */}
         <div className="config-panel">
           <h1>Votre Vasque <span className="gold-text">Signature</span></h1>
           
@@ -324,7 +297,7 @@ const VasqueConfigurator = () => {
           </div>
         </div>
 
-        {/* Colonne Droite : Image Statique ou Preview Rapide */}
+        {/* zone preview de la 3d */}
         <div className="preview-image">
           <div className="placeholder-art">
             <Canvas shadows dpr={[1, 2]} camera={{ position: [4, 4, 4], fov: 50 }}>
@@ -342,7 +315,7 @@ const VasqueConfigurator = () => {
 
       </main>
 
-      {/* MODALE 3D */}
+      {/* modale de rendu 3d */}
       <AnimatePresence>
         {showModal && (
           <motion.div 
