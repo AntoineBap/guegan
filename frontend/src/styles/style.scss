@@ -32,7 +32,7 @@ h1, h2, .logo {
 
 
 
-/* Main Content */
+
 .main-content {
   display: flex;
   flex: 1;
@@ -44,9 +44,9 @@ h1, h2, .logo {
 input, select, textarea {
   width: 100%;
   padding: 1rem;
-  border: 1px solid #ccc; /* Bordure plus visible */
-  background: #f8f8f8;    /* Fond légèrement gris */
-  color: #1a1a1a;         /* Texte NOIR forcé */
+  border: 1px solid #ccc; 
+  background: #f8f8f8;    
+  color: #1a1a1a;        
   font-family: inherit;
   margin-bottom: 0.5rem;
   transition: 0.3s;
@@ -57,7 +57,7 @@ input, select, textarea {
 
   &:focus {
     outline: none;
-    border-color: #D4AF37; /* Or */
+    border-color: #D4AF37; 
     background: #ffffff;
     color: #000;
   }
@@ -163,7 +163,6 @@ input, select, textarea {
   }
 }
 
-/* Modal 3D */
 .modal-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
