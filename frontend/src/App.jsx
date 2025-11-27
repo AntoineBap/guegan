@@ -1,10 +1,10 @@
 import React from 'react';
-import VasqueConfigurator from './components/VasqueConfigurator';
+import Main from './pages/Main';
 
 function App() {
   return (
     <div className="App">
-      <VasqueConfigurator />
+      <Main />
     </div>
   );
 }

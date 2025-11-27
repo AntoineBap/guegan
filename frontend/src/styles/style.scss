@@ -1,8 +1,11 @@
+@use "sass:color";
+
 $gold: #D4AF37;
 $black: #1a1a1a;
 $grey-light: #f4f4f6;
 $white: #ffffff;
 $text: #2c2c2c;
+
 
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lato:wght@300;400;700&display=swap');
 
@@ -27,29 +30,7 @@ h1, h2, .logo {
   flex-direction: column;
 }
 
-/* Header */
-.header {
-  padding: 2rem 4rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid rgba(0,0,0,0.05);
 
-  .logo {
-    font-weight: 700;
-    font-size: 1.5rem;
-    letter-spacing: 2px;
-  }
-
-  nav span {
-    margin-left: 2rem;
-    cursor: pointer;
-    text-transform: uppercase;
-    font-size: 0.8rem;
-    letter-spacing: 1px;
-    &:hover { color: $gold; }
-  }
-}
 
 /* Main Content */
 .main-content {
@@ -57,29 +38,6 @@ h1, h2, .logo {
   flex: 1;
   
   @media (max-width: 900px) { flex-direction: column; }
-}
-
-/* Configuration Panel */
-.config-panel {
-  flex: 1;
-  padding: 3rem 4rem;
-  overflow-y: auto;
-  max-height: calc(100vh - 80px);
-
-  h1 { font-size: 2.5rem; margin-bottom: 2rem; }
-}
-
-.form-group {
-  margin-bottom: 2rem;
-
-  label {
-    display: block;
-    margin-bottom: 0.8rem;
-    font-weight: 700;
-    font-size: 0.9rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-  }
 }
 
 /* Inputs & Custom UI */
@@ -112,12 +70,12 @@ input, select, textarea {
   span { font-size: 0.8rem; color: #888; display: block; margin-bottom: 0.2rem;}
 }
 
-.radio-group button, .grid-options button {
+.corian-color button, .drilling-options button {
   flex: 1;
   padding: 1rem;
-  border: 1px solid #bbb; /* Bordure grise visible par défaut */
-  background: #ffffff;    /* Fond blanc */
-  color: #1a1a1a;         /* Texte NOIR par défaut */
+  border: 1px solid #bbb; 
+  background: #ffffff; 
+  color: #1a1a1a;
   cursor: pointer;
   transition: all 0.2s ease;
   font-family: 'Lato';
@@ -128,12 +86,10 @@ input, select, textarea {
     background: #fafafa;
   }
 
-  /* État sélectionné */
   &.active, &.active-small {
-    background: #1a1a1a;  /* Fond Noir */
-    color: #D4AF37;       /* Texte Or */
+    background: #1a1a1a;  
+    color: #D4AF37;      
     border-color: #1a1a1a;
-    transform: scale(1.02); /* Petit effet de "pop" */
     box-shadow: 0 4px 10px rgba(0,0,0,0.2);
   }
 }
@@ -184,7 +140,7 @@ input, select, textarea {
   .btn-primary {
     background: $black;
     color: white;
-    &:hover { background: lighten($black, 10%); }
+    &:hover { background: color.adjust($black, $lightness: 10%); }
   }
 
   .btn-secondary {
@@ -204,7 +160,6 @@ input, select, textarea {
   .placeholder-art {
     width: 100%;
     height: 100%;
-    /* Un petit rendu 3D subtil en fond */
   }
 }
 
