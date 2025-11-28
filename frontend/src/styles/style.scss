@@ -35,7 +35,6 @@ h1, h2, .logo {
 
 .main-content {
   display: flex;
-  flex: 1;
   
   @media (max-width: 900px) { flex-direction: column; }
 }

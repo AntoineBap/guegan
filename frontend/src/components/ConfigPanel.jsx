@@ -60,7 +60,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
         <label className="section-title">Dimensions du Plan (Extérieur)</label>
         <div className="inputs-row">
           <div>
-            <span>Longueur</span>
+            <span>Longueur (cm)</span>
             <input
               type="number"
               name="length"
@@ -70,10 +70,10 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
             />
           </div>
           <div>
-            <span>Largeur (Prof.)</span>
+            <span>Largeur (cm)</span>
             <input
               type="number"
-              name="width"
+              name="width" 
               value={config.width}
               onChange={handleChange}
               min="30" max="100"
@@ -83,12 +83,11 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
         </div>
       </div>
 
-      {/* --- SECTION CUVE --- */}
       <div className="form-group section-box">
         <label className="section-title">Dimensions de la Cuve (Intérieur)</label>
         <div className="inputs-row">
           <div>
-            <span>Longueur Cuve</span>
+            <span>Longueur Cuve (cm)</span>
             <input
               type="number"
               name="basinLength"
@@ -98,7 +97,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
             />
           </div>
           <div>
-            <span>Largeur Cuve</span>
+            <span>Largeur Cuve (cm)</span>
             <input
               type="number"
               name="basinWidth"
@@ -109,7 +108,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
           </div>
           <div>
             <div>
-            <span>Prof. Cuve</span>
+            <span>Prof. Cuve (cm)</span>
             <input
               type="number"
               name="depth"

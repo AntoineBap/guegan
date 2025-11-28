@@ -37,15 +37,10 @@ const Vasque3D = ({ config }) => {
   } else if (config.position === "right") {
     basinX = totalL / 2 - edgeMargin - basinL / 2;
   }
-  // Center : 0
-
-  // Hauteur du fond de la cuve par rapport au centre du plan
-  // Le plan est centré en Y = planHeight/2. Le dessus est à planHeight.
-  // On positionne par rapport au "haut" du plan pour que ça soit intuitif
   const topSurfaceY = rawBasinD / 2;
   const floorY = topSurfaceY - basinH;
 
-  // Position Robinet
+  // position du robinet
   let holeXGlobal = basinX;
   if (config.tapHole === "left") holeXGlobal = basinX - basinL / 4;
   if (config.tapHole === "right") holeXGlobal = basinX + basinL / 4;

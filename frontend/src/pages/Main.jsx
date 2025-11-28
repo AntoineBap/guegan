@@ -5,6 +5,8 @@ import ConfigPanel from '../components/ConfigPanel';
 import Visualizer from '../components/Visualizer';
 import Modal3D from '../components/Modal3D';
 import Header from '../components/Header';
+import Carousel from '../components/Carousel';
+
 
 
 const Main = () => {
@@ -26,13 +28,18 @@ const Main = () => {
   });
 
 
+  const OPTIONS = { loop: true }
+  const SLIDE_COUNT = 5
+  const SLIDES = Array.from(Array(SLIDE_COUNT).keys())
+
 
   return (
     <div className="layout">
       <Header />
       <main className="main-content">
         <ConfigPanel config={config} setConfig={setConfig} setShowModal={setShowModal}/> 
-        <Visualizer config={config} />
+       {/* <Visualizer config={config} /> */} 
+       <Carousel slides={SLIDES} options={OPTIONS} />
       </main>
         <Modal3D config={config} showModal={showModal} setShowModal={setShowModal} />
     </div>
