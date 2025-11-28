@@ -13,8 +13,10 @@ const Main = () => {
     color: 'white',
     position: 'center', // left, right, center
     length: 120, // cm
-    width: 50, // cm
-    depth: 12, // cm
+    width: 50, 
+    depth: 12, 
+    sink_length: 12,
+    sink_width: 12,
     tapHole: 'none', // none, left, right, bottom (center)
     splashback: false, // goutte d'eau
     splashbackHeight: 5,
