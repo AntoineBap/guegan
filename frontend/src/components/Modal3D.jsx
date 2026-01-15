@@ -25,15 +25,7 @@ const Modal3D = ({config, showModal, setShowModal}) => {
                 Vérifiez que les perçages et dimensions correspondent à votre
                 besoin.
               </p>
-              <button
-                className="btn-primary"
-                onClick={() => {
-                  setShowModal(false);
-                  handleCheckout();
-                }}
-              >
-                Valider et Payer
-              </button>
+              
             </div>
           </div>
         </motion.div>

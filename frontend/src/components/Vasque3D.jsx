@@ -41,7 +41,6 @@ const Vasque3D = ({ config }) => {
   let basinZ = 0; // Par défaut centrée
 
   if (hasSink) {
-    // A. Position X (Gauche / Droite / Centre)
     if (config.position === "left") {
         const offset = config.sinkOffset ? config.sinkOffset / UNIT_SCALE : edgeMargin;
         basinX = -totalL / 2 + offset + basinL / 2;
@@ -50,13 +49,9 @@ const Vasque3D = ({ config }) => {
         basinX = totalL / 2 - offset - basinL / 2;
     }
 
-    // B. Position Z (Profondeur)
     if (config.tapHole !== "none") {
-        // SI ROBINETTERIE : On impose 100mm (1.0) à l'arrière
-        // Position Z = (Bord Arrière) + (100mm) + (Moitié Cuve)
         basinZ = -totalW / 2 + 1.0 + basinW / 2;
     } 
-    // SINON : basinZ reste à 0 (Cuve centrée)
   }
 
   const topSurfaceY = hasSink ? rawBasinD / 2 : thickness / 2;
@@ -70,15 +65,17 @@ const Vasque3D = ({ config }) => {
   let holeZ = 0;
 
   if (hasSink) {
-      if (config.tapHole === "left") holeX = basinX - basinL / 3;
-      if (config.tapHole === "right") holeX = basinX + basinL / 3;
+      // --- CORRECTION ICI : UTILISATION DE tapHoleOffset ---
+      // On récupère la valeur de l'input (en mm) et on la convertit en unités 3D
+      // Si undefined, on met 50mm par défaut
+      const tapOffset = (config.tapHoleOffset !== undefined ? config.tapHoleOffset : 50) / UNIT_SCALE;
+
+      if (config.tapHole === "left") holeX = basinX - tapOffset;
+      if (config.tapHole === "right") holeX = basinX + tapOffset;
+      // Si "center", holeX reste à basinX (0 offset)
       
       if (config.tapHole !== "none") {
-          // Le trou est centré dans la zone arrière de 100mm
-          // Donc à 50mm (0.5) du bord arrière du plan
           holeZ = -totalW / 2 + 0.5;
-          
-          // Correction Dosseret : on avance de 6mm
           if (config.rimBack) holeZ += 0.06;
       }
   } else {
@@ -95,13 +92,12 @@ const Vasque3D = ({ config }) => {
   const rightPlateWidth = totalL / 2 - (basinX + basinL / 2);
   const rightPlateX = totalL / 2 - rightPlateWidth / 2;
 
-  // Calcul dynamique des bandes Avant/Arrière selon la position Z de la cuve
   const basinBackEdge = basinZ - basinW / 2;
-  const backStripDepth = basinBackEdge - (-totalW / 2); // Espace réel à l'arrière
+  const backStripDepth = basinBackEdge - (-totalW / 2); 
   const backStripZ = -totalW / 2 + backStripDepth / 2;
 
   const basinFrontEdge = basinZ + basinW / 2;
-  const frontStripDepth = totalW / 2 - basinFrontEdge; // Espace réel à l'avant
+  const frontStripDepth = totalW / 2 - basinFrontEdge; 
   const frontStripZ = totalW / 2 - frontStripDepth / 2;
 
   const splashRadius = 0.06; 
@@ -156,7 +152,7 @@ const Vasque3D = ({ config }) => {
                 <meshStandardMaterial {...basinFloorMaterialProps} side={2} />
             </mesh>
             
-            {/* CÔTÉS (Position Z ajustée avec basinZ) */}
+            {/* CÔTÉS */}
             <mesh position={[basinX, topSurfaceY - basinH / 2, basinZ + basinW / 2 - wallThickness / 2]}>
                 <boxGeometry args={[basinL, basinH, wallThickness]} />
                 <meshStandardMaterial {...materialProps} />
@@ -174,7 +170,7 @@ const Vasque3D = ({ config }) => {
                 <meshStandardMaterial {...materialProps} />
             </mesh>
 
-            {/* BONDE D'ÉVACUATION (Centrée sur la cuve) */}
+            {/* BONDE D'ÉVACUATION */}
             <mesh position={[basinX, floorY + wallThickness + 0.005, basinZ]}>
                 <cylinderGeometry args={[0.22, 0.22, 0.01, 32]} />
                 <meshBasicMaterial color="#000000" />
