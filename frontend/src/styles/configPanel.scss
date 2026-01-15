@@ -1,21 +1,293 @@
-.config-panel {
-  flex: 1;
-  padding: 3rem 4rem;
-  overflow-y: auto;
-  max-height: calc(100vh - 80px);
+// --- VARIABLES ---
+$gold-primary: #D4AF37; // Le doré beige
+$gold-light: rgba($gold-primary, 0.1); // Fond transparent doré
+$black: #111111;
+$white: #ffffff;
+$gray-light: #f4f4f4; // Fond des inputs texte
+$border-color: #e0e0e0; // Bordure des sections
 
-  h1 { font-size: 2.5rem; margin-bottom: 2rem; }
+// --- MIXINS ---
+@mixin card-section {
+  background: $white;
+  border: 1px solid $border-color;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.02);
 }
 
-.form-group {
-  margin-bottom: 2rem;
+// --- MAIN PANEL ---
+.config-panel {
+  // Contrainte de largeur : moitié gauche de l'écran
+  width: 50%;
+  min-width: 500px; // Sécurité pour ne pas être trop écrasé
+  height: 100vh;
+  position: fixed; // Ou relative selon ton layout parent
+  left: 0;
+  top: 0;
+  
+  padding: 3rem 4rem;
+  overflow-y: auto;
+  background-color: $white; // Ou un gris très léger si tu préfères
+  border-right: 1px solid $border-color;
 
+  // Scrollbar esthétique
+  &::-webkit-scrollbar { width: 6px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+
+  h1 {
+    font-size: 2.2rem;
+    margin-bottom: 2.5rem;
+    font-weight: 300;
+    
+    .gold-text {
+      color: $gold-primary;
+      font-weight: 600;
+      font-style: italic;
+    }
+  }
+}
+
+// --- FORM GROUPS & SECTIONS ---
+.form-group {
+  margin-bottom: 1.5rem;
+
+  // Style des labels généraux
   label {
     display: block;
     margin-bottom: 0.8rem;
     font-weight: 700;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     text-transform: uppercase;
     letter-spacing: 1px;
+    color: $black;
+  }
+
+  // Style "Carte" pour les sections (Dimensions, Choix cuve, etc.)
+  &.section-box {
+    @include card-section;
+
+    .section-title {
+      font-size: 1.1rem;
+      text-transform: none; // On garde la casse normale pour les titres de section
+      letter-spacing: 0;
+      margin-bottom: 1.2rem;
+      border-bottom: 1px solid $gray-light;
+      padding-bottom: 0.5rem;
+    }
+  }
+}
+
+// --- INPUTS (TEXT & NUMBER) ---
+input[type="number"],
+input[type="text"],
+select {
+  width: 100%;
+  padding: 12px 15px;
+  background-color: $gray-light;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-size: 1rem;
+  color: $black;
+  transition: all 0.3s ease;
+
+  &:focus {
+    outline: none;
+    border-color: $gold-primary;
+    background-color: $white;
+    box-shadow: 0 0 0 3px rgba($gold-primary, 0.1);
+  }
+}
+
+// Inputs sur une ligne (ex: Longueur / Largeur)
+.inputs-row {
+  display: flex;
+  gap: 20px;
+  
+  > div {
+    flex: 1;
+    span {
+      display: block;
+      font-size: 0.85rem;
+      margin-bottom: 5px;
+      color: #666;
+    }
+  }
+}
+
+.small-input {
+  max-width: 120px;
+  margin-top: 10px;
+}
+
+// --- BOUTONS DE SÉLECTION (Cuves, Positions, etc.) ---
+// Style partagé pour les listes de boutons
+.corian-color,
+.drilling-options,
+.sink-options-list {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+// Style global des boutons
+button {
+  flex: 1;
+  padding: 12px 20px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  
+  // ÉTAT PAR DÉFAUT (Non sélectionné)
+  background-color: $gold-light; // Fond doré transparent
+  border: 1px solid $gold-primary; // Contour doré
+  color: $black; // Texte noir
+  font-weight: 500;
+
+  &:hover:not(:disabled) {
+    background-color: rgba($gold-primary, 0.2);
+  }
+
+  // ÉTAT SÉLECTIONNÉ (.active ou .active-small)
+  &.active,
+  &.active-small {
+    background-color: $black; // Fond noir
+    color: $white; // Texte blanc
+    border-color: $black; // Bordure noire (ou dorée si tu préfères un rappel)
+    font-weight: 600;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  }
+
+  // ÉTAT DÉSACTIVÉ
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: #eee;
+    border-color: #ddd;
+    color: #999;
+  }
+}
+
+// Grille spécifique pour les choix de cuves si beaucoup d'options
+.sink-options-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr; // 2 colonnes comme sur l'image
+  gap: 15px;
+}
+
+// --- CHECKBOX PERSONNALISÉE ---
+.checkbox-group {
+  @include card-section; // Encadré comme sur l'image
+  display: flex;
+  flex-direction: column;
+
+  label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    text-transform: none; // Texte normal
+    font-size: 1rem;
+    margin: 0;
+    
+    input[type="checkbox"] {
+      appearance: none; // Enlève le style par défaut
+      -webkit-appearance: none;
+      width: 24px;
+      height: 24px;
+      border: 1px solid $black; // Bordure noire si non coché (ou dorée)
+      border-radius: 4px;
+      margin-right: 15px;
+      display: grid;
+      place-content: center;
+      transition: all 0.2s ease;
+      background-color: transparent;
+
+      &::before {
+        content: "";
+        width: 14px;
+        height: 14px;
+        transform: scale(0);
+        transition: 120ms transform ease-in-out;
+        box-shadow: inset 1em 1em $gold-primary; // Coche dorée
+        transform-origin: center;
+        clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+      }
+
+      &:checked {
+        background-color: $black; // Fond noir quand coché
+        border-color: $black;
+        
+        &::before {
+          transform: scale(1); // Affiche la coche dorée
+        }
+      }
+    }
+  }
+}
+
+// --- ACTIONS (Bas de page) ---
+.actions {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid $border-color;
+  display: flex;
+  gap: 20px;
+
+  .btn-primary {
+    flex: 2;
+    background-color: $black;
+    color: $white;
+    border: 1px solid $black;
+    font-size: 1.1rem;
+    padding: 15px;
+    
+    &:hover {
+      background-color: #333;
+      transform: translateY(-2px);
+    }
+  }
+
+  .btn-secondary {
+    flex: 1;
+    background-color: transparent;
+    color: $black;
+    border: 1px solid $black;
+    
+    &:hover {
+      background-color: $gray-light;
+    }
+  }
+}
+
+// --- ALERTE POIDS ---
+.weight-alert {
+  margin-top: 15px;
+  background-color: rgba(255, 166, 0, 0.1);
+  border-left: 4px solid orange;
+  padding: 10px 15px;
+  border-radius: 4px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+
+  .text {
+    font-size: 0.9rem;
+    p { margin: 0; color: #555; }
+    strong { color: #d35400; }
+  }
+}
+
+// --- MEDIA QUERIES (Mobile) ---
+@media (max-width: 1024px) {
+  .config-panel {
+    width: 100%; // Pleine largeur sur tablette/mobile
+    height: auto;
+    position: relative;
+    padding: 2rem;
+    max-height: none;
+    overflow: visible;
   }
 }
