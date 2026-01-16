@@ -103,7 +103,27 @@ input[type="number"], input[type="text"], select {
   &:focus { outline: none; border-color: $gold-primary; background-color: $white; box-shadow: 0 0 0 3px rgba($gold-primary, 0.1); }
 }
 
-.inputs-row { display: flex; gap: 20px; > div { flex: 1; span { display: block; font-size: 0.85rem; margin-bottom: 5px; color: #666; } } }
+.inputs-row {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap; // Permet de passer à la ligne si l'écran est trop petit
+
+  // MODIFICATION ICI : On cible tous les enfants directs (> *) pour inclure le select ET la div
+  > * {
+    flex: 1;
+    min-width: 180px; // Sécurité : empêche l'élément de devenir trop petit (votre bug actuel)
+  }
+
+  > div {
+    span {
+      display: block;
+      font-size: 0.85rem;
+      margin-bottom: 5px;
+      color: #666;
+      white-space: nowrap; // Empêche le texte "Décalage bord..." de se casser sur 3 lignes
+    }
+  }
+}
 .small-input { max-width: 120px; margin-top: 10px; }
 
 .corian-color, .drilling-options, .sink-options-list { display: flex; gap: 10px; flex-wrap: wrap; }

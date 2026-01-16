@@ -29,7 +29,13 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
 
   // --- CALCUL DU PRIX ---
   const calculatePrice = () => {
-    let total = 0;
+    // 0. Calcul du Prix de Base (Surface)
+    // Formule : f(x) = 219,30x + 447,37
+    const surfaceM2 = (config.length * config.width) / 1000000; // Conversion mm² en m²
+    const baseMaterialPrice = (219.30 * surfaceM2) + 447.37;
+    
+    // On initialise le total avec le prix du plan (arrondi à l'entier)
+    let total = Math.round(baseMaterialPrice);
 
     // 1. Prix Cuve (Utilisation de currentSink sécurisé)
     const selectedSinkSpec = SINK_SPECS[currentSink];
