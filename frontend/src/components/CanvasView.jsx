@@ -13,7 +13,7 @@ const CanvasView = ({ canvasContent }) => {
           <OrbitControls
             enableZoom={true}
             minPolarAngle={0}
-            maxPolarAngle={Math.PI / 2}
+            maxPolarAngle={Math.PI}
           />
         </Suspense>
       </Canvas>
