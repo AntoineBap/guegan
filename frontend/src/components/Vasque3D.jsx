@@ -10,7 +10,6 @@ const Vasque3D = ({ config }) => {
   const isNoSinkName = currentSinkName === "Aucune cuve";
   const isZeroLength = isNoSinkName || config.basinLength === 0;
   const hasSink = !isNoSinkName && !isZeroLength;
-
   const totalW = config.width / UNIT_SCALE;
   const totalL = config.length / UNIT_SCALE;
 
@@ -84,12 +83,12 @@ const Vasque3D = ({ config }) => {
       const offset = config.sinkOffset
         ? config.sinkOffset / UNIT_SCALE
         : edgeMargin;
-      basinX = -totalL / 2 + offset + basinL / 2;
+      basinX = -totalL / 2 + offset - 0.12 + basinL / 2;
     } else if (config.position === "right") {
-      const offset = config.sinkOffset
+      const offset = config.sinkOffset - 12
         ? config.sinkOffset / UNIT_SCALE
         : edgeMargin;
-      basinX = totalL / 2 - offset - basinL / 2;
+      basinX = totalL / 2 - offset + 0.12 - basinL / 2;
     }
 
     if (config.tapHole !== "none") {

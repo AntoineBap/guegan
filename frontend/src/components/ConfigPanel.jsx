@@ -344,15 +344,26 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
             {/* POSITION */}
             <label className="section-title">Position de la cuve</label>
             <div className="inputs-row" style={{ alignItems: "flex-end" }}>
-              <select
-                name="position"
-                value={config.position}
-                onChange={handleChange}
+              <div className="drilling-options" style={{ marginRight: "15px", marginBottom: "5px" }}>
+              <button
+                className={config.position === "left" ? "active-small" : ""}
+                onClick={() => handleChange({ target: { name: "position", value: "left" } })}
               >
-                <option value="center">Centré</option>
-                <option value="left">Gauche</option>
-                <option value="right">Droite</option>
-              </select>
+                Gauche
+              </button>
+              <button
+                className={config.position === "center" ? "active-small" : ""}
+                onClick={() => handleChange({ target: { name: "position", value: "center" } })}
+              >
+                Centré
+              </button>
+              <button
+                className={config.position === "right" ? "active-small" : ""}
+                onClick={() => handleChange({ target: { name: "position", value: "right" } })}
+              >
+                Droite
+              </button>
+            </div>
               {isSidePosition && (
                 <div
                   style={{
@@ -379,6 +390,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
                     onBlur={handleBlur}
                     min="100"
                     max={maxOffset}
+                    step="10"
                   />
                 </div>
               )}

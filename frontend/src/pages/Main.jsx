@@ -22,6 +22,8 @@ const Main = () => {
     comments: "",
   });
 
+  console.log(config)
+
   return (
     <div className="layout">
       <Header />
