@@ -23,18 +23,18 @@ const Vasque3D = ({ config }) => {
   const inputBasinL = isNoSinkName
     ? 0
     : config.basinLength !== undefined
-    ? config.basinLength
-    : 500;
+      ? config.basinLength
+      : 500;
   const inputBasinW = isNoSinkName
     ? 0
     : config.basinWidth !== undefined
-    ? config.basinWidth
-    : 350;
+      ? config.basinWidth
+      : 350;
   const inputBasinD = isNoSinkName
     ? 0
     : config.depth !== undefined
-    ? config.depth
-    : 120;
+      ? config.depth
+      : 120;
 
   const innerBasinL = inputBasinL / UNIT_SCALE;
   const innerBasinW = inputBasinW / UNIT_SCALE;
@@ -49,8 +49,6 @@ const Vasque3D = ({ config }) => {
   const basinW = Math.min(outerBasinW, totalW - 0.02);
 
   const wallHeight = innerBasinD;
-
-  
 
   // --- CONSTANTES EGOUTTOIR ---
   const DRAINER_LEN = 3.5;
@@ -138,7 +136,7 @@ const Vasque3D = ({ config }) => {
       1,
       false,
       0,
-      Math.PI
+      Math.PI,
     );
     geometry.rotateX(-Math.PI / 2);
     geometry.rotateZ(-Math.PI / 2);
@@ -173,7 +171,7 @@ const Vasque3D = ({ config }) => {
             roughness={0.6}
             side={THREE.DoubleSide}
           />
-        </mesh>
+        </mesh>,
       );
     }
     return <group>{grooves}</group>;
@@ -195,7 +193,7 @@ const Vasque3D = ({ config }) => {
     radius,
     miterStart,
     miterEnd,
-    reverseCut = false
+    reverseCut = false,
   ) => {
     let currentLength = length;
     if (miterStart) currentLength -= radius;
@@ -228,7 +226,7 @@ const Vasque3D = ({ config }) => {
             splashRadius,
             !!config.apronLeft,
             !!config.apronRight,
-            false
+            false,
           ),
     [
       config.splashback,
@@ -237,7 +235,7 @@ const Vasque3D = ({ config }) => {
       config.apronRight,
       totalL,
       splashRadius,
-    ]
+    ],
   );
   const geomBack = useMemo(
     () =>
@@ -248,7 +246,7 @@ const Vasque3D = ({ config }) => {
             splashRadius,
             !!config.apronRight,
             !!config.apronLeft,
-            false
+            false,
           ),
     [
       config.splashback,
@@ -257,7 +255,7 @@ const Vasque3D = ({ config }) => {
       config.apronRight,
       totalL,
       splashRadius,
-    ]
+    ],
   );
   const geomLeft = useMemo(
     () =>
@@ -268,7 +266,7 @@ const Vasque3D = ({ config }) => {
             splashRadius,
             !!config.apronFront,
             !!config.apronBack,
-            true
+            true,
           ),
     [
       config.splashback,
@@ -277,7 +275,7 @@ const Vasque3D = ({ config }) => {
       config.apronFront,
       totalW,
       splashRadius,
-    ]
+    ],
   );
   const geomRight = useMemo(
     () =>
@@ -288,7 +286,7 @@ const Vasque3D = ({ config }) => {
             splashRadius,
             !!config.apronBack,
             !!config.apronFront,
-            true
+            true,
           ),
     [
       config.splashback,
@@ -297,42 +295,13 @@ const Vasque3D = ({ config }) => {
       config.apronBack,
       totalW,
       splashRadius,
-    ]
+    ],
   );
 
   // --- GÉOMÉTRIE ARRONDIE (SHAPES) ---
   const outerRadius = 0.12;
   const innerRadius = 0.15;
   const filletRadius = 0.25;
-
-  // Helper standard pour dessiner un rectangle arrondi
-  const drawRoundedRect = (ctx, width, height, radius) => {
-    const x = -width / 2;
-    const y = -height / 2;
-    ctx.moveTo(x, y + radius);
-    ctx.lineTo(x, y + height - radius);
-    ctx.absarc(
-      x + radius,
-      y + height - radius,
-      radius,
-      Math.PI,
-      Math.PI / 2,
-      true
-    );
-    ctx.lineTo(x + width - radius, y + height);
-    ctx.absarc(
-      x + width - radius,
-      y + height - radius,
-      radius,
-      Math.PI / 2,
-      0,
-      true
-    );
-    ctx.lineTo(x + width, y + radius);
-    ctx.absarc(x + width - radius, y + radius, radius, 0, -Math.PI / 2, true);
-    ctx.lineTo(x + radius, y);
-    ctx.absarc(x + radius, y + radius, radius, -Math.PI / 2, -Math.PI, true);
-  };
 
   // Helper pour dessiner le trou intérieur AVEC LES DENTS (Rainures)
   const drawTeethedHole = (
@@ -341,7 +310,7 @@ const Vasque3D = ({ config }) => {
     height,
     radius,
     isDrainer,
-    drainerPos
+    drainerPos,
   ) => {
     const x = -width / 2;
     const y = -height / 2;
@@ -382,7 +351,7 @@ const Vasque3D = ({ config }) => {
       radius,
       Math.PI,
       Math.PI / 2,
-      true
+      true,
     );
     ctx.lineTo(x + width - radius, y + height);
     ctx.absarc(
@@ -391,7 +360,7 @@ const Vasque3D = ({ config }) => {
       radius,
       Math.PI / 2,
       0,
-      true
+      true,
     );
 
     // 3. Côté DROIT
@@ -468,6 +437,11 @@ const Vasque3D = ({ config }) => {
       const r = innerRadius;
       const w = innerBasinL;
       const h = innerBasinW;
+      const extR = innerRadius; // Ajustement si besoin
+
+      // Correction tracé trou : on utilise drawTeethedHole pour être raccord avec les murs
+      // Mais ici c'est le trou du plan, souvent plus simple (juste rond)
+      // On garde le tracé manuel d'origine pour le trou du plan (plus joli raccord)
       hole.moveTo(hX - w / 2, hY - h / 2 + r);
       hole.lineTo(hX - w / 2, hY + h / 2 - r);
       hole.absarc(
@@ -476,7 +450,7 @@ const Vasque3D = ({ config }) => {
         r,
         Math.PI,
         Math.PI / 2,
-        true
+        true,
       );
       hole.lineTo(hX + w / 2 - r, hY + h / 2);
       hole.absarc(hX + w / 2 - r, hY + h / 2 - r, r, Math.PI / 2, 0, true);
@@ -489,7 +463,7 @@ const Vasque3D = ({ config }) => {
         r,
         -Math.PI / 2,
         -Math.PI,
-        true
+        true,
       );
       shape.holes.push(hole);
     }
@@ -520,8 +494,22 @@ const Vasque3D = ({ config }) => {
   const basinWallGeometry = useMemo(() => {
     if (!hasSink) return null;
     const shape = new THREE.Shape();
-    // On dessine le contour extérieur du mur (basinL / basinW)
 
+    // Contour extérieur (Rectangle arrondi simple)
+    const x = -basinL / 2;
+    const y = -basinW / 2;
+    const r = outerRadius;
+    const w = basinL;
+    const h = basinW;
+    shape.moveTo(x, y + r);
+    shape.lineTo(x, y + h - r);
+    shape.absarc(x + r, y + h - r, r, Math.PI, Math.PI / 2, true);
+    shape.lineTo(x + w - r, y + h);
+    shape.absarc(x + w - r, y + h - r, r, Math.PI / 2, 0, true);
+    shape.lineTo(x + w, y + r);
+    shape.absarc(x + w - r, y + r, r, 0, -Math.PI / 2, true);
+    shape.lineTo(x + r, y);
+    shape.absarc(x + r, y + r, r, -Math.PI / 2, -Math.PI, true);
 
     const hole = new THREE.Path();
     drawTeethedHole(
@@ -530,7 +518,7 @@ const Vasque3D = ({ config }) => {
       innerBasinW,
       innerRadius,
       config.hasDrainer,
-      config.drainerPosition
+      config.drainerPosition,
     );
     shape.holes.push(hole);
 
@@ -555,46 +543,115 @@ const Vasque3D = ({ config }) => {
     config.drainerPosition,
   ]);
 
-  // 3. GÉOMÉTRIE DU FOND (CORRIGÉE : MÉTHODE SOUSTRACTIVE)
-  const basinFloorGeometry = useMemo(() => {
+  // À copier-coller pour remplacer le bloc basinFloorGroup existant
+  // 3. FOND DE CUVE (CORRIGÉ : Filets extérieurs)
+  // 3. FOND DE CUVE (CORRIGÉ : Filets orientés vers l'extérieur)
+  const basinFloorGroup = useMemo(() => {
     if (!hasSink) return null;
-    const shape = new THREE.Shape();
 
-    // LOGIQUE : Le fond doit s'arrêter EXACTEMENT au bord du mur (basinL).
-    // ExtrudeGeometry avec Bevel AJOUTE de la matière (bevelSize).
-    // Donc, nous devons dessiner une forme plus PETITE de la taille du biseau.
-    // Forme dessinée = basinL - (2 * bevelSize).
-    
-    const expansionSize = wallThickness; // 0.12 (C'est la taille du "gonflement" du biseau)
-    
-    // On soustrait l'expansion pour que Forme + Expansion = basinL (Flush)
-    const drawW = basinL - (expansionSize * 4);
-    const drawH = basinW - (expansionSize * 4);
-    
-    // CALCUL DU RAYON DU DESSIN :
-    // Le mur a un rayon externe de outerRadius (0.12).
-    // Si on réduit le rectangle de 0.12, le rayon "disparaît" (devient 0).
-    // Le biseau va recréer un arrondi parfait de 0.12.
-    // On met une sécurité à 0.0001 si jamais outerRadius est > expansionSize
-    const drawR = Math.max(0.0001, outerRadius - expansionSize);
+    // Dimensions
+    const r = 0.12;
+    const L = basinL - 2 * r; // Longueur intérieure plate
+    const W = basinW - 2 * r; // Largeur intérieure plate
 
-    // Dessin du rectangle "rétréci"
-    drawRoundedRect(shape, drawW, drawH, drawR);
+    // 1. Le Pavé Central
+    const centerGeo = new THREE.BoxGeometry(L, r, W);
+    centerGeo.translate(0, 0.06, 0);
 
-    const targetThickness = 0.12; // Epaisseur visuelle
+    // 2. Le Profil du Bord (Quart de rond externe)
+    const profileShape = new THREE.Shape();
+    profileShape.moveTo(0, 0);
+    profileShape.lineTo(-r, 0);
+    profileShape.absarc(0, 0, r, Math.PI, (3 * Math.PI) / 2, false);
 
-    const extrudeSettings = {
-      depth: 0.0001,
-      bevelEnabled: true,
-      bevelThickness: targetThickness / 2, // 0.06
-      bevelSize: expansionSize, // 0.12 -> Cela rétablit la taille totale à basinL
-      bevelSegments: 16,
-    };
+    const extrudeSettings = { bevelEnabled: false, curveSegments: 16 };
 
-    const geom = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-    geom.rotateX(-Math.PI / 2);
-    return geom;
-  }, [hasSink, basinL, basinW, outerRadius, wallThickness]);
+    // edgeGeoL : Extrusion le long de l'axe Z (profondeur L)
+    const edgeGeoL = new THREE.ExtrudeGeometry(profileShape, {
+      ...extrudeSettings,
+      depth: L,
+    });
+    // edgeGeoW : Extrusion le long de l'axe Z (profondeur W)
+    const edgeGeoW = new THREE.ExtrudeGeometry(profileShape, {
+      ...extrudeSettings,
+      depth: W,
+    });
+
+    // 3. Le Coin (Huitième de sphère)
+    const cornerGeo = new THREE.SphereGeometry(
+      r,
+      32,
+      16,
+      Math.PI,
+      Math.PI / 2,
+      Math.PI / 2,
+      Math.PI / 2
+    );
+
+    return (
+      <group>
+        {/* CENTRE */}
+        <mesh geometry={centerGeo}>
+          <meshStandardMaterial {...basinFloorMaterialProps} />
+        </mesh>
+
+
+        {/* BORD GAUCHE (-X) : OK */}
+        <mesh
+          geometry={edgeGeoW}
+          position={[-L / 2, 0, -W / 2]}
+          rotation={[0, 0, 0]}
+        >
+          <meshStandardMaterial {...basinFloorMaterialProps} />
+        </mesh>
+
+        {/* BORD DROIT (+X) : OK */}
+        <mesh
+          geometry={edgeGeoW}
+          position={[L / 2, 0, W / 2]}
+          rotation={[0, Math.PI, 0]}
+        >
+          <meshStandardMaterial {...basinFloorMaterialProps} />
+        </mesh>
+
+        <mesh
+          geometry={edgeGeoL}
+          position={[-L / 2, 0, W / 2]} 
+          rotation={[0, Math.PI / 2, 0]}
+        >
+          <meshStandardMaterial {...basinFloorMaterialProps} />
+        </mesh>
+        <mesh
+          geometry={edgeGeoL}
+          position={[L / 2, 0, -W / 2]}
+          rotation={[0, -Math.PI / 2, 0]}
+        >
+          <meshStandardMaterial {...basinFloorMaterialProps} />
+        </mesh>
+
+        {/* --- COINS (SPHERES) --- */}
+        <mesh position={[-L / 2, 0, W / 2]} rotation={[0, Math.PI, 0]}>
+          <primitive object={cornerGeo} attach="geometry" />
+          <meshStandardMaterial {...basinFloorMaterialProps} />
+        </mesh>
+        <mesh position={[L / 2, 0, W / 2]} rotation={[0, -Math.PI / 2 , 0]}>
+          <primitive object={cornerGeo} attach="geometry" />
+          <meshStandardMaterial {...basinFloorMaterialProps} />
+        </mesh>
+        <mesh position={[L / 2, 0, -W / 2]} rotation={[-Math.PI /2 , 0, Math.PI/2]}>
+          <primitive object={cornerGeo} attach="geometry" />
+          <meshStandardMaterial {...basinFloorMaterialProps} />
+        </mesh>
+        <mesh
+          position={[-L / 2, 0, -W / 2]}
+          rotation={[0, (-3 * Math.PI) / 2, 0]}
+        >
+          <primitive object={cornerGeo} attach="geometry" />
+          <meshStandardMaterial {...basinFloorMaterialProps} />
+        </mesh>
+      </group>
+    );
+  }, [hasSink, basinL, basinW, basinX, basinZ, basinFloorMaterialProps]);
 
   // 4. CONGÉS INTÉRIEURS (FILLETS)
   const basinFilletGroup = useMemo(() => {
@@ -631,7 +688,7 @@ const Vasque3D = ({ config }) => {
       latheCurve.getPoints(10),
       16,
       0,
-      Math.PI / 2
+      Math.PI / 2,
     );
     return (
       <group>
@@ -712,6 +769,7 @@ const Vasque3D = ({ config }) => {
       {/* CUVE */}
       {hasSink && (
         <group>
+          {/* MURS */}
           <mesh
             position={[basinX, topSurfaceY - wallHeight, basinZ]}
             geometry={basinWallGeometry}
@@ -719,17 +777,16 @@ const Vasque3D = ({ config }) => {
             <meshStandardMaterial {...materialProps} side={THREE.DoubleSide} />
           </mesh>
 
-          <mesh
-            position={[basinX, floorY - wallThickness + 0.06, basinZ]}
-            geometry={basinFloorGeometry}
-            key={`floor-${config.color}`}
-          >
-            <meshStandardMaterial
-              {...basinFloorMaterialProps}
-              side={THREE.DoubleSide}
-            />
-          </mesh>
+          {/* FOND (Nouvelle version assemblée) */}
+          {/* floorY est la hauteur de la face superieure plate du fond */}
+          <group position={[basinX, floorY - 0.12, basinZ]}>
+            {basinFloorGroup}
+          </group>
+
+          {/* FILLETS INTÉRIEURS */}
           <group position={[basinX, floorY, basinZ]}>{basinFilletGroup}</group>
+
+          {/* Trou de bonde (visuel) */}
           <mesh position={[basinX, floorY + 0.005, basinZ]}>
             <cylinderGeometry args={[0.22, 0.22, 0.01, 32]} />
             <meshBasicMaterial color="#000000" />
