@@ -638,7 +638,7 @@ const Vasque3D = ({ config }) => {
           <primitive object={cornerGeo} attach="geometry" />
           <meshStandardMaterial {...basinFloorMaterialProps} />
         </mesh>
-        <mesh position={[L / 2, 0, -W / 2]} rotation={[-Math.PI /2 , 0, Math.PI/2]}>
+        <mesh position={[L / 2, 0, -W / 2]} rotation={[Math.PI /2 , -Math.PI/2, 0]}>
           <primitive object={cornerGeo} attach="geometry" />
           <meshStandardMaterial {...basinFloorMaterialProps} />
         </mesh>
