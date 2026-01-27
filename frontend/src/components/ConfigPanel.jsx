@@ -1,11 +1,13 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import ConfigResume from "./ConfigResume";
 import "../styles/style.scss";
 
 const ConfigPanel = ({ config, setConfig, setShowModal }) => {
-  // --- CONSTANTES ---
   const DRAINER_PRICE = 50;
-  const DRAINER_MIN_SPACE = 400; // 350mm largeur + 50mm marge min
+  const DRAINER_WIDTH_MM = 350; 
+  const MIN_GAP_BETWEEN_SINKS = 40; 
+  const MARGIN_PLAN_EDGE = 100; // Marge minimale aux extrémités du plan
+  const SINK_DEFAULT_SIZE = 400; // Pour tester si une nouvelle cuve rentre
 
   const SINK_SPECS = {
     "Aucune cuve": { l: 0, w: 0, d: 0, price: 0 },
@@ -15,48 +17,8 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
     "Cuve sanitaire 422x336x139": { l: 422, w: 336, d: 139, price: 330 },
   };
 
-  const currentSink = config.sink || "Aucune cuve";
-  const isNoSink = currentSink === "Aucune cuve";
-
-  // --- LIMITES DYNAMIQUES ---
-  const minPlanDepth = isNoSink ? 400 : config.basinWidth + 160;
-  const maxPlanDepth = 700;
-  const minPlanLength = isNoSink ? 600 : config.basinLength + 200;
-  const maxPlanLength = 3600;
-
-  const isSidePosition =
-    config.position === "left" || config.position === "right";
-  const calculatedMaxOffset = (config.length - config.basinLength) / 2;
-  const maxOffset = Math.max(10, Math.floor(calculatedMaxOffset));
-  const maxTapOffset = Math.floor(config.basinLength / 2 - 25);
-
-  // --- CALCUL DES ESPACES LIBRES POUR L'ÉGOUTTOIR ---
-  // On calcule l'espace disponible à gauche et à droite de la cuve
-  let spaceLeft = 0;
-  let spaceRight = 0;
-
-  if (!isNoSink) {
-    if (config.position === "center") {
-      const margin = (config.length - config.basinLength) / 2;
-      spaceLeft = margin;
-      spaceRight = margin;
-    } else if (config.position === "left") {
-      const offset = config.sinkOffset || 100;
-      spaceLeft = offset;
-      spaceRight = config.length - offset - config.basinLength;
-    } else if (config.position === "right") {
-      const offset = config.sinkOffset || 100;
-      spaceRight = offset;
-      spaceLeft = config.length - offset - config.basinLength;
-    }
-  }
-
-  const canAddLeft = spaceLeft >= DRAINER_MIN_SPACE;
-  const canAddRight = spaceRight >= DRAINER_MIN_SPACE;
-
-  // --- MISE EN PLACE DES CONTRAINTES ---
+  // --- INITIALISATION ---
   useEffect(() => {
-    // Force Retombées
     if (!config.aprons || !config.apronFront) {
       setConfig((prev) => ({
         ...prev,
@@ -66,620 +28,597 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
       }));
     }
 
-    // Vérification Égouttoir si l'espace change
-    if (config.hasDrainer) {
-      if (config.drainerPosition === "left" && !canAddLeft) {
-        // Si plus de place à gauche, on essaye à droite, sinon on désactive
-        if (canAddRight)
-          setConfig((prev) => ({ ...prev, drainerPosition: "right" }));
-        else setConfig((prev) => ({ ...prev, hasDrainer: false }));
-      } else if (config.drainerPosition === "right" && !canAddRight) {
-        if (canAddLeft)
-          setConfig((prev) => ({ ...prev, drainerPosition: "left" }));
-        else setConfig((prev) => ({ ...prev, hasDrainer: false }));
+    if (!config.sinks) {
+      setConfig((prev) => ({
+        ...prev,
+        sinks: [
+          {
+            id: Date.now(),
+            type: prev.sink || "Aucune cuve",
+            position: prev.position || "center",
+            offset: prev.sinkOffset || 100,
+            hasTapHole: prev.hasTapHole || false,
+            tapHolePosition: prev.tapHole || "none",
+            tapHoleOffset: prev.tapHoleOffset || 50,
+            hasDrainer: prev.hasDrainer || false,
+            drainerPosition: prev.drainerPosition || "right",
+          },
+        ],
+      }));
+    }
+  }, [config.sinks, config.aprons, config.apronFront, setConfig]);
+
+  const currentSinks = config.sinks || [];
+  const hasAtLeastOneSink = currentSinks.some((s) => s.type !== "Aucune cuve");
+
+  // --- 1. CALCUL PRÉCIS DE LA POSITION DES CUVES (LAYOUT ENGINE) ---
+  const layout = useMemo(() => {
+      const items = currentSinks.map(s => {
+         const w = SINK_SPECS[s.type]?.l || 0;
+         return { ...s, width: w };
+      });
+
+      const positions = [];
+      const planHalfL = config.length / 2;
+
+      // Positionnement Cuve 1 (Ancre)
+      let firstItem = items[0];
+      let x1 = 0; 
+
+      if (firstItem) {
+          if (firstItem.position === "center") {
+              x1 = 0;
+          } else if (firstItem.position === "left") {
+              // Bord Gauche Cuve = -Plan/2 + Offset
+              // Centre = Bord Gauche + W/2
+              x1 = -planHalfL + (firstItem.offset || 100) + firstItem.width / 2;
+          } else if (firstItem.position === "right") {
+              // Bord Droit Cuve = Plan/2 - Offset
+              // Centre = Bord Droit - W/2
+              x1 = planHalfL - (firstItem.offset || 100) - firstItem.width / 2;
+          }
+          
+          let lb = x1 - firstItem.width/2;
+          let rb = x1 + firstItem.width/2;
+          // Extension si égouttoir
+          if (firstItem.hasDrainer && firstItem.drainerPosition === 'left') lb -= DRAINER_WIDTH_MM;
+          if (firstItem.hasDrainer && firstItem.drainerPosition === 'right') rb += DRAINER_WIDTH_MM;
+
+          positions.push({ ...firstItem, centerX: x1, leftBound: lb, rightBound: rb });
       }
-    }
-  }, [
-    config.aprons,
-    config.apronFront,
-    config.length,
-    config.basinLength,
-    config.position,
-    config.sinkOffset,
-    canAddLeft,
-    canAddRight,
-    config.hasDrainer,
-    config.drainerPosition,
-    setConfig,
-  ]);
 
-  // --- CALCUL DU PRIX ---
-  const calculatePrice = () => {
-    // 1. Surface
-    const surfaceM2 = (config.length * config.width) / 1000000;
-    const baseMaterialPrice = 219.3 * surfaceM2 + 447.37;
-    let total = Math.round(baseMaterialPrice);
+      // Positionnement Chaîne (Cuves suivantes)
+      for (let i = 1; i < items.length; i++) {
+          const prev = positions[i-1];
+          const curr = items[i];
+          
+          let minGap = MIN_GAP_BETWEEN_SINKS;
+          if (prev.hasDrainer && prev.drainerPosition === 'right') minGap += DRAINER_WIDTH_MM;
+          if (curr.hasDrainer && curr.drainerPosition === 'left') minGap += DRAINER_WIDTH_MM;
 
-    // 2. Cuve
-    const selectedSinkSpec = SINK_SPECS[currentSink];
-    if (selectedSinkSpec) total += selectedSinkSpec.price;
+          // Centre = CentrePrec + DemiWPrec + Gap + OffsetUtilisateur + DemiWCurr
+          const dist = (prev.width / 2) + minGap + (curr.offset || 0) + (curr.width / 2);
+          const x = prev.centerX + dist;
 
-    // 3. Perçage Robinetterie
-    if (config.hasTapHole && config.tapHole !== "none") total += 15;
+          let lb = x - curr.width/2;
+          let rb = x + curr.width/2;
+          if (curr.hasDrainer && curr.drainerPosition === 'left') lb -= DRAINER_WIDTH_MM;
+          if (curr.hasDrainer && curr.drainerPosition === 'right') rb += DRAINER_WIDTH_MM;
 
-    // 4. Égouttoir
-    if (config.hasDrainer) total += DRAINER_PRICE;
+          positions.push({ ...curr, centerX: x, leftBound: lb, rightBound: rb });
+      }
 
-    // 5. Linéaire (Retombées & Dosserets)
-    const getLinearPartPrice = (heightMm, lengthMm) => {
-      if (!heightMm || heightMm <= 17.6) return 0;
-      const pricePerMeter = 53.6 * Math.log(heightMm - 17.6) - 86.4;
-      const safePricePerMeter = Math.max(0, pricePerMeter);
-      return Math.round(safePricePerMeter * (lengthMm / 1000));
-    };
+      const groupMinX = positions.length > 0 ? positions[0].leftBound : 0;
+      const groupMaxX = positions.length > 0 ? positions[positions.length - 1].rightBound : 0;
 
-    if (config.rims) {
-      if (config.rimLeft)
-        total += getLinearPartPrice(config.rimHeigh, config.width);
-      if (config.rimRight)
-        total += getLinearPartPrice(config.rimHeigh, config.width);
-      if (config.rimBack)
-        total += getLinearPartPrice(config.rimHeigh, config.length);
-    }
+      return { items: positions, groupMinX, groupMaxX };
+  }, [currentSinks, config.length]);
 
-    if (config.aprons) {
-      const h = config.apronHeight || 40;
-      if (config.apronFront) total += getLinearPartPrice(h, config.length);
-      if (config.apronLeft) total += getLinearPartPrice(h, config.width);
-      if (config.apronRight) total += getLinearPartPrice(h, config.width);
-      if (config.apronBack) total += getLinearPartPrice(h, config.length);
-    }
+  // --- 2. CALCUL DISPONIBILITÉ AJOUT (INTELLIGENT) ---
+  const planHalfLength = config.length / 2;
+  // Limites physiques utilisables (Bornes du plan - Marge de sécurité)
+  const absLimitLeft = -planHalfLength + MARGIN_PLAN_EDGE;
+  const absLimitRight = planHalfLength - MARGIN_PLAN_EDGE;
 
-    return total;
-  };
+  // Espace libre à gauche du groupe
+  // (Bord Gauche Groupe) - (Limite Gauche Plan)
+  const spaceAvailableLeft = layout.groupMinX - absLimitLeft;
+  
+  // Espace libre à droite du groupe
+  // (Limite Droite Plan) - (Bord Droit Groupe)
+  const spaceAvailableRight = absLimitRight - layout.groupMaxX;
 
-  const totalPrice = calculatePrice();
+  // Espace requis pour ajouter une nouvelle cuve standard + son gap technique
+  const SPACE_REQ_NEW = SINK_DEFAULT_SIZE + MIN_GAP_BETWEEN_SINKS;
+
+  const canAddSinkLeft = spaceAvailableLeft >= SPACE_REQ_NEW;
+  const canAddSinkRight = spaceAvailableRight >= SPACE_REQ_NEW;
+
+  // --- MIN / MAX PLAN (UNCHANGED) ---
+  const { minPlanLength, minPlanDepth } = useMemo(() => {
+    let totalL = 0;
+    let maxW = 0;
+    currentSinks.forEach((s, i) => {
+        if (s.type === "Aucune cuve") return;
+        const spec = SINK_SPECS[s.type];
+        if (spec.w > maxW) maxW = spec.w;
+        let itemL = spec.l;
+        if (s.hasDrainer) itemL += DRAINER_WIDTH_MM;
+        totalL += itemL;
+        if (i < currentSinks.length - 1) totalL += MIN_GAP_BETWEEN_SINKS;
+    });
+    const computedMinLen = Math.max(600, totalL + MARGIN_PLAN_EDGE * 2);
+    const computedMinDep = Math.max(400, maxW + 160);
+    return { minPlanLength: computedMinLen, minPlanDepth: computedMinDep };
+  }, [currentSinks]);
+
+  const maxPlanLength = 3600;
+  const maxPlanDepth = 700;
 
   // --- HANDLERS ---
-  const handleChange = (e) => {
+  const handleGlobalChange = (e) => {
     const { name, value, type, checked } = e.target;
-    const val = type === "number" ? parseFloat(value) : value;
-
-    if (name === "hasTapHole") {
-      setConfig((prev) => ({
-        ...prev,
-        hasTapHole: checked,
-        tapHole: checked ? "center" : "none",
-        tapHoleOffset: 0,
-      }));
-    } else if (name === "tapHolePosition") {
-      setConfig((prev) => ({
-        ...prev,
-        tapHole: val,
-        tapHoleOffset: val === "center" ? 0 : prev.tapHoleOffset || 50,
-      }));
-    } else if (name === "rims") {
-      if (checked)
-        setConfig((prev) => ({
-          ...prev,
-          rims: true,
-          rimHeigh: 100,
-          rimLeft: !prev.apronLeft,
-          rimBack: !prev.apronBack,
-          rimRight: !prev.apronRight,
-        }));
-      else
-        setConfig((prev) => ({
-          ...prev,
-          rims: false,
-          rimLeft: false,
-          rimBack: false,
-          rimRight: false,
-        }));
-    } else if (name === "hasDrainer") {
-      // Initialisation intelligente de la position
-      let defaultPos = "right";
-      if (!canAddRight && canAddLeft) defaultPos = "left";
-
-      setConfig((prev) => ({
-        ...prev,
-        hasDrainer: checked,
-        drainerPosition: checked ? prev.drainerPosition || defaultPos : null,
-      }));
-    } else if (name === "drainerPosition") {
-      setConfig((prev) => ({ ...prev, drainerPosition: value }));
-    } else {
-      setConfig((prev) => ({
-        ...prev,
-        [name]: type === "checkbox" ? checked : val,
-      }));
+    if (name === "rims" && checked) {
+        setConfig(prev => ({ ...prev, rims: true, rimHeigh: 100 }));
+        return;
     }
+    setConfig((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : (type === "number" ? parseFloat(value) : value),
+    }));
   };
-
-  const toggleRimSide = (sideKey) =>
-    setConfig((prev) => ({ ...prev, [sideKey]: !prev[sideKey] }));
-  const toggleApronSide = (sideKey) =>
-    setConfig((prev) => ({ ...prev, [sideKey]: !prev[sideKey] }));
 
   const handleBlur = (e) => {
-    const { name, value, min, max } = e.target;
-    const val = parseFloat(value);
-    const minVal = parseFloat(min);
-    const maxVal = parseFloat(max);
-    if (isNaN(val)) {
-      setConfig((prev) => ({ ...prev, [name]: minVal }));
-      return;
-    }
-    if (val < minVal) setConfig((prev) => ({ ...prev, [name]: minVal }));
-    else if (val > maxVal) setConfig((prev) => ({ ...prev, [name]: maxVal }));
+      const { name, value, min, max } = e.target;
+      const val = parseFloat(value);
+      if (isNaN(val)) return;
+      if (min && val < parseFloat(min)) setConfig(p => ({...p, [name]: parseFloat(min)}));
+      if (max && val > parseFloat(max)) setConfig(p => ({...p, [name]: parseFloat(max)}));
   };
 
-  const handleSinkSelect = (sinkName) => {
-    const specs = SINK_SPECS[sinkName];
-    if (specs) {
-      const requiredMinDepth = sinkName === "Aucune cuve" ? 400 : specs.w + 160;
-      const requiredMinLength =
-        sinkName === "Aucune cuve" ? 600 : specs.l + 200;
-      setConfig((prev) => {
-        const currentPlanDepth =
-          prev.width < requiredMinDepth ? requiredMinDepth : prev.width;
-        const currentPlanLength =
-          prev.length < requiredMinLength ? requiredMinLength : prev.length;
-        return {
-          ...prev,
-          sink: sinkName,
-          basinLength: specs.l,
-          basinWidth: specs.w,
-          depth: specs.d,
-          width: currentPlanDepth,
-          length: currentPlanLength,
-          hasTapHole: sinkName === "Aucune cuve" ? false : prev.hasTapHole,
-          tapHole: sinkName === "Aucune cuve" ? "none" : prev.tapHole,
-          // Reset drainer si plus de place
-          hasDrainer: sinkName === "Aucune cuve" ? false : prev.hasDrainer,
-        };
+  const updateSink = (id, field, value) => {
+    setConfig(prev => ({
+        ...prev,
+        sinks: prev.sinks.map(s => s.id === id ? { ...s, [field]: value } : s)
+    }));
+  };
+
+  // HANDLER EGOUTTOIR INTELLIGENT (CHECK SPACE PER SINK)
+  const handleDrainerCheck = (id, isChecked, index) => {
+      if (!isChecked) {
+          updateSink(id, "hasDrainer", false);
+          return;
+      }
+
+      // Check spécifique pour CETTE cuve
+      const myPos = layout.items[index];
+      if (!myPos) return;
+
+      // Espace Gauche dispo pour cette cuve = (Bord Gauche Cuve) - (Obstacle Gauche)
+      const obstacleL = index === 0 ? absLimitLeft : layout.items[index-1].rightBound;
+      const distL = myPos.leftBound - obstacleL;
+      const canL = distL >= DRAINER_WIDTH_MM;
+
+      // Espace Droite dispo
+      const obstacleR = index === currentSinks.length-1 ? absLimitRight : layout.items[index+1].leftBound;
+      const distR = obstacleR - myPos.rightBound;
+      const canR = distR >= DRAINER_WIDTH_MM;
+
+      if (canL && canR) updateSink(id, "drainerPosition", "left");
+      else if (canL) updateSink(id, "drainerPosition", "left");
+      else if (canR) updateSink(id, "drainerPosition", "right");
+      else {
+          alert("Pas assez de place (350mm requis) à gauche ou à droite de cette cuve.");
+          return;
+      }
+      updateSink(id, "hasDrainer", true);
+  };
+
+  const handleSinkTypeSelect = (id, typeName) => {
+      const specs = SINK_SPECS[typeName];
+      if(id === currentSinks[0].id) {
+         const requiredMinDepth = typeName === "Aucune cuve" ? 400 : specs.w + 160;
+         setConfig(prev => ({ ...prev, width: prev.width < requiredMinDepth ? requiredMinDepth : prev.width }));
+      }
+      updateSink(id, "type", typeName);
+      if (typeName === "Aucune cuve") {
+          setConfig(prev => ({
+             ...prev,
+             sinks: prev.sinks.map(s => s.id === id ? { ...s, type: typeName, hasTapHole: false, hasDrainer: false } : s)
+          }));
+      }
+  };
+
+  // --- SMART ADD NEW SINK ---
+  const addNewSink = (side) => {
+      const newSink = {
+          id: Date.now(),
+          type: "Cuve Labo 400x400x300", 
+          hasTapHole: false,
+          tapHolePosition: "center",
+          tapHoleOffset: 0,
+          hasDrainer: false,
+          drainerPosition: "right",
+          offset: 0 
+      };
+      
+      setConfig(prev => {
+          let newSinks = [...prev.sinks];
+          
+          if (side === "left") {
+            // AJOUT GAUCHE : On insère au début.
+            // On veut que l'ancienne cuve 1 (qui devient 2) ne BOUGE PAS visuellement.
+            // Pour ça, il faut que la nouvelle cuve (Ancre) soit positionnée 
+            // exactement là où elle doit être pour que le gap soit respecté.
+            
+            const oldHead = newSinks[0]; // Ancienne ancre
+            
+            // Calcul de la position actuelle du bord gauche de l'ancienne ancre
+            // Note : layoutMetrics est calculé AVANT cet ajout. On peut s'en servir.
+            const oldHeadLayout = layout.items[0]; 
+            const oldHeadLeftEdge = oldHeadLayout.leftBound; // Position absolue du bord gauche actuel (ex: -200)
+
+            // On veut placer la nouvelle cuve à gauche de ça.
+            // Nouvelle Cuve Droite = OldHeadLeftEdge - GAP
+            // Nouvelle Cuve Gauche = Nouvelle Cuve Droite - NewWidth
+            // Nouvelle Cuve Center = ...
+            
+            // Gap requis entre nouvelle et ancienne
+            // (On suppose pas d'égouttoir sur la nouvelle par défaut)
+            let gap = MIN_GAP_BETWEEN_SINKS;
+            if (oldHead.hasDrainer && oldHead.drainerPosition === 'left') gap += DRAINER_WIDTH_MM;
+
+            // Position Bord Gauche de la NOUVELLE cuve
+            // = (Bord Gauche Ancienne) - gap - (Largeur Nouvelle)
+            const newSinkWidth = SINK_SPECS[newSink.type].l;
+            let targetLeftEdge = oldHeadLeftEdge - gap - newSinkWidth;
+
+            // Sécurité : Est-ce que ça sort du plan ?
+            // absLimitLeft est la limite gauche (-L/2 + Marge)
+            // Si targetLeftEdge < absLimitLeft, on doit coller au bord gauche (et l'autre bougera tant pis, ou c'est impossible)
+            // Mais canAddSinkLeft a déjà vérifié l'espace global. Donc normalement ça rentre.
+            if (targetLeftEdge < absLimitLeft) targetLeftEdge = absLimitLeft;
+
+            // Maintenant on configure la nouvelle cuve comme ANCRE (Position Left)
+            // Offset = Distance(Bord Plan Gauche, Bord Gauche Nouvelle Cuve)
+            // Bord Plan Gauche = -L/2
+            // Offset = targetLeftEdge - (-L/2)
+            const newOffset = targetLeftEdge - (-config.length/2);
+
+            const newHead = { 
+                ...newSink, 
+                position: "left", 
+                offset: Math.max(newOffset, MARGIN_PLAN_EDGE)
+            };
+            
+            // L'ancienne ancre perd son statut absolu et devient relative (offset 0 par défaut)
+            const oldHeadRel = { ...oldHead, offset: 0 };
+            
+            newSinks = [newHead, oldHeadRel, ...newSinks.slice(1)];
+
+          } else {
+            // AJOUT DROITE : Simple push, pas de changement d'ancre
+            newSinks = [...newSinks, newSink];
+          }
+          return { ...prev, sinks: newSinks };
       });
-    }
   };
 
-  const handleAddToCart = () =>
-    alert(`Produit ajouté au panier pour ${totalPrice} € TTC`);
-  const surfaceM2 = (config.length * config.width) / 1000000;
-  const showWeightAlert = surfaceM2 >= 2;
+  const removeSink = (id) => {
+      setConfig(prev => {
+          const newSinks = prev.sinks.filter(s => s.id !== id);
+          if(prev.sinks[0].id === id && newSinks.length > 0) {
+             // Si on supprime l'ancre, le suivant devient ancre.
+             // On lui donne un offset par défaut ou on essaie de garder sa pos ?
+             // Par simplicité : centré par défaut ou left 100
+             newSinks[0] = { ...newSinks[0], position: "center", offset: 100 };
+          }
+          if (newSinks.length === 0) return { ...prev, sinks: [{ id: Date.now(), type: "Aucune cuve", position: "center", offset: 100 }] };
+          return { ...prev, sinks: newSinks };
+      });
+  };
+
+  const toggleRimSide = (k) => setConfig(p => ({ ...p, [k]: !p[k] }));
+  const toggleApronSide = (k) => setConfig(p => ({ ...p, [k]: !p[k] }));
+
+  const calculatePrice = () => {
+    const surfaceM2 = (config.length * config.width) / 1000000;
+    let total = Math.round(219.3 * surfaceM2 + 447.37);
+    currentSinks.forEach(sink => {
+        const spec = SINK_SPECS[sink.type];
+        if (spec) total += spec.price;
+        if (sink.hasTapHole && sink.tapHolePosition !== "none") total += 15;
+        if (sink.hasDrainer) total += DRAINER_PRICE;
+    });
+    // ... calculs linéaires inchangés
+    const getLinearPartPrice = (heightMm, lengthMm) => {
+        if (!heightMm || heightMm <= 17.6) return 0;
+        const pricePerMeter = 53.6 * Math.log(heightMm - 17.6) - 86.4;
+        return Math.round(Math.max(0, pricePerMeter) * (lengthMm / 1000));
+    };
+    if (config.rims) {
+        if (config.rimLeft) total += getLinearPartPrice(config.rimHeigh, config.width);
+        if (config.rimRight) total += getLinearPartPrice(config.rimHeigh, config.width);
+        if (config.rimBack) total += getLinearPartPrice(config.rimHeigh, config.length);
+    }
+    if (config.aprons) {
+        const h = config.apronHeight || 40;
+        if (config.apronFront) total += getLinearPartPrice(h, config.length);
+        if (config.apronLeft) total += getLinearPartPrice(h, config.width);
+        if (config.apronRight) total += getLinearPartPrice(h, config.width);
+        if (config.apronBack) total += getLinearPartPrice(h, config.length);
+    }
+    return total;
+  };
+  const totalPrice = calculatePrice();
 
   return (
     <div className="config-panel">
-      <h1>
-        Votre Plan-Vasque <span className="gold-text">Sur Mesure</span>
-      </h1>
+      <h1>Votre Plan-Vasque <span className="gold-text">Sur Mesure</span></h1>
 
-      {/* COULEUR */}
       <div className="form-group">
         <label>Couleur du Solid Surface</label>
         <div className="corian-color">
-          <button
-            className={config.color === "white" ? "active" : ""}
-            onClick={() => setConfig({ ...config, color: "white" })}
-          >
-            Blanc Pur
-          </button>
+          <button className={config.color === "white" ? "active" : ""} onClick={() => setConfig({ ...config, color: "white" })}>Blanc Pur</button>
         </div>
       </div>
 
-      {/* DIMENSIONS */}
       <div className="form-group section-box">
         <label className="section-title">Dimensions du Plan</label>
         <div className="inputs-row">
           <div>
-            <span>Largeur (mm) (min: {minPlanLength} / max: 3600)</span>
-            <input
-              type="number"
-              name="length"
-              value={config.length}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              min={minPlanLength}
-              max={maxPlanLength}
-              step="10"
-            />
+            <div className="limit-label">Min: {minPlanLength} / Max: {maxPlanLength}</div>
+            <span>Largeur (mm)</span>
+            <input type="number" name="length" value={config.length} onChange={handleGlobalChange} onBlur={handleBlur} min={minPlanLength} max={maxPlanLength} step="10" />
           </div>
           <div>
-            <span>Profondeur (mm) (min: {minPlanDepth} / max: 700)</span>
-            <input
-              type="number"
-              name="width"
-              value={config.width}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              min={minPlanDepth}
-              max={maxPlanDepth}
-              step="10"
-            />
+            <div className="limit-label">Min: {minPlanDepth} / Max: {maxPlanDepth}</div>
+            <span>Profondeur (mm)</span>
+            <input type="number" name="width" value={config.width} onChange={handleGlobalChange} onBlur={handleBlur} min={minPlanDepth} max={maxPlanDepth} step="10" />
           </div>
         </div>
-        {showWeightAlert && (
-          <div className="weight-alert">
-            <span className="icon">⚠️</span>
-            <div className="text">
-              <strong>Attention : Poids Élevé</strong>
-              <p>Votre plan fait {surfaceM2.toFixed(2)}m².</p>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* CUVE & OPTIONS */}
-      <div className="form-group section-box">
-        <label className="section-title">Choix de la cuve</label>
-        <div className="sink-options-list">
-          {Object.keys(SINK_SPECS).map((opt) => (
-            <button
-              key={opt}
-              className={currentSink === opt ? "active-small" : ""}
-              onClick={() => handleSinkSelect(opt)}
-            >
-              {opt === "Aucune cuve" ? "Aucune" : opt.replace("Cuve ", "")}
-              <span
-                style={{
-                  display: "block",
-                  fontSize: "0.75rem",
-                  marginTop: "2px",
-                  opacity: 0.8,
-                }}
-              >
-                {SINK_SPECS[opt].price === 0
-                  ? "Inclus"
-                  : `+${SINK_SPECS[opt].price}€`}
-              </span>
-            </button>
-          ))}
-        </div>
+      {currentSinks.map((sink, index) => {
+          const isFirst = index === 0;
+          const isNoSink = sink.type === "Aucune cuve";
+          const isMulti = currentSinks.length > 1;
+          const currentPos = layout.items[index];
 
-        {!isNoSink && (
-          <>
-            <div
-              style={{ margin: "20px 0", borderTop: "1px solid #e0e0e0" }}
-            ></div>
+          // -- LIMITES OFFSET --
+          let minOffset = 0; 
+          let maxOffset = 0;
 
-            {/* POSITION */}
-            <label className="section-title">Position de la cuve</label>
-            <div className="inputs-row" style={{ alignItems: "flex-end" }}>
-              <div className="drilling-options" style={{ marginRight: "15px", marginBottom: "5px" }}>
-              <button
-                className={config.position === "left" ? "active-small" : ""}
-                onClick={() => handleChange({ target: { name: "position", value: "left" } })}
-              >
-                Gauche
-              </button>
-              <button
-                className={config.position === "center" ? "active-small" : ""}
-                onClick={() => handleChange({ target: { name: "position", value: "center" } })}
-              >
-                Centré
-              </button>
-              <button
-                className={config.position === "right" ? "active-small" : ""}
-                onClick={() => handleChange({ target: { name: "position", value: "right" } })}
-              >
-                Droite
-              </button>
-            </div>
-              {isSidePosition && (
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    marginLeft: "15px",
-                    flex: 1,
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: "0.75rem",
-                      color: "#666",
-                      marginBottom: "4px",
-                    }}
-                  >
-                    Décalage bord (min: 100 / max: {maxOffset})
-                  </span>
-                  <input
-                    type="number"
-                    name="sinkOffset"
-                    value={config.sinkOffset || 100}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                    min="100"
-                    max={maxOffset}
-                    step="10"
-                  />
+          if (isFirst) {
+              // ANCRE (Cuve 1)
+              // Min = Marge + Égouttoir éventuel du côté ancré
+              minOffset = MARGIN_PLAN_EDGE;
+              if (sink.position === 'left' && sink.hasDrainer && sink.drainerPosition === 'left') minOffset += DRAINER_WIDTH_MM;
+              if (sink.position === 'right' && sink.hasDrainer && sink.drainerPosition === 'right') minOffset += DRAINER_WIDTH_MM;
+              
+              // Max = Jusqu'au centre
+              maxOffset = (config.length/2) - (sink.width || 400)/2;
+              if (maxOffset < minOffset) maxOffset = minOffset; 
+          } else {
+              // RELATIF (Cuves suivantes)
+              minOffset = 0;
+              // Max = Espace dispo à droite jusqu'au bord
+              // Bord Droit Plan - Bord Droit Actuel + Mon Offset
+              const distToRightEdge = absLimitRight - (currentPos ? currentPos.rightBound : 0);
+              maxOffset = (sink.offset || 0) + distToRightEdge;
+          }
+
+          // -- DISPONIBILITÉ EGOUTTOIR --
+          const obstacleL = index === 0 ? absLimitLeft : layout.items[index-1].rightBound;
+          const distL = currentPos ? (currentPos.leftBound - obstacleL) : 0;
+          const canL = distL >= (DRAINER_WIDTH_MM - 10); // Tolérance de 10mm
+
+          const obstacleR = index === currentSinks.length-1 ? absLimitRight : layout.items[index+1].leftBound;
+          const distR = currentPos ? (obstacleR - currentPos.rightBound) : 0;
+          const canR = distR >= (DRAINER_WIDTH_MM - 10);
+
+          return (
+            <div key={sink.id} className="form-group section-box" style={{borderLeft: "4px solid #d4af37"}}>
+                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                    <label className="section-title">{isMulti ? `Cuve #${index + 1}` : "Choix de la cuve"}</label>
+                    {isMulti && (
+                        <button onClick={() => removeSink(sink.id)} style={{fontSize:'0.8rem', color:'red', border:'none', background:'transparent', cursor:'pointer'}}>Supprimer 🗑️</button>
+                    )}
                 </div>
-              )}
-            </div>
 
-            {/* ROBINETTERIE */}
-            <div
-              style={{ margin: "20px 0", borderTop: "1px solid #e0e0e0" }}
-            ></div>
-            <div className="checkbox-group">
-              <label style={{ marginBottom: "15px", fontWeight: "bold" }}>
-                <input
-                  type="checkbox"
-                  name="hasTapHole"
-                  checked={config.hasTapHole}
-                  onChange={handleChange}
-                />{" "}
-                Perçage pour robinetterie (+15€)
-              </label>
-              {config.hasTapHole && (
-                <div className="fade-in">
-                  <div
-                    className="drilling-options"
-                    style={{ marginBottom: "15px" }}
-                  >
-                    {["left", "center", "right"].map((opt) => (
-                      <button
-                        key={opt}
-                        className={config.tapHole === opt ? "active-small" : ""}
-                        onClick={() =>
-                          handleChange({
-                            target: { name: "tapHolePosition", value: opt },
-                          })
-                        }
-                      >
-                        {opt === "center"
-                          ? "Centre"
-                          : opt === "left"
-                            ? "Gauche"
-                            : "Droite"}
-                      </button>
-                    ))}
-                  </div>
-                  {(config.tapHole === "left" ||
-                    config.tapHole === "right") && (
-                    <div style={{ display: "flex", flexDirection: "column" }}>
-                      <span
-                        style={{
-                          fontSize: "0.75rem",
-                          color: "#666",
-                          marginBottom: "4px",
-                        }}
-                      >
-                        Décalage (mm) (max: {maxTapOffset})
-                      </span>
-                      <input
-                        type="number"
-                        name="tapHoleOffset"
-                        value={config.tapHoleOffset || 50}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        min="30"
-                        max={maxTapOffset}
-                        step="5"
-                      />
+                <div className="sink-options-list">
+                  {Object.keys(SINK_SPECS).map((opt) => (
+                    <button key={opt} className={sink.type === opt ? "active-small" : ""} onClick={() => handleSinkTypeSelect(sink.id, opt)}>
+                      {opt === "Aucune cuve" ? "Aucune" : opt.replace("Cuve ", "")}
+                    </button>
+                  ))}
+                </div>
+
+                {!isNoSink && (
+                  <>
+                    <div style={{ margin: "20px 0", borderTop: "1px solid #e0e0e0" }}></div>
+
+                    {isFirst ? (
+                        <>
+                        <label className="section-title">Positionnement (Ancrage)</label>
+                        <div className="inputs-row" style={{ alignItems: "flex-end" }}>
+                            <div className="drilling-options" style={{ marginRight: "15px", marginBottom: "5px" }}>
+                                <button className={sink.position === "left" ? "active-small" : ""} onClick={() => updateSink(sink.id, "position", "left")}>Gauche</button>
+                                <button className={sink.position === "center" ? "active-small" : ""} onClick={() => updateSink(sink.id, "position", "center")}>Centré</button>
+                                <button className={sink.position === "right" ? "active-small" : ""} onClick={() => updateSink(sink.id, "position", "right")}>Droite</button>
+                            </div>
+                            {(sink.position !== "center") && (
+                                <div style={{ display: "flex", flexDirection: "column", marginLeft: "15px", flex: 1 }}>
+                                    <span style={{ fontSize: "0.75rem", color: "#666", marginBottom: "4px" }}>
+                                        Décalage Bord (min: {minOffset})
+                                    </span>
+                                    <input
+                                        type="number"
+                                        value={sink.offset}
+                                        onChange={(e) => {
+                                            let val = parseFloat(e.target.value);
+                                            if (val < minOffset) val = minOffset;
+                                            if (val > maxOffset) val = maxOffset;
+                                            updateSink(sink.id, "offset", val);
+                                        }}
+                                        min={minOffset} max={maxOffset} step="10"
+                                    />
+                                    <span style={{fontSize:'0.65rem', color:'#999'}}>Max: {Math.floor(maxOffset)}</span>
+                                </div>
+                            )}
+                        </div>
+                        </>
+                    ) : (
+                        <>
+                        <label className="section-title">Positionnement Relatif</label>
+                        <div style={{ display: "flex", flexDirection: "column", marginTop:'10px' }}>
+                             <span style={{ fontSize: "0.9rem", color: "#333", marginBottom: "5px" }}>
+                                Espace supp. depuis cuve précédente
+                             </span>
+                             <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
+                                 <input
+                                    type="number"
+                                    style={{width:'100px'}}
+                                    value={sink.offset}
+                                    onChange={(e) => {
+                                        let val = parseFloat(e.target.value);
+                                        if (val < minOffset) val = minOffset;
+                                        if (val > maxOffset) val = maxOffset;
+                                        updateSink(sink.id, "offset", val);
+                                    }}
+                                    min={minOffset} max={maxOffset} step="10"
+                                />
+                                <span style={{fontSize:'0.8rem', color:'#666'}}>
+                                    (+ {MIN_GAP_BETWEEN_SINKS}mm technique)
+                                </span>
+                             </div>
+                        </div>
+                        </>
+                    )}
+
+                    <div style={{ margin: "20px 0", borderTop: "1px solid #e0e0e0" }}></div>
+
+                    <div className="checkbox-group">
+                        <label style={{ marginBottom: "15px", fontWeight: "bold" }}>
+                            <input type="checkbox" checked={sink.hasTapHole} onChange={(e) => updateSink(sink.id, "hasTapHole", e.target.checked)} /> Perçage robinetterie (+15€)
+                        </label>
+                        {sink.hasTapHole && (
+                            <div className="drilling-options" style={{ marginBottom: "15px", marginLeft:'25px' }}>
+                                {["left", "center", "right"].map((opt) => (
+                                <button key={opt} className={sink.tapHolePosition === opt ? "active-small" : ""} onClick={() => updateSink(sink.id, "tapHolePosition", opt)}>{opt}</button>
+                                ))}
+                            </div>
+                        )}
                     </div>
-                  )}
-                </div>
-              )}
+
+                    <div style={{ margin: "20px 0", borderTop: "1px solid #e0e0e0" }}></div>
+                    
+                    <div className="checkbox-group">
+                        <label style={{ marginBottom: "10px", fontWeight: "bold", opacity: (!canL && !canR && !sink.hasDrainer) ? 0.5 : 1 }}>
+                            <input 
+                                type="checkbox" 
+                                checked={sink.hasDrainer} 
+                                onChange={(e) => handleDrainerCheck(sink.id, e.target.checked, index)}
+                                disabled={!canL && !canR && !sink.hasDrainer}
+                            /> 
+                            Rainurage Égouttoir (+50€)
+                        </label>
+
+                        {(!canL && !canR && !sink.hasDrainer) && (
+                            <div style={{fontSize:'0.8rem', color:'#999', marginLeft:'25px'}}>
+                                Pas assez d'espace (min 350mm) à gauche ou à droite.
+                            </div>
+                        )}
+
+                        {sink.hasDrainer && (
+                            <div className="fade-in drilling-options" style={{ marginTop: "10px", marginLeft: "25px" }}>
+                                <button
+                                    className={sink.drainerPosition === "left" ? "active-small" : ""}
+                                    onClick={() => updateSink(sink.id, "drainerPosition", "left")}
+                                    disabled={!canL}
+                                    style={!canL ? {opacity:0.5, cursor:'not-allowed'} : {}}
+                                >À Gauche</button>
+                                <button
+                                    className={sink.drainerPosition === "right" ? "active-small" : ""}
+                                    onClick={() => updateSink(sink.id, "drainerPosition", "right")}
+                                    disabled={!canR}
+                                    style={!canR ? {opacity:0.5, cursor:'not-allowed'} : {}}
+                                >À Droite</button>
+                            </div>
+                        )}
+                    </div>
+                  </>
+                )}
             </div>
+          );
+      })}
 
-            {/* EGOUTTOIR */}
-            <div
-              style={{ margin: "20px 0", borderTop: "1px solid #e0e0e0" }}
-            ></div>
-            <div className="checkbox-group">
-              <label style={{ marginBottom: "10px", fontWeight: "bold" }}>
-                <input
-                  type="checkbox"
-                  name="hasDrainer"
-                  checked={config.hasDrainer}
-                  onChange={handleChange}
-                  disabled={!canAddLeft && !canAddRight}
-                />
-                Rainurage Égouttoir (+50€)
-              </label>
-              {!canAddLeft && !canAddRight && (
-                <div
-                  style={{
-                    fontSize: "0.8rem",
-                    color: "orange",
-                    marginLeft: "25px",
-                    marginBottom: "10px",
-                  }}
+      {hasAtLeastOneSink && (
+          <div className="form-group" style={{textAlign:'center', margin:'20px 0'}}>
+              <span style={{display:'block', marginBottom:'10px', fontWeight:'bold'}}>Ajouter une cuve ?</span>
+              <div style={{display:'flex', gap:'10px', justifyContent:'center'}}>
+                <button 
+                    className="btn-secondary" 
+                    onClick={() => addNewSink('left')}
+                    disabled={!canAddSinkLeft}
+                    style={!canAddSinkLeft ? {opacity:0.5, cursor:'not-allowed'} : {}}
+                    title={!canAddSinkLeft ? "Pas assez de place à gauche" : ""}
                 >
-                  Espace insuffisant pour l'égouttoir.
-                </div>
-              )}
-
-              {config.hasDrainer && (
-                <div
-                  className="fade-in drilling-options"
-                  style={{ marginTop: "10px", marginLeft: "25px" }}
+                    + Ajouter à Gauche
+                </button>
+                <button 
+                    className="btn-secondary" 
+                    onClick={() => addNewSink('right')}
+                    disabled={!canAddSinkRight}
+                    style={!canAddSinkRight ? {opacity:0.5, cursor:'not-allowed'} : {}}
+                    title={!canAddSinkRight ? "Pas assez de place à droite" : ""}
                 >
-                  <button
-                    className={
-                      config.drainerPosition === "left" ? "active-small" : ""
-                    }
-                    onClick={() =>
-                      handleChange({
-                        target: { name: "drainerPosition", value: "left" },
-                      })
-                    }
-                    disabled={!canAddLeft}
-                    title={!canAddLeft ? "Pas assez de place à gauche" : ""}
-                  >
-                    À Gauche
-                  </button>
-                  <button
-                    className={
-                      config.drainerPosition === "right" ? "active-small" : ""
-                    }
-                    onClick={() =>
-                      handleChange({
-                        target: { name: "drainerPosition", value: "right" },
-                      })
-                    }
-                    disabled={!canAddRight}
-                    title={!canAddRight ? "Pas assez de place à droite" : ""}
-                  >
-                    À Droite
-                  </button>
-                </div>
-              )}
-            </div>
-          </>
-        )}
-      </div>
+                    + Ajouter à Droite
+                </button>
+              </div>
+          </div>
+      )}
 
-      {/* DOSSERETS */}
+      {/* OPTIONS GLOBALES */}
       <div className="form-group checkbox-group">
-        <label>
-          <input
-            type="checkbox"
-            name="rims"
-            checked={config.rims}
-            onChange={handleChange}
-          />{" "}
-          Ajouter dosserets
-        </label>
+        <label><input type="checkbox" name="rims" checked={config.rims} onChange={handleGlobalChange} /> Ajouter dosserets</label>
         {config.rims && (
-          <div
-            className="rims-options-container"
-            style={{ marginTop: "10px", width: "100%" }}
-          >
-            <div style={{ marginBottom: "10px" }}>
-              <span style={{ fontSize: "0.9rem", marginRight: "10px" }}>
-                Hauteur :
-              </span>
-              <input
-                type="number"
-                className="small-input"
-                name="rimHeigh"
-                value={config.rimHeigh}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="H (mm)"
-                min="50"
-                max="550"
-                step="5"
-              />
-            </div>
+          <div className="rims-options-container" style={{ marginTop: "10px" }}>
+            <input type="number" className="small-input" name="rimHeigh" value={config.rimHeigh} onChange={handleGlobalChange} onBlur={handleBlur} min="50" max="550" />
             <div className="drilling-options">
-              <button
-                className={config.rimLeft ? "active-small" : ""}
-                onClick={() => toggleRimSide("rimLeft")}
-                disabled={config.apronLeft}
-              >
-                Gauche
-              </button>
-              <button
-                className={config.rimBack ? "active-small" : ""}
-                onClick={() => toggleRimSide("rimBack")}
-                disabled={config.apronBack}
-              >
-                Fond
-              </button>
-              <button
-                className={config.rimRight ? "active-small" : ""}
-                onClick={() => toggleRimSide("rimRight")}
-                disabled={config.apronRight}
-              >
-                Droite
-              </button>
+              <button className={config.rimLeft?"active-small":""} onClick={()=>toggleRimSide("rimLeft")}>G</button>
+              <button className={config.rimBack?"active-small":""} onClick={()=>toggleRimSide("rimBack")}>Arr</button>
+              <button className={config.rimRight?"active-small":""} onClick={()=>toggleRimSide("rimRight")}>D</button>
             </div>
           </div>
         )}
       </div>
 
-      {/* RETOMBÉES */}
       <div className="form-group checkbox-group">
-        <label>
-          <input
-            type="checkbox"
-            name="aprons"
-            checked={true}
-            disabled={true}
-            readOnly
-          />{" "}
-          Ajouter Retombées (Obligatoire)
-        </label>
-        <div
-          className="rims-options-container"
-          style={{ marginTop: "10px", width: "100%" }}
-        >
-          <div style={{ marginBottom: "10px" }}>
-            <span style={{ fontSize: "0.9rem", marginRight: "10px" }}>
-              Hauteur :
-            </span>
-            <input
-              type="number"
-              className="small-input"
-              name="apronHeight"
-              value={config.apronHeight || 40}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              placeholder="H (mm)"
-              min="40"
-              max="200"
-              step="5"
-            />
-          </div>
+        <label><input type="checkbox" name="aprons" checked={true} disabled readOnly /> Retombées (Obligatoire)</label>
+        <div className="rims-options-container" style={{ marginTop: "10px" }}>
+          <input type="number" className="small-input" name="apronHeight" value={config.apronHeight || 40} onChange={handleGlobalChange} onBlur={handleBlur} min="40" max="200" />
           <div className="drilling-options">
-            <button
-              className={config.apronFront ? "active-small" : ""}
-              disabled
-              title="Obligatoire"
-            >
-              Avant
-            </button>
-            <button
-              className={config.apronLeft ? "active-small" : ""}
-              onClick={() => toggleApronSide("apronLeft")}
-              disabled={config.rimLeft}
-            >
-              Gauche
-            </button>
-            <button
-              className={config.apronBack ? "active-small" : ""}
-              onClick={() => toggleApronSide("apronBack")}
-              disabled={config.rimBack}
-            >
-              Fond
-            </button>
-            <button
-              className={config.apronRight ? "active-small" : ""}
-              onClick={() => toggleApronSide("apronRight")}
-              disabled={config.rimRight}
-            >
-              Droite
-            </button>
+            <button className={config.apronFront?"active-small":""} disabled>Av</button>
+            <button className={config.apronLeft?"active-small":""} onClick={()=>toggleApronSide("apronLeft")}>G</button>
+            <button className={config.apronBack?"active-small":""} onClick={()=>toggleApronSide("apronBack")}>Arr</button>
+            <button className={config.apronRight?"active-small":""} onClick={()=>toggleApronSide("apronRight")}>D</button>
           </div>
         </div>
       </div>
 
-      {/* GOUTTE D'EAU */}
       <div className="form-group checkbox-group">
-        <label>
-          <input
-            type="checkbox"
-            name="splashback"
-            checked={config.splashback}
-            onChange={handleChange}
-          />{" "}
-          Ajouter Goutte d'eau (Anti-débordement)
-        </label>
+        <label><input type="checkbox" name="splashback" checked={config.splashback} onChange={handleGlobalChange} /> Goutte d'eau</label>
       </div>
 
       <div className="actions">
-        <button className="btn-secondary" onClick={() => setShowModal(true)}>
-          Voir Rendu 3D
-        </button>
+        <button className="btn-secondary" onClick={() => setShowModal(true)}>Voir Rendu 3D</button>
       </div>
 
       <ConfigResume
         config={config}
-        totalPrice={totalPrice}
-        handleAddToCart={handleAddToCart}
-        currentSink={currentSink}
+        handleAddToCart={() => alert(`Produit ajouté au panier pour ${totalPrice} € HT`)}
+        currentSink={currentSinks.length > 1 ? "Composition Multi-cuves" : (currentSinks[0]?.type || "Aucune")}
       />
     </div>
   );

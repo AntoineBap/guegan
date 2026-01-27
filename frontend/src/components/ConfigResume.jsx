@@ -48,7 +48,7 @@ const ConfigResume = ({ config, totalPrice, handleAddToCart, currentSink }) => {
         )}
 
         <div className="price-section">
-          <span>Prix Total TTC</span>
+          <span>Prix Total HT</span>
           <span className="price-value">{totalPrice} €</span>
         </div>
 

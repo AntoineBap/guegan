@@ -9,17 +9,24 @@ const Main = () => {
   const [showModal, setShowModal] = useState(false);
   const [config, setConfig] = useState({
     color: "white",
-    position: "center",
     length: 1200,
     width: 500,
     depth: 300,
-    tapHole: "none",
-    tapHoleOffset: 50,
     splashback: false,
     splashbackHeight: 5,
     rims: false,
     rimHeight: 5,
     comments: "",
+    vasques: [
+      {
+        id: 1, 
+        sink: "Aucune cuve",
+        position: 0,
+        side: "center",
+        tapHole: "none",
+        tapHoleOffset: 50,  
+      }
+    ]
   });
 
   console.log(config)
