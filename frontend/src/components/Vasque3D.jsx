@@ -21,8 +21,8 @@ const Vasque3D = ({ config }) => {
     "Cuve sanitaire 422x336x139": { l: 422, w: 336, d: 139 },
   };
 
-  const GAP_DEFAULT = 40 / UNIT_SCALE; // 40mm
-  const DRAINER_LEN = 3.5; // 350mm / 100
+  const GAP_DEFAULT = 40 / UNIT_SCALE; 
+  const DRAINER_LEN = 3.5; 
   const GROOVE_W = 0.1;
   const STD_GROOVE_COUNT = 7;
   const TOTAL_DRAINER_WIDTH_STD = 3.5;
@@ -46,15 +46,18 @@ const Vasque3D = ({ config }) => {
     // 1. Préparation des dimensions
     const items = sinks.map(s => {
         const spec = SINK_SPECS_DIM[s.type] || SINK_SPECS_DIM["Aucune cuve"];
-        // Si offset undefined -> 40 par défaut
         const offsetVal = (s.offset !== undefined && s.offset !== null) ? s.offset / UNIT_SCALE : GAP_DEFAULT;
         
+        // Tap Hole Offset scaling
+        const tapHoleOffsetVal = (s.tapHoleOffset || 0) / UNIT_SCALE;
+
         return { 
             ...s, 
             width: spec.l / UNIT_SCALE, 
             height: spec.w / UNIT_SCALE, 
             depth: spec.d / UNIT_SCALE,
-            offsetVal 
+            offsetVal,
+            tapHoleOffsetVal
         };
     });
 
@@ -77,8 +80,25 @@ const Vasque3D = ({ config }) => {
 
     const calculatedItems = new Array(items.length);
 
+    // Fonction utilitaire pour calculer le Z (profondeur) selon la règle des 100mm min derrière
+    const calculateZ = (sinkItem) => {
+        const minBack = 100 / UNIT_SCALE; // 100mm minimum derrière
+        const planHalfDepth = totalW / 2;
+        const sinkHalfDepth = sinkItem.height / 2;
+        
+        // Si (DemiPlan - DemiCuve) < 100mm, alors on n'a pas assez de place pour centrer en respectant la marge
+        // On calcule le décalage nécessaire vers l'avant (Z positif)
+        // Formule : Z = Max(0, (MargeMin + DemiCuve) - DemiPlan)
+        return Math.max(0, (minBack + sinkHalfDepth) - planHalfDepth);
+    };
+
     // 4. Placement Ancre
-    calculatedItems[anchorIndex] = { ...anchorItem, x: anchorAbsX, valid: anchorItem.type !== "Aucune cuve" };
+    calculatedItems[anchorIndex] = { 
+        ...anchorItem, 
+        x: anchorAbsX, 
+        z: calculateZ(anchorItem),
+        valid: anchorItem.type !== "Aucune cuve" 
+    };
 
     // 5. Propagation DROITE
     for (let i = anchorIndex + 1; i < items.length; i++) {
@@ -89,19 +109,22 @@ const Vasque3D = ({ config }) => {
         if (prev.hasDrainer && prev.drainerPosition === 'right') extraGap += DRAINER_LEN;
         if (curr.hasDrainer && curr.drainerPosition === 'left') extraGap += DRAINER_LEN;
 
-        // Gap est porté par 'curr' (élément à droite)
         const dist = (prev.width / 2) + curr.offsetVal + extraGap + (curr.width / 2);
         const x = prev.x + dist;
         
-        calculatedItems[i] = { ...curr, x, valid: curr.type !== "Aucune cuve" };
+        calculatedItems[i] = { 
+            ...curr, 
+            x, 
+            z: calculateZ(curr),
+            valid: curr.type !== "Aucune cuve" 
+        };
     }
 
     // 6. Propagation GAUCHE
     for (let i = anchorIndex - 1; i >= 0; i--) {
         const next = calculatedItems[i+1]; 
-        const curr = items[i];             
+        const curr = items[i];            
         
-        // Gap est porté par 'curr' (élément à gauche)
         const gapVal = curr.offsetVal;
 
         let extraGap = 0;
@@ -111,11 +134,16 @@ const Vasque3D = ({ config }) => {
         const dist = (next.width / 2) + gapVal + extraGap + (curr.width / 2);
         const x = next.x - dist;
 
-        calculatedItems[i] = { ...curr, x, valid: curr.type !== "Aucune cuve" };
+        calculatedItems[i] = { 
+            ...curr, 
+            x, 
+            z: calculateZ(curr),
+            valid: curr.type !== "Aucune cuve" 
+        };
     }
 
     return calculatedItems;
-  }, [config.sinks, config.length, totalL, config.anchorId]);
+  }, [config.sinks, config.length, totalL, totalW, config.anchorId]);
 
   // --- SUITE DU RENDU ---
   const maxBasinDepth = calculatedSinks.reduce((max, s) => s.valid && s.depth > max ? s.depth : max, 0);
@@ -206,6 +234,9 @@ const Vasque3D = ({ config }) => {
 
     const drawOneHole = (shp, x, z, w, h, r) => {
        const hole = new THREE.Path();
+       // z ici est la coordonnée Y dans le Shape 2D. 
+       // Après rotation X -90deg, Y devient -Z (monde).
+       // Donc pour aller en Z positif (monde), il faut Y negatif (Shape).
        hole.moveTo(x - w / 2, z - h / 2 + r);
        hole.lineTo(x - w / 2, z + h / 2 - r);
        hole.absarc(x - w / 2 + r, z + h / 2 - r, r, Math.PI, Math.PI / 2, true);
@@ -218,13 +249,14 @@ const Vasque3D = ({ config }) => {
        shp.holes.push(hole);
     };
 
-    const extrudeSettings = { bevelEnabled: false, curveSegments: 32 };
+    const extrudeSettings = { bevelEnabled: false, curveSegments: 64 };
     const hasAnyDrainer = calculatedSinks.some(s => s.hasDrainer && s.valid);
 
     const shapeBase = new THREE.Shape();
     drawBaseRect(shapeBase);
     calculatedSinks.forEach(s => {
-        if(s.valid) drawOneHole(shapeBase, s.x, 0, s.width, s.height, 0.15);
+        // CORRECTION MAJEURE: -s.z car le plan est tourné de -90deg
+        if(s.valid) drawOneHole(shapeBase, s.x, -s.z, s.width, s.height, 0.15);
     });
     const geomBase = new THREE.ExtrudeGeometry(shapeBase, { ...extrudeSettings, depth: baseThickness });
     geomBase.rotateX(-Math.PI / 2);
@@ -233,7 +265,8 @@ const Vasque3D = ({ config }) => {
     drawBaseRect(shapeTop);
     calculatedSinks.forEach(s => {
         if(s.valid) {
-            drawOneHole(shapeTop, s.x, 0, s.width, s.height, 0.15);
+            // CORRECTION MAJEURE: -s.z ici aussi
+            drawOneHole(shapeTop, s.x, -s.z, s.width, s.height, 0.15);
             if(s.hasDrainer) {
                 const isLeft = s.drainerPosition === "left";
                 const SAFETY_GAP = 0.001; 
@@ -242,10 +275,12 @@ const Vasque3D = ({ config }) => {
                 const drainCenter = isLeft ? drainStartEdge - DRAINER_LEN/2 : drainStartEdge + DRAINER_LEN/2;
                 
                 const { count, totalH } = getDrainerSpec(s.type);
-                const startZ = 0 - totalH / 2 + GROOVE_W / 2;
+                // Note: startZ est en coordonnées Monde.
+                const startZ = s.z - totalH / 2 + GROOVE_W / 2;
                 
                 for (let i = 0; i < count; i++) {
                     const currentZ = startZ + i * (GROOVE_W + GAP_DRAIN);
+                    // Conversion Monde Z -> Shape Y (inversion due à la rotation)
                     const shapeY = -currentZ; 
                     const halfW = GROOVE_W / 2;
                     const grooveHole = new THREE.Path();
@@ -283,7 +318,7 @@ const Vasque3D = ({ config }) => {
 
   const drainerVisuals = useMemo(() => {
      const visuals = [];
-     const geometry = new THREE.CylinderGeometry(0, GROOVE_W/2, DRAINER_LEN, 32, 1, false, 0, Math.PI);
+     const geometry = new THREE.CylinderGeometry(0, GROOVE_W/2, DRAINER_LEN, 64, 1, false, 0, Math.PI);
      geometry.rotateZ(-Math.PI/2);
      
      const depthScale = 0.08 / (GROOVE_W/2); 
@@ -299,7 +334,7 @@ const Vasque3D = ({ config }) => {
              const drainCenter = isLeft ? drainStartEdge - DRAINER_LEN/2 : drainStartEdge + DRAINER_LEN/2;
              
              const { count, totalH } = getDrainerSpec(s.type);
-             const startZ = 0 - totalH / 2 + GROOVE_W / 2;
+             const startZ = s.z - totalH / 2 + GROOVE_W / 2;
              const rotY = isLeft ? Math.PI : 0; 
 
              for (let i = 0; i < count; i++) {
@@ -333,7 +368,7 @@ const Vasque3D = ({ config }) => {
         drawTeethedHole(holeOut, s);
         outerShape.holes.push(holeOut);
 
-        const geomOut = new THREE.ExtrudeGeometry(outerShape, { depth: s.depth - SHRINK_OFFSET - SHORTEN_BOTTOM, bevelEnabled: false });
+        const geomOut = new THREE.ExtrudeGeometry(outerShape, { depth: s.depth - SHRINK_OFFSET - SHORTEN_BOTTOM, bevelEnabled: false, curveSegments: 64 });
         geomOut.rotateX(-Math.PI/2);
 
         const innerShape = new THREE.Shape();
@@ -354,7 +389,7 @@ const Vasque3D = ({ config }) => {
         holeIn.lineTo(-hwIn/2+rIn, -hhIn/2); holeIn.absarc(-hwIn/2+rIn, -hhIn/2+rIn, rIn, -Math.PI/2, -Math.PI, true);
         innerShape.holes.push(holeIn);
 
-        const geomIn = new THREE.ExtrudeGeometry(innerShape, { depth: s.depth, bevelEnabled: false });
+        const geomIn = new THREE.ExtrudeGeometry(innerShape, { depth: s.depth, bevelEnabled: false, curveSegments: 64 });
         geomIn.rotateX(-Math.PI/2);
 
         return { outerWallGeom: geomOut, innerSkinGeom: geomIn };
@@ -368,8 +403,10 @@ const Vasque3D = ({ config }) => {
           side: THREE.DoubleSide
       };
 
+      const tapX = s.tapHolePosition === "left" ? -s.tapHoleOffsetVal : s.tapHolePosition === "right" ? s.tapHoleOffsetVal : 0;
+
       return (
-          <group position={[s.x, 0, 0]}>
+          <group position={[s.x, 0, s.z]}>
               <mesh position={[0, floorY + SHORTEN_BOTTOM, 0]} geometry={outerWallGeom}>
                   <meshStandardMaterial {...materialProps} />
               </mesh>
@@ -380,18 +417,23 @@ const Vasque3D = ({ config }) => {
                   <boxGeometry args={[s.width, 0.02, s.height]} />
                   <meshStandardMaterial color={config.color === "white"?"#ccc":"#000"} roughness={0.9} side={THREE.DoubleSide} />
               </mesh>
-              <mesh position={[0, floorY + 0.02, 0]}><cylinderGeometry args={[0.025, 0.025, 0.01, 32]} /><meshBasicMaterial color="#000000" /></mesh>
+              
+              <mesh position={[0, floorY + 0.001, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                  <circleGeometry args={[0.175, 64]} />
+                  <meshBasicMaterial color="#000000" side={THREE.DoubleSide} />
+              </mesh>
+              
               {s.hasTapHole && (
-                  <mesh position={[s.tapHolePosition==="left"?-0.5:s.tapHolePosition==="right"?0.5:0, 0.4, -s.height/2-0.2]}>
-                      <cylinderGeometry args={[0.0175, 0.0175, 0.5, 32]} />
-                      <meshBasicMaterial color="black" />
+                  <mesh position={[tapX, 0.401, -s.height/2 - 0.4]} rotation={[-Math.PI / 2, 0, 0]}>
+                      <circleGeometry args={[0.175, 64]} />
+                      <meshBasicMaterial color="black" side={THREE.DoubleSide} />
                   </mesh>
               )}
           </group>
       );
   };
 
-  // --- SPLASHBACK (DEFINITIONS MANQUANTES RAJOUTÉES) ---
+  // --- SPLASHBACK GEOMETRY ---
   const splashRadius = 0.06;
   const createSplashGeometry = (length, radius, miterStart, miterEnd, reverseCut = false) => {
     let currentLength = length;
@@ -401,7 +443,7 @@ const Vasque3D = ({ config }) => {
     if (miterStart && !miterEnd) centerOffset = radius / 2;
     if (!miterStart && miterEnd) centerOffset = -radius / 2;
     const safeLength = Math.max(0.001, currentLength);
-    const geometry = new THREE.CylinderGeometry(radius, radius, safeLength, 32);
+    const geometry = new THREE.CylinderGeometry(radius, radius, safeLength, 64); 
     geometry.rotateZ(Math.PI / 2);
     if (centerOffset !== 0) geometry.translate(centerOffset, 0, 0);
     const positionAttribute = geometry.attributes.position;

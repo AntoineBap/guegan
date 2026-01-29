@@ -18,7 +18,6 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
   };
 
   useEffect(() => {
-    // Initialisation Retombées (Aprons)
     if (!config.aprons || !config.apronFront) {
       setConfig((prev) => ({
         ...prev,
@@ -28,7 +27,6 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
       }));
     }
 
-    // Initialisation Dosserets (Rims)
     if (config.rims && (!config.rimHeigh || config.rimHeigh < 100)) {
        setConfig((prev) => ({ ...prev, rimHeigh: 100 }));
     }
@@ -173,7 +171,6 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
       return { items, groupMinX, groupMaxX };
   }, [currentSinks, config.length, layoutDimensions, config.anchorId]);
 
-  // --- 3. LIMITES D'AJOUT ---
   const planHalfLength = config.length / 2;
   const absLimitLeft = -planHalfLength + MARGIN_PLAN_EDGE;
   const absLimitRight = planHalfLength - MARGIN_PLAN_EDGE;
@@ -277,10 +274,11 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
       }
       const myPos = layout.items[index];
       if (!myPos) return;
-      const obstacleL = index === 0 ? absLimitLeft : layout.items[index-1].rightBound;
+      const obstacleL = index === 0 ? absLimitLeft : layout.items[index-1]?.rightBound ?? absLimitLeft;
       const distL = myPos.leftBound - obstacleL;
       const canL = distL >= DRAINER_WIDTH_MM;
-      const obstacleR = index === currentSinks.length-1 ? absLimitRight : layout.items[index+1].leftBound;
+      
+      const obstacleR = index === currentSinks.length-1 ? absLimitRight : layout.items[index+1]?.leftBound ?? absLimitRight;
       const distR = obstacleR - myPos.rightBound;
       const canR = distR >= DRAINER_WIDTH_MM;
 
@@ -444,46 +442,33 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
           let minOffset = 0; 
           let maxOffset = 0;
           
-          // Variables de blocage pour l'ancre
           let canCenter = true;
+          let fitsInPlan = true;
           let canAnchorLeft = true;
           let canAnchorRight = true;
+
+          // Variables de disponibilité d'égouttoir ici
+          const obstacleL = index === 0 ? absLimitLeft : layout.items[index-1]?.rightBound ?? absLimitLeft;
+          const distL = currentPos ? (currentPos.leftBound - obstacleL) : 0;
+          const canL = distL >= (DRAINER_WIDTH_MM - 10); 
+          
+          const obstacleR = index === currentSinks.length-1 ? absLimitRight : layout.items[index+1]?.leftBound ?? absLimitRight;
+          const distR = currentPos ? (obstacleR - currentPos.rightBound) : 0;
+          const canR = distR >= (DRAINER_WIDTH_MM - 10);
 
           if (isAnchor) {
               const { leftWidth, rightWidth, totalWidth } = layoutDimensions;
               const halfL = config.length / 2;
               
-              // 1. Est-ce qu'on peut Centrer ? (Symétrie)
+              fitsInPlan = (totalWidth + (MARGIN_PLAN_EDGE * 2)) <= config.length;
               const maxWing = Math.max(leftWidth, rightWidth);
               canCenter = (maxWing + MARGIN_PLAN_EDGE) <= halfL;
 
-              // 2. Est-ce qu'on peut Ancrer à Gauche ? 
-              // La position minimale valide de l'ancre en mode "Gauche" est: MARGIN + leftWidth.
-              // Si cette position dépasse le milieu du plan (halfL), alors "Ancrer à Gauche" 
-              // placerait en réalité l'ancre sur la moitié DROITE du plan. On bloque.
-              const minAnchorX_LeftMode = MARGIN_PLAN_EDGE + (leftWidth - halfW); // -halfW car offset est au bord
-              // Correction: Offset Left est "Bord Gauche Plan -> Bord Gauche Cuve".
-              // Centre Cuve = Offset + halfW.
-              // Encombrement Gauche (depuis centre) = leftWidth.
-              // Donc Offset minimal = MARGIN + (leftWidth - halfW).
-              // Position Centre Ancre minimale = MARGIN + leftWidth.
               const absCenterMinX = MARGIN_PLAN_EDGE + leftWidth;
               canAnchorLeft = absCenterMinX <= halfL;
 
-              // 3. Est-ce qu'on peut Ancrer à Droite ?
-              // La position minimale valide de l'ancre en mode "Droite" (donc le plus à droite possible)
-              // est contrainte par la gauche du groupe.
-              // Non, en mode "Droite", on pousse vers la gauche.
-              // La limite est quand on tape le mur gauche.
-              // Max Offset Right = Length - MARGIN - leftWidth - halfW.
-              // Position Centre Ancre = Length - Offset - halfW.
-              // Position Centre Ancre la plus à GAUCHE possible en mode "Right" = MARGIN + leftWidth.
-              // Position Centre Ancre la plus à DROITE possible en mode "Right" = Length - MARGIN - rightWidth.
-              // On veut savoir si l'ancrage "Droite" a du sens, c-à-d si l'ancre peut être dans la moitié droite.
-              // Position la plus à droite possible : Length - MARGIN - rightWidth.
               const absCenterMaxX = config.length - MARGIN_PLAN_EDGE - rightWidth;
               canAnchorRight = absCenterMaxX >= halfL;
-
 
               if (sink.position === 'left') {
                    minOffset = MARGIN_PLAN_EDGE + (leftWidth - halfW);
@@ -521,12 +506,8 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
               if(isNaN(maxOffset)) maxOffset = 0;
           }
 
-          const obstacleL = index === 0 ? absLimitLeft : layout.items[index-1].rightBound;
-          const distL = currentPos ? (currentPos.leftBound - obstacleL) : 0;
-          const canL = distL >= (DRAINER_WIDTH_MM - 10); 
-          const obstacleR = index === currentSinks.length-1 ? absLimitRight : layout.items[index+1].leftBound;
-          const distR = currentPos ? (obstacleR - currentPos.rightBound) : 0;
-          const canR = distR >= (DRAINER_WIDTH_MM - 10);
+          // --- Calcul Max Perçage (Rayon 20mm) ---
+          const maxTapOffset = Math.floor((sinkWidth / 2) - 20);
 
           return (
             <div key={sink.id} className="form-group section-box" style={{borderLeft: isAnchor ? "4px solid #d4af37" : "4px solid #ccc"}}>
@@ -632,10 +613,34 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
                             <input type="checkbox" checked={sink.hasTapHole} onChange={(e) => updateSink(sink.id, "hasTapHole", e.target.checked)} /> Perçage robinetterie (+15€)
                         </label>
                         {sink.hasTapHole && (
-                            <div className="drilling-options" style={{ marginBottom: "15px", marginLeft:'25px' }}>
-                                {["left", "center", "right"].map((opt) => (
-                                <button key={opt} className={sink.tapHolePosition === opt ? "active-small" : ""} onClick={() => updateSink(sink.id, "tapHolePosition", opt)}>{opt}</button>
-                                ))}
+                            <div style={{ marginLeft:'25px' }}>
+                                <div className="drilling-options" style={{ marginBottom: "15px" }}>
+                                    {["left", "center", "right"].map((opt) => (
+                                    <button key={opt} className={sink.tapHolePosition === opt ? "active-small" : ""} onClick={() => updateSink(sink.id, "tapHolePosition", opt)}>{opt}</button>
+                                    ))}
+                                </div>
+                                {(sink.tapHolePosition === "left" || sink.tapHolePosition === "right") && (
+                                    <div style={{ display: "flex", flexDirection: "column", marginBottom: "15px" }}>
+                                        <span style={{ fontSize: "0.8rem", color: "#333", marginBottom: "4px" }}>
+                                            Décalage du centre (mm)
+                                        </span>
+                                        <input
+                                            type="number"
+                                            className="small-input"
+                                            style={{width:'100px'}}
+                                            value={sink.tapHoleOffset || 0}
+                                            onChange={(e) => {
+                                                let val = parseFloat(e.target.value);
+                                                if (isNaN(val)) val = 0;
+                                                if (val < 0) val = 0;
+                                                if (val > maxTapOffset) val = maxTapOffset;
+                                                updateSink(sink.id, "tapHoleOffset", val);
+                                            }}
+                                            min="0" max={maxTapOffset} step="1"
+                                        />
+                                        <span style={{fontSize:'0.7rem', color:'#666'}}>Max: {maxTapOffset}mm</span>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

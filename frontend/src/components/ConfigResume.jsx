@@ -9,7 +9,7 @@ const ConfigResume = ({ config, totalPrice, handleAddToCart, currentSink }) => {
         
         <div className="summary-section">
           <h3>Dimensions</h3>
-          <p>{config.length / 10} cm × {config.width / 10} cm</p>
+          <p>{config.length} mm × {config.width} mm</p>
         </div>
 
         <div className="summary-section">
