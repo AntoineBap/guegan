@@ -6,8 +6,8 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
   const DRAINER_PRICE = 50;
   const DRAINER_WIDTH_MM = 350; 
   const MIN_GAP_BETWEEN_SINKS = 40; 
-  const MARGIN_PLAN_EDGE = 100; // Marge minimale aux extrémités du plan
-  const SINK_DEFAULT_SIZE = 400; // Pour tester si une nouvelle cuve rentre
+  const MARGIN_PLAN_EDGE = 100; 
+  const SINK_DEFAULT_SIZE = 400; 
 
   const SINK_SPECS = {
     "Aucune cuve": { l: 0, w: 0, d: 0, price: 0 },
@@ -17,7 +17,6 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
     "Cuve sanitaire 422x336x139": { l: 422, w: 336, d: 139, price: 330 },
   };
 
-  // --- INITIALISATION ---
   useEffect(() => {
     if (!config.aprons || !config.apronFront) {
       setConfig((prev) => ({
@@ -51,43 +50,24 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
   const currentSinks = config.sinks || [];
   const hasAtLeastOneSink = currentSinks.some((s) => s.type !== "Aucune cuve");
 
-  // --- 1. CALCUL PRÉCIS DE LA POSITION DES CUVES (LAYOUT ENGINE) ---
-  const layout = useMemo(() => {
-      const items = currentSinks.map(s => {
-         const w = SINK_SPECS[s.type]?.l || 0;
-         return { ...s, width: w };
-      });
-
-      const positions = [];
-      const planHalfL = config.length / 2;
-
-      // Positionnement Cuve 1 (Ancre)
-      let firstItem = items[0];
-      let x1 = 0; 
-
-      if (firstItem) {
-          if (firstItem.position === "center") {
-              x1 = 0;
-          } else if (firstItem.position === "left") {
-              // Bord Gauche Cuve = -Plan/2 + Offset
-              // Centre = Bord Gauche + W/2
-              x1 = -planHalfL + (firstItem.offset || 100) + firstItem.width / 2;
-          } else if (firstItem.position === "right") {
-              // Bord Droit Cuve = Plan/2 - Offset
-              // Centre = Bord Droit - W/2
-              x1 = planHalfL - (firstItem.offset || 100) - firstItem.width / 2;
-          }
-          
-          let lb = x1 - firstItem.width/2;
-          let rb = x1 + firstItem.width/2;
-          // Extension si égouttoir
-          if (firstItem.hasDrainer && firstItem.drainerPosition === 'left') lb -= DRAINER_WIDTH_MM;
-          if (firstItem.hasDrainer && firstItem.drainerPosition === 'right') rb += DRAINER_WIDTH_MM;
-
-          positions.push({ ...firstItem, centerX: x1, leftBound: lb, rightBound: rb });
+  // --- 1. CALCUL DE L'ENCOMBREMENT RELATIF (PIVOT = CENTRE CUVE 1) ---
+  const layoutDimensions = useMemo(() => {
+      const items = currentSinks.map(s => ({ ...s, width: SINK_SPECS[s.type]?.l || 0 }));
+      if (items.length === 0 || items[0].type === "Aucune cuve") {
+          return { leftWidth: 0, rightWidth: 0, totalWidth: 0 };
       }
 
-      // Positionnement Chaîne (Cuves suivantes)
+      const positions = [];
+      const first = items[0];
+      let x1 = 0; 
+      let lb1 = -first.width / 2;
+      let rb1 = first.width / 2;
+      
+      if (first.hasDrainer && first.drainerPosition === 'left') lb1 -= DRAINER_WIDTH_MM;
+      if (first.hasDrainer && first.drainerPosition === 'right') rb1 += DRAINER_WIDTH_MM;
+      
+      positions.push({ centerX: x1, lb: lb1, rb: rb1, ...first });
+
       for (let i = 1; i < items.length; i++) {
           const prev = positions[i-1];
           const curr = items[i];
@@ -96,66 +76,108 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
           if (prev.hasDrainer && prev.drainerPosition === 'right') minGap += DRAINER_WIDTH_MM;
           if (curr.hasDrainer && curr.drainerPosition === 'left') minGap += DRAINER_WIDTH_MM;
 
-          // Centre = CentrePrec + DemiWPrec + Gap + OffsetUtilisateur + DemiWCurr
           const dist = (prev.width / 2) + minGap + (curr.offset || 0) + (curr.width / 2);
           const x = prev.centerX + dist;
-
+          
           let lb = x - curr.width/2;
           let rb = x + curr.width/2;
           if (curr.hasDrainer && curr.drainerPosition === 'left') lb -= DRAINER_WIDTH_MM;
           if (curr.hasDrainer && curr.drainerPosition === 'right') rb += DRAINER_WIDTH_MM;
 
-          positions.push({ ...curr, centerX: x, leftBound: lb, rightBound: rb });
+          positions.push({ centerX: x, lb, rb, ...curr });
       }
 
+      const minX = Math.min(...positions.map(p => p.lb));
+      const maxX = Math.max(...positions.map(p => p.rb));
+
+      const leftWidth = Math.abs(minX);
+      const rightWidth = maxX;
+
+      return { leftWidth, rightWidth, totalWidth: leftWidth + rightWidth };
+  }, [currentSinks]);
+
+  // --- 2. LAYOUT VISUEL ---
+  const layout = useMemo(() => {
+      const { leftWidth, rightWidth } = layoutDimensions;
+      const planHalfL = config.length / 2;
+      let anchorX = 0;
+      const firstItem = currentSinks[0];
+
+      if (firstItem && firstItem.type !== "Aucune cuve") {
+          const w = SINK_SPECS[firstItem.type]?.l || 0;
+          if (firstItem.position === "center") {
+              anchorX = 0;
+          } else if (firstItem.position === "left") {
+              anchorX = -planHalfL + (firstItem.offset || 100) + w / 2;
+          } else if (firstItem.position === "right") {
+              anchorX = planHalfL - (firstItem.offset || 100) - w / 2;
+          }
+      }
+
+      const sinkItems = currentSinks.map(s => ({ ...s, width: SINK_SPECS[s.type]?.l || 0 }));
+      const positions = [];
+      
+      if (sinkItems.length > 0) {
+          let x1 = anchorX;
+          let lb1 = x1 - sinkItems[0].width/2;
+          let rb1 = x1 + sinkItems[0].width/2;
+          if (sinkItems[0].hasDrainer && sinkItems[0].drainerPosition === 'left') lb1 -= DRAINER_WIDTH_MM;
+          if (sinkItems[0].hasDrainer && sinkItems[0].drainerPosition === 'right') rb1 += DRAINER_WIDTH_MM;
+          positions.push({ ...sinkItems[0], centerX: x1, leftBound: lb1, rightBound: rb1 });
+
+          for (let i = 1; i < sinkItems.length; i++) {
+            const prev = positions[i-1];
+            const curr = sinkItems[i];
+            let minGap = MIN_GAP_BETWEEN_SINKS;
+            if (prev.hasDrainer && prev.drainerPosition === 'right') minGap += DRAINER_WIDTH_MM;
+            if (curr.hasDrainer && curr.drainerPosition === 'left') minGap += DRAINER_WIDTH_MM;
+            const dist = (prev.width / 2) + minGap + (curr.offset || 0) + (curr.width / 2);
+            const x = prev.centerX + dist;
+            let lb = x - curr.width/2;
+            let rb = x + curr.width/2;
+            if (curr.hasDrainer && curr.drainerPosition === 'left') lb -= DRAINER_WIDTH_MM;
+            if (curr.hasDrainer && curr.drainerPosition === 'right') rb += DRAINER_WIDTH_MM;
+            positions.push({ ...curr, centerX: x, leftBound: lb, rightBound: rb });
+          }
+      }
       const groupMinX = positions.length > 0 ? positions[0].leftBound : 0;
       const groupMaxX = positions.length > 0 ? positions[positions.length - 1].rightBound : 0;
 
       return { items: positions, groupMinX, groupMaxX };
-  }, [currentSinks, config.length]);
+  }, [currentSinks, config.length, layoutDimensions]);
 
-  // --- 2. CALCUL DISPONIBILITÉ AJOUT (INTELLIGENT) ---
+  // --- 3. LIMITES D'AJOUT ---
   const planHalfLength = config.length / 2;
-  // Limites physiques utilisables (Bornes du plan - Marge de sécurité)
   const absLimitLeft = -planHalfLength + MARGIN_PLAN_EDGE;
   const absLimitRight = planHalfLength - MARGIN_PLAN_EDGE;
-
-  // Espace libre à gauche du groupe
-  // (Bord Gauche Groupe) - (Limite Gauche Plan)
   const spaceAvailableLeft = layout.groupMinX - absLimitLeft;
-  
-  // Espace libre à droite du groupe
-  // (Limite Droite Plan) - (Bord Droit Groupe)
   const spaceAvailableRight = absLimitRight - layout.groupMaxX;
-
-  // Espace requis pour ajouter une nouvelle cuve standard + son gap technique
   const SPACE_REQ_NEW = SINK_DEFAULT_SIZE + MIN_GAP_BETWEEN_SINKS;
-
   const canAddSinkLeft = spaceAvailableLeft >= SPACE_REQ_NEW;
   const canAddSinkRight = spaceAvailableRight >= SPACE_REQ_NEW;
 
-  // --- MIN / MAX PLAN (UNCHANGED) ---
+  // --- 4. CALCUL MIN PLAN ---
   const { minPlanLength, minPlanDepth } = useMemo(() => {
-    let totalL = 0;
+    const mechanicalMinLen = layoutDimensions.totalWidth + MARGIN_PLAN_EDGE * 2;
+    const maxSideFromCenter = Math.max(layoutDimensions.leftWidth, layoutDimensions.rightWidth);
+    const centeredMinLen = (maxSideFromCenter + MARGIN_PLAN_EDGE) * 2;
+    const computedMinLen = Math.max(600, mechanicalMinLen, centeredMinLen);
+    
     let maxW = 0;
-    currentSinks.forEach((s, i) => {
-        if (s.type === "Aucune cuve") return;
-        const spec = SINK_SPECS[s.type];
-        if (spec.w > maxW) maxW = spec.w;
-        let itemL = spec.l;
-        if (s.hasDrainer) itemL += DRAINER_WIDTH_MM;
-        totalL += itemL;
-        if (i < currentSinks.length - 1) totalL += MIN_GAP_BETWEEN_SINKS;
+    currentSinks.forEach(s => {
+       if (s.type === "Aucune cuve") return;
+       const spec = SINK_SPECS[s.type];
+       if (spec.w > maxW) maxW = spec.w;
     });
-    const computedMinLen = Math.max(600, totalL + MARGIN_PLAN_EDGE * 2);
     const computedMinDep = Math.max(400, maxW + 160);
+
     return { minPlanLength: computedMinLen, minPlanDepth: computedMinDep };
-  }, [currentSinks]);
+  }, [currentSinks, layoutDimensions]);
 
   const maxPlanLength = 3600;
   const maxPlanDepth = 700;
 
-  // --- HANDLERS ---
+  // HANDLERS
   const handleGlobalChange = (e) => {
     const { name, value, type, checked } = e.target;
     if (name === "rims" && checked) {
@@ -183,23 +205,44 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
     }));
   };
 
-  // HANDLER EGOUTTOIR INTELLIGENT (CHECK SPACE PER SINK)
+  // NOUVEAU : GESTIONNAIRE POUR LE CHANGEMENT DE POSITION AVEC RESET OFFSET AU MIN
+  const handlePositionChange = (sinkId, newPosition, sinkSpecWidth) => {
+      const { leftWidth, rightWidth } = layoutDimensions;
+      const halfW = sinkSpecWidth / 2;
+      let newOffset = 100; // valeur par défaut safe
+
+      if (newPosition === 'left') {
+           // Min offset = Marge + Encombrement Gauche du groupe par rapport au centre cuve
+           newOffset = MARGIN_PLAN_EDGE + (leftWidth - halfW);
+      } else if (newPosition === 'right') {
+           // Min offset = Marge + Encombrement Droit du groupe par rapport au centre cuve
+           newOffset = MARGIN_PLAN_EDGE + (rightWidth - halfW);
+      } else {
+           // Center
+           newOffset = 100;
+      }
+      
+      // Sécurité NaN
+      if(isNaN(newOffset)) newOffset = 100;
+      // Arrondi propre
+      newOffset = Math.ceil(newOffset);
+
+      setConfig(prev => ({
+          ...prev,
+          sinks: prev.sinks.map(s => s.id === sinkId ? { ...s, position: newPosition, offset: newOffset } : s)
+      }));
+  };
+
   const handleDrainerCheck = (id, isChecked, index) => {
       if (!isChecked) {
           updateSink(id, "hasDrainer", false);
           return;
       }
-
-      // Check spécifique pour CETTE cuve
       const myPos = layout.items[index];
       if (!myPos) return;
-
-      // Espace Gauche dispo pour cette cuve = (Bord Gauche Cuve) - (Obstacle Gauche)
       const obstacleL = index === 0 ? absLimitLeft : layout.items[index-1].rightBound;
       const distL = myPos.leftBound - obstacleL;
       const canL = distL >= DRAINER_WIDTH_MM;
-
-      // Espace Droite dispo
       const obstacleR = index === currentSinks.length-1 ? absLimitRight : layout.items[index+1].leftBound;
       const distR = obstacleR - myPos.rightBound;
       const canR = distR >= DRAINER_WIDTH_MM;
@@ -229,7 +272,6 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
       }
   };
 
-  // --- SMART ADD NEW SINK ---
   const addNewSink = (side) => {
       const newSink = {
           id: Date.now(),
@@ -244,60 +286,24 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
       
       setConfig(prev => {
           let newSinks = [...prev.sinks];
-          
           if (side === "left") {
-            // AJOUT GAUCHE : On insère au début.
-            // On veut que l'ancienne cuve 1 (qui devient 2) ne BOUGE PAS visuellement.
-            // Pour ça, il faut que la nouvelle cuve (Ancre) soit positionnée 
-            // exactement là où elle doit être pour que le gap soit respecté.
-            
-            const oldHead = newSinks[0]; // Ancienne ancre
-            
-            // Calcul de la position actuelle du bord gauche de l'ancienne ancre
-            // Note : layoutMetrics est calculé AVANT cet ajout. On peut s'en servir.
+            const oldHead = newSinks[0]; 
             const oldHeadLayout = layout.items[0]; 
-            const oldHeadLeftEdge = oldHeadLayout.leftBound; // Position absolue du bord gauche actuel (ex: -200)
-
-            // On veut placer la nouvelle cuve à gauche de ça.
-            // Nouvelle Cuve Droite = OldHeadLeftEdge - GAP
-            // Nouvelle Cuve Gauche = Nouvelle Cuve Droite - NewWidth
-            // Nouvelle Cuve Center = ...
-            
-            // Gap requis entre nouvelle et ancienne
-            // (On suppose pas d'égouttoir sur la nouvelle par défaut)
+            const oldHeadLeftEdge = oldHeadLayout.leftBound; 
             let gap = MIN_GAP_BETWEEN_SINKS;
             if (oldHead.hasDrainer && oldHead.drainerPosition === 'left') gap += DRAINER_WIDTH_MM;
-
-            // Position Bord Gauche de la NOUVELLE cuve
-            // = (Bord Gauche Ancienne) - gap - (Largeur Nouvelle)
             const newSinkWidth = SINK_SPECS[newSink.type].l;
             let targetLeftEdge = oldHeadLeftEdge - gap - newSinkWidth;
-
-            // Sécurité : Est-ce que ça sort du plan ?
-            // absLimitLeft est la limite gauche (-L/2 + Marge)
-            // Si targetLeftEdge < absLimitLeft, on doit coller au bord gauche (et l'autre bougera tant pis, ou c'est impossible)
-            // Mais canAddSinkLeft a déjà vérifié l'espace global. Donc normalement ça rentre.
             if (targetLeftEdge < absLimitLeft) targetLeftEdge = absLimitLeft;
-
-            // Maintenant on configure la nouvelle cuve comme ANCRE (Position Left)
-            // Offset = Distance(Bord Plan Gauche, Bord Gauche Nouvelle Cuve)
-            // Bord Plan Gauche = -L/2
-            // Offset = targetLeftEdge - (-L/2)
             const newOffset = targetLeftEdge - (-config.length/2);
-
             const newHead = { 
                 ...newSink, 
                 position: "left", 
                 offset: Math.max(newOffset, MARGIN_PLAN_EDGE)
             };
-            
-            // L'ancienne ancre perd son statut absolu et devient relative (offset 0 par défaut)
             const oldHeadRel = { ...oldHead, offset: 0 };
-            
             newSinks = [newHead, oldHeadRel, ...newSinks.slice(1)];
-
           } else {
-            // AJOUT DROITE : Simple push, pas de changement d'ancre
             newSinks = [...newSinks, newSink];
           }
           return { ...prev, sinks: newSinks };
@@ -308,10 +314,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
       setConfig(prev => {
           const newSinks = prev.sinks.filter(s => s.id !== id);
           if(prev.sinks[0].id === id && newSinks.length > 0) {
-             // Si on supprime l'ancre, le suivant devient ancre.
-             // On lui donne un offset par défaut ou on essaie de garder sa pos ?
-             // Par simplicité : centré par défaut ou left 100
-             newSinks[0] = { ...newSinks[0], position: "center", offset: 100 };
+              newSinks[0] = { ...newSinks[0], position: "center", offset: 100 };
           }
           if (newSinks.length === 0) return { ...prev, sinks: [{ id: Date.now(), type: "Aucune cuve", position: "center", offset: 100 }] };
           return { ...prev, sinks: newSinks };
@@ -330,7 +333,6 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
         if (sink.hasTapHole && sink.tapHolePosition !== "none") total += 15;
         if (sink.hasDrainer) total += DRAINER_PRICE;
     });
-    // ... calculs linéaires inchangés
     const getLinearPartPrice = (heightMm, lengthMm) => {
         if (!heightMm || heightMm <= 17.6) return 0;
         const pricePerMeter = 53.6 * Math.log(heightMm - 17.6) - 86.4;
@@ -384,35 +386,57 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
           const isNoSink = sink.type === "Aucune cuve";
           const isMulti = currentSinks.length > 1;
           const currentPos = layout.items[index];
+          const currentSinkOffset = sink.offset || 0;
 
-          // -- LIMITES OFFSET --
+          // CORRECTION NaN : On récupère la largeur depuis les specs
+          const sinkSpec = SINK_SPECS[sink.type] || { l: 0 };
+          const sinkWidth = sinkSpec.l;
+          const halfW = sinkWidth / 2;
+
           let minOffset = 0; 
           let maxOffset = 0;
-
+          
           if (isFirst) {
-              // ANCRE (Cuve 1)
-              // Min = Marge + Égouttoir éventuel du côté ancré
-              minOffset = MARGIN_PLAN_EDGE;
-              if (sink.position === 'left' && sink.hasDrainer && sink.drainerPosition === 'left') minOffset += DRAINER_WIDTH_MM;
-              if (sink.position === 'right' && sink.hasDrainer && sink.drainerPosition === 'right') minOffset += DRAINER_WIDTH_MM;
-              
-              // Max = Jusqu'au centre
-              maxOffset = (config.length/2) - (sink.width || 400)/2;
+              const { leftWidth, rightWidth } = layoutDimensions;
+
+              if (sink.position === 'left') {
+                   // Minimum = Contrainte par le mur gauche (mon encombrement gauche)
+                   minOffset = MARGIN_PLAN_EDGE + (leftWidth - halfW);
+                   
+                   // Maximum = Contrainte par le centre OU par le mur droit (encombrement droit)
+                   const wallLimit = config.length - MARGIN_PLAN_EDGE - rightWidth - halfW;
+                   const centerLimit = (config.length / 2) - halfW;
+                   maxOffset = Math.min(wallLimit, centerLimit);
+
+              } else if (sink.position === 'right') {
+                   // Minimum = Contrainte par le mur droit (mon encombrement droit)
+                   minOffset = MARGIN_PLAN_EDGE + (rightWidth - halfW);
+                   
+                   // Maximum = Contrainte par le centre OU par le mur gauche (encombrement gauche)
+                   const wallLimit = config.length - MARGIN_PLAN_EDGE - leftWidth - halfW;
+                   const centerLimit = (config.length / 2) - halfW;
+                   maxOffset = Math.min(wallLimit, centerLimit);
+
+              } else {
+                   // Center
+                   maxOffset = (config.length/2) - halfW;
+              }
+
+              // Sécurité anti NaN
+              if (isNaN(minOffset)) minOffset = 0;
+              if (isNaN(maxOffset)) maxOffset = 0;
               if (maxOffset < minOffset) maxOffset = minOffset; 
+
           } else {
-              // RELATIF (Cuves suivantes)
               minOffset = 0;
-              // Max = Espace dispo à droite jusqu'au bord
-              // Bord Droit Plan - Bord Droit Actuel + Mon Offset
-              const distToRightEdge = absLimitRight - (currentPos ? currentPos.rightBound : 0);
-              maxOffset = (sink.offset || 0) + distToRightEdge;
+              const globalSlackRight = absLimitRight - layout.groupMaxX; 
+              maxOffset = currentSinkOffset + globalSlackRight;
+              if(isNaN(maxOffset)) maxOffset = 0;
           }
 
-          // -- DISPONIBILITÉ EGOUTTOIR --
           const obstacleL = index === 0 ? absLimitLeft : layout.items[index-1].rightBound;
           const distL = currentPos ? (currentPos.leftBound - obstacleL) : 0;
-          const canL = distL >= (DRAINER_WIDTH_MM - 10); // Tolérance de 10mm
-
+          const canL = distL >= (DRAINER_WIDTH_MM - 10); 
           const obstacleR = index === currentSinks.length-1 ? absLimitRight : layout.items[index+1].leftBound;
           const distR = currentPos ? (obstacleR - currentPos.rightBound) : 0;
           const canR = distR >= (DRAINER_WIDTH_MM - 10);
@@ -443,14 +467,14 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
                         <label className="section-title">Positionnement (Ancrage)</label>
                         <div className="inputs-row" style={{ alignItems: "flex-end" }}>
                             <div className="drilling-options" style={{ marginRight: "15px", marginBottom: "5px" }}>
-                                <button className={sink.position === "left" ? "active-small" : ""} onClick={() => updateSink(sink.id, "position", "left")}>Gauche</button>
-                                <button className={sink.position === "center" ? "active-small" : ""} onClick={() => updateSink(sink.id, "position", "center")}>Centré</button>
-                                <button className={sink.position === "right" ? "active-small" : ""} onClick={() => updateSink(sink.id, "position", "right")}>Droite</button>
+                                <button className={sink.position === "left" ? "active-small" : ""} onClick={() => handlePositionChange(sink.id, "left", sinkWidth)}>Gauche</button>
+                                <button className={sink.position === "center" ? "active-small" : ""} onClick={() => handlePositionChange(sink.id, "center", sinkWidth)}>Centré</button>
+                                <button className={sink.position === "right" ? "active-small" : ""} onClick={() => handlePositionChange(sink.id, "right", sinkWidth)}>Droite</button>
                             </div>
                             {(sink.position !== "center") && (
                                 <div style={{ display: "flex", flexDirection: "column", marginLeft: "15px", flex: 1 }}>
                                     <span style={{ fontSize: "0.75rem", color: "#666", marginBottom: "4px" }}>
-                                        Décalage Bord (min: {minOffset})
+                                        Décalage Bord (min: {Math.ceil(minOffset)})
                                     </span>
                                     <input
                                         type="number"
@@ -461,9 +485,9 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
                                             if (val > maxOffset) val = maxOffset;
                                             updateSink(sink.id, "offset", val);
                                         }}
-                                        min={minOffset} max={maxOffset} step="10"
+                                        min={Math.ceil(minOffset)} max={Math.floor(maxOffset)} step="10"
                                     />
-                                    <span style={{fontSize:'0.65rem', color:'#999'}}>Max: {Math.floor(maxOffset)}</span>
+                                    <span style={{fontSize:'0.65rem', color:'#999'}}>Max: {Math.floor(maxOffset)} (Centré)</span>
                                 </div>
                             )}
                         </div>
@@ -486,12 +510,13 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
                                         if (val > maxOffset) val = maxOffset;
                                         updateSink(sink.id, "offset", val);
                                     }}
-                                    min={minOffset} max={maxOffset} step="10"
+                                    min={minOffset} max={Math.floor(maxOffset)} step="10"
                                 />
                                 <span style={{fontSize:'0.8rem', color:'#666'}}>
                                     (+ {MIN_GAP_BETWEEN_SINKS}mm technique)
                                 </span>
                              </div>
+                             <span style={{fontSize:'0.65rem', color:'#999', marginTop:'4px'}}>Max possible: {Math.floor(maxOffset)} (Bloqué par la fin du plan)</span>
                         </div>
                         </>
                     )}
@@ -579,7 +604,6 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
           </div>
       )}
 
-      {/* OPTIONS GLOBALES */}
       <div className="form-group checkbox-group">
         <label><input type="checkbox" name="rims" checked={config.rims} onChange={handleGlobalChange} /> Ajouter dosserets</label>
         {config.rims && (

@@ -217,7 +217,7 @@ const Vasque3D = ({ config }) => {
             drawOneHole(shapeTop, s.x, 0, s.width, s.height, 0.15);
             if(s.hasDrainer) {
                 const isLeft = s.drainerPosition === "left";
-                const SAFETY_GAP = 0.001; 
+                const SAFETY_GAP = 0.00000000001; 
                 const innerEdge = isLeft ? s.x - s.width/2 : s.x + s.width/2;
                 const drainStartEdge = isLeft ? innerEdge - SAFETY_GAP : innerEdge + SAFETY_GAP;
                 const drainCenter = isLeft ? drainStartEdge - DRAINER_LEN/2 : drainStartEdge + DRAINER_LEN/2;
@@ -310,6 +310,8 @@ const Vasque3D = ({ config }) => {
   const SingleSinkGeometry = ({ s }) => {
       if(!s.valid) return null;
       
+      const SHORTEN_BOTTOM = 0.12; // 12mm
+
       const { outerWallGeom, innerSkinGeom } = useMemo(() => {
         const SHRINK_OFFSET = 0.1; 
         const THIN_SKIN = 0.002;
@@ -324,7 +326,8 @@ const Vasque3D = ({ config }) => {
         drawTeethedHole(holeOut, s);
         outerShape.holes.push(holeOut);
 
-        const geomOut = new THREE.ExtrudeGeometry(outerShape, { depth: s.depth - SHRINK_OFFSET, bevelEnabled: false });
+        // MODIF: On réduit la profondeur totale de SHORTEN_BOTTOM supplémentaire
+        const geomOut = new THREE.ExtrudeGeometry(outerShape, { depth: s.depth - SHRINK_OFFSET - SHORTEN_BOTTOM, bevelEnabled: false });
         geomOut.rotateX(-Math.PI/2);
 
         // 2. MUR INTERIEUR (Peau fine, hauteur totale)
@@ -362,7 +365,8 @@ const Vasque3D = ({ config }) => {
 
       return (
           <group position={[s.x, 0, 0]}>
-              <mesh position={[0, floorY, 0]} geometry={outerWallGeom}>
+              {/* MODIF: On remonte le mur extérieur de SHORTEN_BOTTOM pour que l'espace vide soit en bas */}
+              <mesh position={[0, floorY + SHORTEN_BOTTOM, 0]} geometry={outerWallGeom}>
                   <meshStandardMaterial {...materialProps} />
               </mesh>
               <mesh position={[0, 0.4 - s.depth, 0]} geometry={innerSkinGeom}>
