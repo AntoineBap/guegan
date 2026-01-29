@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import "../styles/style.scss";
 
 // --- CONSTANTES ---
@@ -35,6 +35,7 @@ const SummaryLine = ({ label, price, isSubItem = false, value = null }) => (
 );
 
 const ConfigResume = ({ config, handleAddToCart }) => {
+  const [quantity, setQuantity] = useState(1);
 
   // --- FORMULES ---
 
@@ -58,12 +59,10 @@ const ConfigResume = ({ config, handleAddToCart }) => {
         const tapPrice = (sink.hasTapHole && sink.tapHolePosition !== "none") ? TAP_HOLE_PRICE : 0;
         const drainerPrice = sink.hasDrainer ? DRAINER_PRICE : 0;
         
-        // Traduction Position Cuve
         let positionLabel = "Centré";
         if (sink.position === "left") positionLabel = "Gauche";
         if (sink.position === "right") positionLabel = "Droite";
 
-        // Traduction Position Robinet
         let tapLabel = "Aucun";
         if (sink.hasTapHole) {
             if (sink.tapHolePosition === "center") tapLabel = "Centré";
@@ -71,7 +70,6 @@ const ConfigResume = ({ config, handleAddToCart }) => {
             if (sink.tapHolePosition === "right") tapLabel = "Droite";
         }
 
-        // Traduction Position Egouttoir
         let drainerLabel = "";
         if (sink.hasDrainer) {
             drainerLabel = sink.drainerPosition === "left" ? "Gauche" : "Droite";
@@ -131,8 +129,8 @@ const ConfigResume = ({ config, handleAddToCart }) => {
       return { price, length: config.length };
   }, [config.splashback, config.length]);
 
-  // --- TOTAL ---
-  const finalTotalPrice = useMemo(() => {
+  // --- TOTAL CALCULATIONS ---
+  const unitTotalPrice = useMemo(() => {
       let total = planDetails.price;
       sinksDetails.forEach(s => total += s.totalForCalc);
       if (rimsDetails) total += rimsDetails.price;
@@ -140,6 +138,9 @@ const ConfigResume = ({ config, handleAddToCart }) => {
       if (waterDripDetails) total += waterDripDetails.price;
       return total;
   }, [planDetails, sinksDetails, rimsDetails, apronsDetails, waterDripDetails]);
+
+  // Grand Total avec Quantité
+  const grandTotal = unitTotalPrice * quantity;
 
   const fmt = (n) => n.toFixed(2).replace('.', ',') + ' €';
 
@@ -151,9 +152,8 @@ const ConfigResume = ({ config, handleAddToCart }) => {
         {/* --- SECTION PLAN --- */}
         <div className="summary-section">
             <h3 style={{ borderBottom: '1px solid #eee', paddingBottom: '5px', marginBottom: '10px' }}>Plan de travail</h3>
-            <SummaryLine label="Dimensions" value={`${config.length} x ${config.width} mm` } price={planDetails.price}/>
+            <SummaryLine label="Dimensions" value={`${config.length} x ${config.width} mm`} price={planDetails.price} />
             <SummaryLine label="Surface" value={`${planDetails.area.toFixed(2)} m²`} />
-            <SummaryLine label="Prix base"  />
         </div>
 
         {/* --- SECTION CUVES --- */}
@@ -163,31 +163,23 @@ const ConfigResume = ({ config, handleAddToCart }) => {
                     Cuve #{sink.index}
                 </h3>
 
-                {/* Modèle et Prix Cuve */}
                 <SummaryLine label="Modèle" value={sink.modelName} price={sink.basePrice} />
-
-                {/* Position */}
                 <SummaryLine label="Position" value={sink.positionLabel} />
 
-                {/* Décalage Bord (Uniquement si Ancré et sur un côté) */}
                 {sink.isAnchor && sink.position !== "center" && (
                     <SummaryLine label="Décalage du bord" value={`${sink.offset} mm`} />
                 )}
 
-                {/* Ecart relatif (pour les cuves suivantes) */}
                 {!sink.isAnchor && (
                     <SummaryLine label="Écart avec précédent" value={`${sink.offset} mm`} />
                 )}
 
-                {/* Perçage Robinet */}
                 <SummaryLine label="Perçage Robinetterie" value={sink.tapLabel} price={sink.tapPrice > 0 ? sink.tapPrice : null} />
 
-                {/* Décalage Robinet (Uniquement si coté selectionné) */}
                 {sink.hasTapHole && (sink.tapHolePosition === "left" || sink.tapHolePosition === "right") && (
                     <SummaryLine label="Décalage du centre" value={`${sink.tapHoleOffset} mm`} />
                 )}
 
-                {/* Egouttoir */}
                 {sink.hasDrainer && (
                      <SummaryLine label="Égouttoir" value={sink.drainerLabel} price={sink.drainerPrice} />
                 )}
@@ -198,8 +190,8 @@ const ConfigResume = ({ config, handleAddToCart }) => {
         {rimsDetails && (
              <div className="summary-section">
                 <h3 style={{ borderBottom: '1px solid #eee', paddingBottom: '5px', marginBottom: '10px' }}>Dosserets</h3>
-                <SummaryLine label="Hauteur" value={`${rimsDetails.height} mm`} />
-                <SummaryLine label="Côtés" value={rimsDetails.sides} price={rimsDetails.price} />
+                <SummaryLine label="Hauteur" value={`${rimsDetails.height} mm`} price={rimsDetails.price}/>
+                <SummaryLine label="Côtés" value={rimsDetails.sides} />
             </div>
         )}
 
@@ -207,12 +199,8 @@ const ConfigResume = ({ config, handleAddToCart }) => {
         {apronsDetails && (
              <div className="summary-section">
                 <h3 style={{ borderBottom: '1px solid #eee', paddingBottom: '5px', marginBottom: '10px' }}>Retombées</h3>
-                <SummaryLine label="Hauteur" value={`${apronsDetails.height} mm`} />
-                <SummaryLine label="Côtés" value={apronsDetails.sides} price={apronsDetails.price}/>
-                {config.apronFront && (
-                     <p style={{fontSize: '0.75rem', color: '#888', fontStyle: 'italic', margin: '4px 0'}}>
-                     </p>
-                )}
+                <SummaryLine label="Hauteur" value={`${apronsDetails.height} mm`} price={apronsDetails.price} />
+                <SummaryLine label="Côtés" value={apronsDetails.sides} />
             </div>
         )}
 
@@ -220,18 +208,54 @@ const ConfigResume = ({ config, handleAddToCart }) => {
         {waterDripDetails && (
             <div className="summary-section">
                 <h3 style={{ borderBottom: '1px solid #eee', paddingBottom: '5px', marginBottom: '10px' }}>Goutte d'eau</h3>
-                <SummaryLine label="Anti-Goutte d'Eau" value={` ${waterDripDetails.length} mm`} price={waterDripDetails.price} />
+                <SummaryLine label="Usinage" value={`Sous plan (L: ${waterDripDetails.length} mm)`} price={waterDripDetails.price} />
             </div>
         )}
 
-        {/* --- TOTAL --- */}
-        <div className="price-section" style={{ marginTop: '20px', borderTop: '2px solid #000', paddingTop: '15px' }}>
-          <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>Prix Total HT</span>
-          <span className="price-value" style={{ fontSize: '1.4rem', color: '#d4af37' }}>{fmt(finalTotalPrice)}</span>
+        {/* --- TOTAL ET QUANTITE --- */}
+        <div style={{ marginTop: '20px', borderTop: '2px solid #ccc', paddingTop: '15px' }}>
+            
+            {/* Prix Unitaire (Informatif) */}
+            <div style={{ display:'flex', justifyContent:'space-between', color:'#666', fontSize:'0.9rem', marginBottom:'10px' }}>
+                <span>Prix Unitaire HT</span>
+                <span>{fmt(unitTotalPrice)}</span>
+            </div>
+
+            {/* Sélecteur de Quantité */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                <label style={{ fontWeight: 'bold' }}>Quantité</label>
+                <input 
+                    type="number" 
+                    min="1" 
+                    value={quantity} 
+                    onChange={(e) => {
+                        const val = parseInt(e.target.value);
+                        setQuantity(val > 0 ? val : 1);
+                    }}
+                    style={{ 
+                        width: '80px', 
+                        padding: '8px', 
+                        textAlign: 'center', 
+                        fontWeight: 'bold', 
+                        fontSize: '1rem',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px'
+                    }} 
+                />
+            </div>
+
+            {/* Total Final */}
+            <div className="price-section" style={{ display:'flex', justifyContent:'space-between', alignItems:'center', borderTop: '1px solid #eee', paddingTop:'15px' }}>
+                <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>Total HT</span>
+                <span className="price-value" style={{ fontSize: '1.6rem', color: '#d4af37' }}>{fmt(grandTotal)}</span>
+            </div>
         </div>
 
-        <button className="btn-primary" onClick={() => handleAddToCart({ ...config, totalPrice: finalTotalPrice })}>
-          Ajouter au panier
+        <button 
+            className="btn-primary" 
+            onClick={() => handleAddToCart({ ...config, unitPrice: unitTotalPrice, quantity, totalPrice: grandTotal })}
+        >
+          Ajouter au panier ({quantity})
         </button>
       </div>
     </div>

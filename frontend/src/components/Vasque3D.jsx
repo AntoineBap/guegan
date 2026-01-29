@@ -16,9 +16,9 @@ const Vasque3D = ({ config }) => {
   const SINK_SPECS_DIM = {
     "Aucune cuve": { l: 0, w: 0, d: 0 },
     "Cuve Labo 400x400x300": { l: 400, w: 400, d: 300 },
-    "Cuve détente 400x400x200": { l: 400, w: 400, d: 200 },
-    "Cuve cuisine 500x400x180": { l: 500, w: 400, d: 180 },
-    "Cuve sanitaire 422x336x139": { l: 422, w: 336, d: 139 },
+    "Cuve Détente 400x400x200": { l: 400, w: 400, d: 200 },
+    "Cuve Cuisine 500x400x180": { l: 500, w: 400, d: 180 },
+    "Cuve Sanitaire 422x336x139": { l: 422, w: 336, d: 139 },
   };
 
   const GAP_DEFAULT = 40 / UNIT_SCALE; 
