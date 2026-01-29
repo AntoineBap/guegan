@@ -4,9 +4,9 @@ import ConfigPanel from "../components/ConfigPanel";
 import Visualizer from "../components/Visualizer";
 import Modal3D from "../components/Modal3D";
 import Header from "../components/Header";
-import Cart from "../components/Cart"; // Assurez-vous d'avoir créé le fichier Cart.js donné précédemment
+import Cart from "../components/Cart";
+import { useCart } from "../contexts/CartContext";
 
-// État initial pour le Reset
 const INITIAL_CONFIG = {
   color: "white",
   length: 1200,
@@ -17,99 +17,73 @@ const INITIAL_CONFIG = {
   aprons: true,
   apronFront: true,
   apronHeight: 40,
-  // Laisser sinks vide ou null permet au useEffect du ConfigPanel de régénérer la config par défaut
-  sinks: null, 
+  sinks: null,
   anchorId: null
 };
 
 const Main = () => {
-  // --- STATE CONFIG ---
   const [config, setConfig] = useState(INITIAL_CONFIG);
   const [showModal, setShowModal] = useState(false);
-  // configKey sert à forcer le re-rendu complet du ConfigPanel pour le reset visuel
   const [configKey, setConfigKey] = useState(0); 
 
-  // --- STATE PANIER ---
-  const [cartItems, setCartItems] = useState([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
+  const { cartItems, isCartOpen, setIsCartOpen, updateCartItem, removeFromCart } = useCart();
 
-  // --- LOGIQUE PANIER ---
-  
-  // Ajouter au panier
-  const handleAddToCart = (finalConfig) => {
-    const newItem = {
-      ...finalConfig,
-      id: Date.now(), // ID unique
-    };
-
-    setCartItems((prev) => [...prev, newItem]);
-
-    if (window.confirm("Configuration ajoutée au panier ! Voulez-vous créer une nouvelle configuration ?")) {
-      // 1. Reset du state de config
+  const handleReset = () => {
       setConfig(INITIAL_CONFIG);
-      // 2. Incrémenter la clé pour forcer React à détruire et recréer le ConfigPanel
       setConfigKey((prev) => prev + 1);
-    }
-    
-    setIsCartOpen(true);
   };
 
-  // Mettre à jour quantité
-  const updateCartItem = (id, newQuantity) => {
-    if (newQuantity < 1) return;
-    setCartItems((prev) => prev.map((item) => 
-      item.id === id ? { ...item, quantity: newQuantity } : item
-    ));
-  };
-
-  // Supprimer du panier
-  const removeFromCart = (id) => {
-    setCartItems((prev) => prev.filter((item) => item.id !== id));
+  // --- NOUVELLE FONCTION : Charger une config depuis le panier ---
+  const handleLoadFromCart = (cartItem) => {
+      // On demande confirmation car cela va écraser la config en cours
+      if(window.confirm("Voulez-vous charger cette configuration dans l'éditeur ? (La configuration actuelle non sauvegardée sera perdue)")) {
+          
+          // On crée une copie propre sans les propriétés du panier (id, prix, qty)
+          // On garde 'id' du cartItem temporairement si on voulait faire une mise à jour, 
+          // mais ici on veut juste visualiser, donc on traite comme une nouvelle config.
+          const { id, unitPrice, totalPrice, quantity, ...configData } = cartItem;
+          
+          // Mise à jour de la config
+          setConfig(configData);
+          
+          // Force le re-render du Panel pour bien afficher les valeurs
+          setConfigKey(prev => prev + 1);
+          
+          // Ferme le panier
+          setIsCartOpen(false);
+      }
   };
 
   return (
     <div className="layout">
-      {/* HEADER : Reçoit les props pour ouvrir le panier et afficher le compteur */}
-      <Header 
-        toggleCart={() => setIsCartOpen(true)} 
-        cartCount={cartItems.length} 
-      />
+      <Header toggleCart={() => setIsCartOpen(true)} cartCount={cartItems.length} />
 
-      {/* PANIER (Overlay) */}
       {isCartOpen && (
         <Cart 
-          cartItems={cartItems} 
-          updateItem={updateCartItem} 
-          removeItem={removeFromCart} 
-          closeCart={() => setIsCartOpen(false)} 
+            cartItems={cartItems} 
+            updateItem={updateCartItem} 
+            removeItem={removeFromCart} 
+            closeCart={() => setIsCartOpen(false)}
+            // On passe la nouvelle fonction ici
+            onLoadConfig={handleLoadFromCart} 
         />
       )}
 
       <main className="main-content">
-        
-        {/* BLOC 1 : CONFIG */}
-        {/* La prop 'key' est cruciale ici pour le reset */}
         <ConfigPanel
           key={configKey} 
           config={config}
           setConfig={setConfig}
           setShowModal={setShowModal}
-          onAddToCart={handleAddToCart} // Passe la fonction au ConfigPanel -> ConfigResume
+          onReset={handleReset} 
         />
 
-        {/* BLOC 2 : VISUALIZER */}
         <div className="visualizer-container">
            <Visualizer config={config} />
         </div>
-
       </main>
       
-      {/* MODAL 3D */}
-      <Modal3D
-        config={config}
-        showModal={showModal}
-        setShowModal={setShowModal}
-      />
+      <Modal3D config={config} showModal={showModal} setShowModal={setShowModal} />
     </div>
   );
 };
