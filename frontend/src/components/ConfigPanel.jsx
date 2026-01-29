@@ -12,9 +12,9 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
   const SINK_SPECS = {
     "Aucune cuve": { l: 0, w: 0, d: 0, price: 0 },
     "Cuve Labo 400x400x300": { l: 400, w: 400, d: 300, price: 520 },
-    "Cuve détente 400x400x200": { l: 400, w: 400, d: 200, price: 490 },
-    "Cuve cuisine 500x400x180": { l: 500, w: 400, d: 180, price: 540 },
-    "Cuve sanitaire 422x336x139": { l: 422, w: 336, d: 139, price: 330 },
+    "Cuve Détente 400x400x200": { l: 400, w: 400, d: 200, price: 490 },
+    "Cuve Cuisine 500x400x180": { l: 500, w: 400, d: 180, price: 540 },
+    "Cuve Sanitaire 422x336x139": { l: 422, w: 336, d: 139, price: 330 },
   };
 
   useEffect(() => {
@@ -371,36 +371,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
       return false;
   };
 
-  const calculatePrice = () => {
-    const surfaceM2 = (config.length * config.width) / 1000000;
-    let total = Math.round(219.3 * surfaceM2 + 447.37);
-    currentSinks.forEach(sink => {
-        const spec = SINK_SPECS[sink.type];
-        if (spec) total += spec.price;
-        if (sink.hasTapHole && sink.tapHolePosition !== "none") total += 15;
-        if (sink.hasDrainer) total += DRAINER_PRICE;
-    });
-    const getLinearPartPrice = (heightMm, lengthMm) => {
-        if (!heightMm || heightMm <= 17.6) return 0;
-        const pricePerMeter = 53.6 * Math.log(heightMm - 17.6) - 86.4;
-        return Math.round(Math.max(0, pricePerMeter) * (lengthMm / 1000));
-    };
-    if (config.rims) {
-        if (config.rimLeft) total += getLinearPartPrice(config.rimHeigh, config.width);
-        if (config.rimRight) total += getLinearPartPrice(config.rimHeigh, config.width);
-        if (config.rimBack) total += getLinearPartPrice(config.rimHeigh, config.length);
-    }
-    if (config.aprons) {
-        const h = config.apronHeight || 40;
-        if (config.apronFront) total += getLinearPartPrice(h, config.length);
-        if (config.apronLeft) total += getLinearPartPrice(h, config.width);
-        if (config.apronRight) total += getLinearPartPrice(h, config.width);
-        if (config.apronBack) total += getLinearPartPrice(h, config.length);
-    }
-    return total;
-  };
-  const totalPrice = calculatePrice();
-
+  
   return (
     <div className="config-panel">
       <h1>Votre Plan-Vasque <span className="gold-text">Sur Mesure</span></h1>
@@ -788,12 +759,12 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
       </div>
 
       <div className="actions">
-        <button className="btn-secondary" onClick={() => setShowModal(true)}>Voir Rendu 3D</button>
+        {/* <button className="btn-secondary" onClick={() => setShowModal(true)}>Voir Rendu 3D</button> */}
       </div>
 
       <ConfigResume
         config={config}
-        handleAddToCart={() => alert(`Produit ajouté au panier pour ${totalPrice} € HT`)}
+        handleAddToCart={() => alert(`Produit ajouté au panier !`)}
         currentSink={currentSinks.length > 1 ? "Composition Multi-cuves" : (currentSinks[0]?.type || "Aucune")}
       />
     </div>

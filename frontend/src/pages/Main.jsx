@@ -29,7 +29,6 @@ const Main = () => {
     ]
   });
 
-  console.log(config)
 
   return (
     <div className="layout">
