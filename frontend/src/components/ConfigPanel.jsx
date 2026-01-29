@@ -18,73 +18,114 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
   };
 
   useEffect(() => {
+    // Initialisation Retombées (Aprons)
     if (!config.aprons || !config.apronFront) {
       setConfig((prev) => ({
         ...prev,
         aprons: true,
         apronFront: true,
-        apronHeight: prev.apronHeight || 40,
+        apronHeight: prev.apronHeight && prev.apronHeight >= 40 ? prev.apronHeight : 40,
       }));
     }
 
-    if (!config.sinks) {
-      setConfig((prev) => ({
-        ...prev,
-        sinks: [
-          {
-            id: Date.now(),
-            type: prev.sink || "Aucune cuve",
-            position: prev.position || "center",
-            offset: prev.sinkOffset || 100,
-            hasTapHole: prev.hasTapHole || false,
-            tapHolePosition: prev.tapHole || "none",
-            tapHoleOffset: prev.tapHoleOffset || 50,
-            hasDrainer: prev.hasDrainer || false,
-            drainerPosition: prev.drainerPosition || "right",
-          },
-        ],
-      }));
+    // Initialisation Dosserets (Rims)
+    if (config.rims && (!config.rimHeigh || config.rimHeigh < 100)) {
+       setConfig((prev) => ({ ...prev, rimHeigh: 100 }));
     }
-  }, [config.sinks, config.aprons, config.apronFront, setConfig]);
+
+    if (!config.sinks) {
+        const firstId = Date.now();
+        setConfig((prev) => ({
+          ...prev,
+          anchorId: firstId,
+          sinks: [
+            {
+              id: firstId,
+              type: prev.sink || "Aucune cuve",
+              position: prev.position || "center",
+              offset: prev.sinkOffset || 100,
+              hasTapHole: prev.hasTapHole || false,
+              tapHolePosition: prev.tapHole || "none",
+              tapHoleOffset: prev.tapHoleOffset || 50,
+              hasDrainer: prev.hasDrainer || false,
+              drainerPosition: prev.drainerPosition || "right",
+            },
+          ],
+        }));
+    } else if (!config.anchorId && config.sinks.length > 0) {
+        setConfig(prev => ({ ...prev, anchorId: prev.sinks[0].id }));
+    }
+  }, [config.sinks, config.aprons, config.apronFront, config.rims, config.rimHeigh, config.apronHeight, config.anchorId, setConfig]);
 
   const currentSinks = config.sinks || [];
   const hasAtLeastOneSink = currentSinks.some((s) => s.type !== "Aucune cuve");
 
-  // --- 1. CALCUL DE L'ENCOMBREMENT RELATIF (PIVOT = CENTRE CUVE 1) ---
+  // --- 1. CALCUL DE L'ENCOMBREMENT RELATIF ---
   const layoutDimensions = useMemo(() => {
       const items = currentSinks.map(s => ({ ...s, width: SINK_SPECS[s.type]?.l || 0 }));
       if (items.length === 0 || items[0].type === "Aucune cuve") {
           return { leftWidth: 0, rightWidth: 0, totalWidth: 0 };
       }
 
-      const positions = [];
-      const first = items[0];
-      let x1 = 0; 
-      let lb1 = -first.width / 2;
-      let rb1 = first.width / 2;
-      
-      if (first.hasDrainer && first.drainerPosition === 'left') lb1 -= DRAINER_WIDTH_MM;
-      if (first.hasDrainer && first.drainerPosition === 'right') rb1 += DRAINER_WIDTH_MM;
-      
-      positions.push({ centerX: x1, lb: lb1, rb: rb1, ...first });
+      const anchorIndex = currentSinks.findIndex(s => s.id === config.anchorId);
+      const effectiveAnchorIndex = anchorIndex === -1 ? 0 : anchorIndex;
 
-      for (let i = 1; i < items.length; i++) {
-          const prev = positions[i-1];
-          const curr = items[i];
+      const positions = new Array(items.length).fill(null);
+
+      // A. Place l'Ancre
+      const anchorItem = items[effectiveAnchorIndex];
+      let lbAnchor = -anchorItem.width / 2;
+      let rbAnchor = anchorItem.width / 2;
+      
+      if (anchorItem.hasDrainer && anchorItem.drainerPosition === 'left') lbAnchor -= DRAINER_WIDTH_MM;
+      if (anchorItem.hasDrainer && anchorItem.drainerPosition === 'right') rbAnchor += DRAINER_WIDTH_MM;
+      
+      positions[effectiveAnchorIndex] = { centerX: 0, lb: lbAnchor, rb: rbAnchor };
+
+      // B. Propagation vers la DROITE
+      for (let i = effectiveAnchorIndex + 1; i < items.length; i++) {
+          const prev = (i === effectiveAnchorIndex + 1) ? positions[effectiveAnchorIndex] : positions[i-1];
+          const prevItem = items[i-1];
+          const currItem = items[i];
           
-          let minGap = MIN_GAP_BETWEEN_SINKS;
-          if (prev.hasDrainer && prev.drainerPosition === 'right') minGap += DRAINER_WIDTH_MM;
-          if (curr.hasDrainer && curr.drainerPosition === 'left') minGap += DRAINER_WIDTH_MM;
+          let extraDrainerGap = 0;
+          if (prevItem.hasDrainer && prevItem.drainerPosition === 'right') extraDrainerGap += DRAINER_WIDTH_MM;
+          if (currItem.hasDrainer && currItem.drainerPosition === 'left') extraDrainerGap += DRAINER_WIDTH_MM;
 
-          const dist = (prev.width / 2) + minGap + (curr.offset || 0) + (curr.width / 2);
+          const structuralGap = (currItem.offset !== undefined && currItem.offset !== null) ? currItem.offset : MIN_GAP_BETWEEN_SINKS;
+
+          const dist = (prevItem.width / 2) + structuralGap + extraDrainerGap + (currItem.width / 2);
           const x = prev.centerX + dist;
           
-          let lb = x - curr.width/2;
-          let rb = x + curr.width/2;
-          if (curr.hasDrainer && curr.drainerPosition === 'left') lb -= DRAINER_WIDTH_MM;
-          if (curr.hasDrainer && curr.drainerPosition === 'right') rb += DRAINER_WIDTH_MM;
+          let lb = x - currItem.width/2;
+          let rb = x + currItem.width/2;
+          if (currItem.hasDrainer && currItem.drainerPosition === 'left') lb -= DRAINER_WIDTH_MM;
+          if (currItem.hasDrainer && currItem.drainerPosition === 'right') rb += DRAINER_WIDTH_MM;
 
-          positions.push({ centerX: x, lb, rb, ...curr });
+          positions[i] = { centerX: x, lb, rb };
+      }
+
+      // C. Propagation vers la GAUCHE
+      for (let i = effectiveAnchorIndex - 1; i >= 0; i--) {
+          const nextPos = positions[i+1]; 
+          const nextItem = items[i+1];    
+          const currItem = items[i];      
+
+          const structuralGap = (currItem.offset !== undefined && currItem.offset !== null) ? currItem.offset : MIN_GAP_BETWEEN_SINKS;
+
+          let extraDrainerGap = 0;
+          if (currItem.hasDrainer && currItem.drainerPosition === 'right') extraDrainerGap += DRAINER_WIDTH_MM;
+          if (nextItem.hasDrainer && nextItem.drainerPosition === 'left') extraDrainerGap += DRAINER_WIDTH_MM;
+
+          const dist = (currItem.width / 2) + structuralGap + extraDrainerGap + (nextItem.width / 2);
+          const x = nextPos.centerX - dist;
+
+          let lb = x - currItem.width/2;
+          let rb = x + currItem.width/2;
+          if (currItem.hasDrainer && currItem.drainerPosition === 'left') lb -= DRAINER_WIDTH_MM;
+          if (currItem.hasDrainer && currItem.drainerPosition === 'right') rb += DRAINER_WIDTH_MM;
+
+          positions[i] = { centerX: x, lb, rb };
       }
 
       const minX = Math.min(...positions.map(p => p.lb));
@@ -93,58 +134,44 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
       const leftWidth = Math.abs(minX);
       const rightWidth = maxX;
 
-      return { leftWidth, rightWidth, totalWidth: leftWidth + rightWidth };
-  }, [currentSinks]);
+      return { leftWidth, rightWidth, totalWidth: leftWidth + rightWidth, positionsRelative: positions };
+  }, [currentSinks, config.anchorId]);
 
   // --- 2. LAYOUT VISUEL ---
   const layout = useMemo(() => {
-      const { leftWidth, rightWidth } = layoutDimensions;
+      const { positionsRelative } = layoutDimensions;
+      if (!positionsRelative) return { items: [], groupMinX: 0, groupMaxX: 0 };
+
       const planHalfL = config.length / 2;
-      let anchorX = 0;
-      const firstItem = currentSinks[0];
-
-      if (firstItem && firstItem.type !== "Aucune cuve") {
-          const w = SINK_SPECS[firstItem.type]?.l || 0;
-          if (firstItem.position === "center") {
-              anchorX = 0;
-          } else if (firstItem.position === "left") {
-              anchorX = -planHalfL + (firstItem.offset || 100) + w / 2;
-          } else if (firstItem.position === "right") {
-              anchorX = planHalfL - (firstItem.offset || 100) - w / 2;
-          }
-      }
-
-      const sinkItems = currentSinks.map(s => ({ ...s, width: SINK_SPECS[s.type]?.l || 0 }));
-      const positions = [];
+      const anchorIndex = currentSinks.findIndex(s => s.id === config.anchorId);
+      const anchorItem = currentSinks[anchorIndex !== -1 ? anchorIndex : 0];
       
-      if (sinkItems.length > 0) {
-          let x1 = anchorX;
-          let lb1 = x1 - sinkItems[0].width/2;
-          let rb1 = x1 + sinkItems[0].width/2;
-          if (sinkItems[0].hasDrainer && sinkItems[0].drainerPosition === 'left') lb1 -= DRAINER_WIDTH_MM;
-          if (sinkItems[0].hasDrainer && sinkItems[0].drainerPosition === 'right') rb1 += DRAINER_WIDTH_MM;
-          positions.push({ ...sinkItems[0], centerX: x1, leftBound: lb1, rightBound: rb1 });
+      let anchorAbsX = 0;
 
-          for (let i = 1; i < sinkItems.length; i++) {
-            const prev = positions[i-1];
-            const curr = sinkItems[i];
-            let minGap = MIN_GAP_BETWEEN_SINKS;
-            if (prev.hasDrainer && prev.drainerPosition === 'right') minGap += DRAINER_WIDTH_MM;
-            if (curr.hasDrainer && curr.drainerPosition === 'left') minGap += DRAINER_WIDTH_MM;
-            const dist = (prev.width / 2) + minGap + (curr.offset || 0) + (curr.width / 2);
-            const x = prev.centerX + dist;
-            let lb = x - curr.width/2;
-            let rb = x + curr.width/2;
-            if (curr.hasDrainer && curr.drainerPosition === 'left') lb -= DRAINER_WIDTH_MM;
-            if (curr.hasDrainer && curr.drainerPosition === 'right') rb += DRAINER_WIDTH_MM;
-            positions.push({ ...curr, centerX: x, leftBound: lb, rightBound: rb });
+      if (anchorItem && anchorItem.type !== "Aucune cuve") {
+          const w = SINK_SPECS[anchorItem.type]?.l || 0;
+          if (anchorItem.position === "center") {
+              anchorAbsX = 0;
+          } else if (anchorItem.position === "left") {
+              anchorAbsX = -planHalfL + (anchorItem.offset || 100) + w / 2;
+          } else if (anchorItem.position === "right") {
+              anchorAbsX = planHalfL - (anchorItem.offset || 100) - w / 2;
           }
       }
-      const groupMinX = positions.length > 0 ? positions[0].leftBound : 0;
-      const groupMaxX = positions.length > 0 ? positions[positions.length - 1].rightBound : 0;
 
-      return { items: positions, groupMinX, groupMaxX };
-  }, [currentSinks, config.length, layoutDimensions]);
+      const items = positionsRelative.map((pos, idx) => ({
+          ...currentSinks[idx], 
+          width: SINK_SPECS[currentSinks[idx].type]?.l || 0,
+          centerX: pos.centerX + anchorAbsX,
+          leftBound: pos.lb + anchorAbsX,
+          rightBound: pos.rb + anchorAbsX
+      }));
+
+      const groupMinX = items.length > 0 ? items[0].leftBound : 0;
+      const groupMaxX = items.length > 0 ? items[items.length - 1].rightBound : 0;
+
+      return { items, groupMinX, groupMaxX };
+  }, [currentSinks, config.length, layoutDimensions, config.anchorId]);
 
   // --- 3. LIMITES D'AJOUT ---
   const planHalfLength = config.length / 2;
@@ -159,9 +186,25 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
   // --- 4. CALCUL MIN PLAN ---
   const { minPlanLength, minPlanDepth } = useMemo(() => {
     const mechanicalMinLen = layoutDimensions.totalWidth + MARGIN_PLAN_EDGE * 2;
-    const maxSideFromCenter = Math.max(layoutDimensions.leftWidth, layoutDimensions.rightWidth);
-    const centeredMinLen = (maxSideFromCenter + MARGIN_PLAN_EDGE) * 2;
-    const computedMinLen = Math.max(600, mechanicalMinLen, centeredMinLen);
+    const anchorIndex = currentSinks.findIndex(s => s.id === config.anchorId);
+    const anchorItem = currentSinks[anchorIndex !== -1 ? anchorIndex : 0];
+    
+    let situationalMinLen = mechanicalMinLen;
+
+    if (anchorItem && anchorItem.type !== "Aucune cuve") {
+        if (anchorItem.position === "center") {
+            const maxSideFromCenter = Math.max(layoutDimensions.leftWidth, layoutDimensions.rightWidth);
+            situationalMinLen = (maxSideFromCenter + MARGIN_PLAN_EDGE) * 2;
+        } else if (anchorItem.position === "left") {
+            const currentOffset = anchorItem.offset || MARGIN_PLAN_EDGE;
+            situationalMinLen = currentOffset + layoutDimensions.rightWidth + MARGIN_PLAN_EDGE;
+        } else if (anchorItem.position === "right") {
+            const currentOffset = anchorItem.offset || MARGIN_PLAN_EDGE;
+            situationalMinLen = currentOffset + layoutDimensions.leftWidth + MARGIN_PLAN_EDGE;
+        }
+    }
+
+    const computedMinLen = Math.max(600, mechanicalMinLen, situationalMinLen);
     
     let maxW = 0;
     currentSinks.forEach(s => {
@@ -172,7 +215,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
     const computedMinDep = Math.max(400, maxW + 160);
 
     return { minPlanLength: computedMinLen, minPlanDepth: computedMinDep };
-  }, [currentSinks, layoutDimensions]);
+  }, [currentSinks, layoutDimensions, config.anchorId]);
 
   const maxPlanLength = 3600;
   const maxPlanDepth = 700;
@@ -205,26 +248,20 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
     }));
   };
 
-  // NOUVEAU : GESTIONNAIRE POUR LE CHANGEMENT DE POSITION AVEC RESET OFFSET AU MIN
   const handlePositionChange = (sinkId, newPosition, sinkSpecWidth) => {
       const { leftWidth, rightWidth } = layoutDimensions;
       const halfW = sinkSpecWidth / 2;
-      let newOffset = 100; // valeur par défaut safe
+      let newOffset = 100;
 
       if (newPosition === 'left') {
-           // Min offset = Marge + Encombrement Gauche du groupe par rapport au centre cuve
            newOffset = MARGIN_PLAN_EDGE + (leftWidth - halfW);
       } else if (newPosition === 'right') {
-           // Min offset = Marge + Encombrement Droit du groupe par rapport au centre cuve
            newOffset = MARGIN_PLAN_EDGE + (rightWidth - halfW);
       } else {
-           // Center
            newOffset = 100;
       }
       
-      // Sécurité NaN
       if(isNaN(newOffset)) newOffset = 100;
-      // Arrondi propre
       newOffset = Math.ceil(newOffset);
 
       setConfig(prev => ({
@@ -281,28 +318,13 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
           tapHoleOffset: 0,
           hasDrainer: false,
           drainerPosition: "right",
-          offset: 0 
+          offset: MIN_GAP_BETWEEN_SINKS 
       };
       
       setConfig(prev => {
           let newSinks = [...prev.sinks];
           if (side === "left") {
-            const oldHead = newSinks[0]; 
-            const oldHeadLayout = layout.items[0]; 
-            const oldHeadLeftEdge = oldHeadLayout.leftBound; 
-            let gap = MIN_GAP_BETWEEN_SINKS;
-            if (oldHead.hasDrainer && oldHead.drainerPosition === 'left') gap += DRAINER_WIDTH_MM;
-            const newSinkWidth = SINK_SPECS[newSink.type].l;
-            let targetLeftEdge = oldHeadLeftEdge - gap - newSinkWidth;
-            if (targetLeftEdge < absLimitLeft) targetLeftEdge = absLimitLeft;
-            const newOffset = targetLeftEdge - (-config.length/2);
-            const newHead = { 
-                ...newSink, 
-                position: "left", 
-                offset: Math.max(newOffset, MARGIN_PLAN_EDGE)
-            };
-            const oldHeadRel = { ...oldHead, offset: 0 };
-            newSinks = [newHead, oldHeadRel, ...newSinks.slice(1)];
+            newSinks = [newSink, ...newSinks];
           } else {
             newSinks = [...newSinks, newSink];
           }
@@ -313,16 +335,43 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
   const removeSink = (id) => {
       setConfig(prev => {
           const newSinks = prev.sinks.filter(s => s.id !== id);
-          if(prev.sinks[0].id === id && newSinks.length > 0) {
-              newSinks[0] = { ...newSinks[0], position: "center", offset: 100 };
+          let newAnchorId = prev.anchorId;
+
+          if (id === prev.anchorId) {
+              if (newSinks.length > 0) {
+                  newAnchorId = newSinks[0].id;
+                  newSinks[0] = { ...newSinks[0], position: "center", offset: 100 };
+              } else {
+                  const newId = Date.now();
+                  newSinks.push({ id: newId, type: "Aucune cuve", position: "center", offset: 100 });
+                  newAnchorId = newId;
+              }
           }
-          if (newSinks.length === 0) return { ...prev, sinks: [{ id: Date.now(), type: "Aucune cuve", position: "center", offset: 100 }] };
-          return { ...prev, sinks: newSinks };
+          return { ...prev, sinks: newSinks, anchorId: newAnchorId };
       });
   };
 
-  const toggleRimSide = (k) => setConfig(p => ({ ...p, [k]: !p[k] }));
-  const toggleApronSide = (k) => setConfig(p => ({ ...p, [k]: !p[k] }));
+  const toggleRimSide = (side) => {
+      setConfig(prev => ({ ...prev, [side]: !prev[side] }));
+  };
+
+  const toggleApronSide = (side) => {
+      setConfig(prev => ({ ...prev, [side]: !prev[side] }));
+  };
+
+  const isRimDisabled = (side) => {
+      if (side === "rimLeft") return config.apronLeft;
+      if (side === "rimRight") return config.apronRight;
+      if (side === "rimBack") return config.apronBack;
+      return false;
+  };
+
+  const isApronDisabled = (side) => {
+      if (side === "apronLeft") return config.rimLeft;
+      if (side === "apronRight") return config.rimRight;
+      if (side === "apronBack") return config.rimBack;
+      return false;
+  };
 
   const calculatePrice = () => {
     const surfaceM2 = (config.length * config.width) / 1000000;
@@ -382,13 +431,12 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
       </div>
 
       {currentSinks.map((sink, index) => {
-          const isFirst = index === 0;
+          const isAnchor = sink.id === config.anchorId;
           const isNoSink = sink.type === "Aucune cuve";
           const isMulti = currentSinks.length > 1;
           const currentPos = layout.items[index];
-          const currentSinkOffset = sink.offset || 0;
+          const currentSinkOffset = (sink.offset !== undefined && sink.offset !== null) ? sink.offset : (isAnchor ? 100 : MIN_GAP_BETWEEN_SINKS);
 
-          // CORRECTION NaN : On récupère la largeur depuis les specs
           const sinkSpec = SINK_SPECS[sink.type] || { l: 0 };
           const sinkWidth = sinkSpec.l;
           const halfW = sinkWidth / 2;
@@ -396,41 +444,80 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
           let minOffset = 0; 
           let maxOffset = 0;
           
-          if (isFirst) {
-              const { leftWidth, rightWidth } = layoutDimensions;
+          // Variables de blocage pour l'ancre
+          let canCenter = true;
+          let canAnchorLeft = true;
+          let canAnchorRight = true;
+
+          if (isAnchor) {
+              const { leftWidth, rightWidth, totalWidth } = layoutDimensions;
+              const halfL = config.length / 2;
+              
+              // 1. Est-ce qu'on peut Centrer ? (Symétrie)
+              const maxWing = Math.max(leftWidth, rightWidth);
+              canCenter = (maxWing + MARGIN_PLAN_EDGE) <= halfL;
+
+              // 2. Est-ce qu'on peut Ancrer à Gauche ? 
+              // La position minimale valide de l'ancre en mode "Gauche" est: MARGIN + leftWidth.
+              // Si cette position dépasse le milieu du plan (halfL), alors "Ancrer à Gauche" 
+              // placerait en réalité l'ancre sur la moitié DROITE du plan. On bloque.
+              const minAnchorX_LeftMode = MARGIN_PLAN_EDGE + (leftWidth - halfW); // -halfW car offset est au bord
+              // Correction: Offset Left est "Bord Gauche Plan -> Bord Gauche Cuve".
+              // Centre Cuve = Offset + halfW.
+              // Encombrement Gauche (depuis centre) = leftWidth.
+              // Donc Offset minimal = MARGIN + (leftWidth - halfW).
+              // Position Centre Ancre minimale = MARGIN + leftWidth.
+              const absCenterMinX = MARGIN_PLAN_EDGE + leftWidth;
+              canAnchorLeft = absCenterMinX <= halfL;
+
+              // 3. Est-ce qu'on peut Ancrer à Droite ?
+              // La position minimale valide de l'ancre en mode "Droite" (donc le plus à droite possible)
+              // est contrainte par la gauche du groupe.
+              // Non, en mode "Droite", on pousse vers la gauche.
+              // La limite est quand on tape le mur gauche.
+              // Max Offset Right = Length - MARGIN - leftWidth - halfW.
+              // Position Centre Ancre = Length - Offset - halfW.
+              // Position Centre Ancre la plus à GAUCHE possible en mode "Right" = MARGIN + leftWidth.
+              // Position Centre Ancre la plus à DROITE possible en mode "Right" = Length - MARGIN - rightWidth.
+              // On veut savoir si l'ancrage "Droite" a du sens, c-à-d si l'ancre peut être dans la moitié droite.
+              // Position la plus à droite possible : Length - MARGIN - rightWidth.
+              const absCenterMaxX = config.length - MARGIN_PLAN_EDGE - rightWidth;
+              canAnchorRight = absCenterMaxX >= halfL;
+
 
               if (sink.position === 'left') {
-                   // Minimum = Contrainte par le mur gauche (mon encombrement gauche)
                    minOffset = MARGIN_PLAN_EDGE + (leftWidth - halfW);
-                   
-                   // Maximum = Contrainte par le centre OU par le mur droit (encombrement droit)
                    const wallLimit = config.length - MARGIN_PLAN_EDGE - rightWidth - halfW;
                    const centerLimit = (config.length / 2) - halfW;
                    maxOffset = Math.min(wallLimit, centerLimit);
 
               } else if (sink.position === 'right') {
-                   // Minimum = Contrainte par le mur droit (mon encombrement droit)
                    minOffset = MARGIN_PLAN_EDGE + (rightWidth - halfW);
-                   
-                   // Maximum = Contrainte par le centre OU par le mur gauche (encombrement gauche)
                    const wallLimit = config.length - MARGIN_PLAN_EDGE - leftWidth - halfW;
                    const centerLimit = (config.length / 2) - halfW;
                    maxOffset = Math.min(wallLimit, centerLimit);
 
               } else {
-                   // Center
                    maxOffset = (config.length/2) - halfW;
               }
 
-              // Sécurité anti NaN
               if (isNaN(minOffset)) minOffset = 0;
               if (isNaN(maxOffset)) maxOffset = 0;
               if (maxOffset < minOffset) maxOffset = minOffset; 
 
           } else {
-              minOffset = 0;
+              // RELATIF
+              minOffset = MIN_GAP_BETWEEN_SINKS;
               const globalSlackRight = absLimitRight - layout.groupMaxX; 
-              maxOffset = currentSinkOffset + globalSlackRight;
+              const globalSlackLeft = layout.groupMinX - absLimitLeft;
+              
+              const anchorIndex = currentSinks.findIndex(s => s.id === config.anchorId);
+              if (index > anchorIndex) {
+                  maxOffset = currentSinkOffset + globalSlackRight;
+              } else {
+                  maxOffset = currentSinkOffset + globalSlackLeft;
+              }
+              
               if(isNaN(maxOffset)) maxOffset = 0;
           }
 
@@ -442,10 +529,13 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
           const canR = distR >= (DRAINER_WIDTH_MM - 10);
 
           return (
-            <div key={sink.id} className="form-group section-box" style={{borderLeft: "4px solid #d4af37"}}>
+            <div key={sink.id} className="form-group section-box" style={{borderLeft: isAnchor ? "4px solid #d4af37" : "4px solid #ccc"}}>
                 <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-                    <label className="section-title">{isMulti ? `Cuve #${index + 1}` : "Choix de la cuve"}</label>
-                    {isMulti && (
+                    <label className="section-title">
+                        {isMulti ? `Cuve #${index + 1}` : "Choix de la cuve"} 
+                        {isAnchor && isMulti && <span style={{fontSize:'0.7em', color:'#d4af37', marginLeft:'5px'}}>(Ancre)</span>}
+                    </label>
+                    {isMulti && !isAnchor && (
                         <button onClick={() => removeSink(sink.id)} style={{fontSize:'0.8rem', color:'red', border:'none', background:'transparent', cursor:'pointer'}}>Supprimer 🗑️</button>
                     )}
                 </div>
@@ -453,7 +543,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
                 <div className="sink-options-list">
                   {Object.keys(SINK_SPECS).map((opt) => (
                     <button key={opt} className={sink.type === opt ? "active-small" : ""} onClick={() => handleSinkTypeSelect(sink.id, opt)}>
-                      {opt === "Aucune cuve" ? "Aucune" : opt.replace("Cuve ", "")}
+                      {opt === "Aucune cuve" ? "Aucune" : `${opt.replace("Cuve ", "")} (${SINK_SPECS[opt].price}€)`}
                     </button>
                   ))}
                 </div>
@@ -462,14 +552,31 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
                   <>
                     <div style={{ margin: "20px 0", borderTop: "1px solid #e0e0e0" }}></div>
 
-                    {isFirst ? (
+                    {isAnchor ? (
                         <>
                         <label className="section-title">Positionnement (Ancrage)</label>
                         <div className="inputs-row" style={{ alignItems: "flex-end" }}>
                             <div className="drilling-options" style={{ marginRight: "15px", marginBottom: "5px" }}>
-                                <button className={sink.position === "left" ? "active-small" : ""} onClick={() => handlePositionChange(sink.id, "left", sinkWidth)}>Gauche</button>
-                                <button className={sink.position === "center" ? "active-small" : ""} onClick={() => handlePositionChange(sink.id, "center", sinkWidth)}>Centré</button>
-                                <button className={sink.position === "right" ? "active-small" : ""} onClick={() => handlePositionChange(sink.id, "right", sinkWidth)}>Droite</button>
+                                <button 
+                                    className={sink.position === "left" ? "active-small" : ""} 
+                                    onClick={() => canAnchorLeft && handlePositionChange(sink.id, "left", sinkWidth)}
+                                    disabled={!canAnchorLeft}
+                                    style={!canAnchorLeft ? {opacity:0.5, cursor:'not-allowed'} : {}}
+                                >Gauche</button>
+                                
+                                <button 
+                                    className={sink.position === "center" ? "active-small" : ""} 
+                                    onClick={() => canCenter && handlePositionChange(sink.id, "center", sinkWidth)}
+                                    disabled={!canCenter}
+                                    style={!canCenter ? {opacity:0.5, cursor:'not-allowed'} : {}}
+                                >Centré</button>
+                                
+                                <button 
+                                    className={sink.position === "right" ? "active-small" : ""} 
+                                    onClick={() => canAnchorRight && handlePositionChange(sink.id, "right", sinkWidth)}
+                                    disabled={!canAnchorRight}
+                                    style={!canAnchorRight ? {opacity:0.5, cursor:'not-allowed'} : {}}
+                                >Droite</button>
                             </div>
                             {(sink.position !== "center") && (
                                 <div style={{ display: "flex", flexDirection: "column", marginLeft: "15px", flex: 1 }}>
@@ -497,13 +604,13 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
                         <label className="section-title">Positionnement Relatif</label>
                         <div style={{ display: "flex", flexDirection: "column", marginTop:'10px' }}>
                              <span style={{ fontSize: "0.9rem", color: "#333", marginBottom: "5px" }}>
-                                Espace supp. depuis cuve précédente
+                                Espace total depuis cuve précédente
                              </span>
                              <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
                                  <input
                                     type="number"
                                     style={{width:'100px'}}
-                                    value={sink.offset}
+                                    value={currentSinkOffset}
                                     onChange={(e) => {
                                         let val = parseFloat(e.target.value);
                                         if (val < minOffset) val = minOffset;
@@ -512,9 +619,6 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
                                     }}
                                     min={minOffset} max={Math.floor(maxOffset)} step="10"
                                 />
-                                <span style={{fontSize:'0.8rem', color:'#666'}}>
-                                    (+ {MIN_GAP_BETWEEN_SINKS}mm technique)
-                                </span>
                              </div>
                              <span style={{fontSize:'0.65rem', color:'#999', marginTop:'4px'}}>Max possible: {Math.floor(maxOffset)} (Bloqué par la fin du plan)</span>
                         </div>
@@ -604,29 +708,72 @@ const ConfigPanel = ({ config, setConfig, setShowModal }) => {
           </div>
       )}
 
+      {/* OPTIONS DOSSERETS (RIMS) */}
       <div className="form-group checkbox-group">
         <label><input type="checkbox" name="rims" checked={config.rims} onChange={handleGlobalChange} /> Ajouter dosserets</label>
         {config.rims && (
           <div className="rims-options-container" style={{ marginTop: "10px" }}>
-            <input type="number" className="small-input" name="rimHeigh" value={config.rimHeigh} onChange={handleGlobalChange} onBlur={handleBlur} min="50" max="550" />
+            <div style={{marginBottom:'5px'}}>
+              <input type="number" className="small-input" name="rimHeigh" value={config.rimHeigh} onChange={handleGlobalChange} onBlur={handleBlur} min="100" max="550" />
+              <span style={{fontSize:'0.7rem', color:'#666', marginLeft:'10px'}}>(Min 100mm - Max 550mm)</span>
+            </div>
             <div className="drilling-options">
-              <button className={config.rimLeft?"active-small":""} onClick={()=>toggleRimSide("rimLeft")}>G</button>
-              <button className={config.rimBack?"active-small":""} onClick={()=>toggleRimSide("rimBack")}>Arr</button>
-              <button className={config.rimRight?"active-small":""} onClick={()=>toggleRimSide("rimRight")}>D</button>
+              <button 
+                className={config.rimLeft ? "active-small" : ""} 
+                onClick={() => !isRimDisabled("rimLeft") && toggleRimSide("rimLeft")}
+                disabled={isRimDisabled("rimLeft")}
+                style={isRimDisabled("rimLeft") ? {opacity:0.5, cursor:'not-allowed'} : {}}
+              >Gauche</button>
+              
+              <button 
+                className={config.rimBack ? "active-small" : ""} 
+                onClick={() => !isRimDisabled("rimBack") && toggleRimSide("rimBack")}
+                disabled={isRimDisabled("rimBack")}
+                style={isRimDisabled("rimBack") ? {opacity:0.5, cursor:'not-allowed'} : {}}
+              >Arrière</button>
+              
+              <button 
+                className={config.rimRight ? "active-small" : ""} 
+                onClick={() => !isRimDisabled("rimRight") && toggleRimSide("rimRight")}
+                disabled={isRimDisabled("rimRight")}
+                style={isRimDisabled("rimRight") ? {opacity:0.5, cursor:'not-allowed'} : {}}
+              >Droite</button>
             </div>
           </div>
         )}
       </div>
 
+      {/* OPTIONS RETOMBEES (APRONS) */}
       <div className="form-group checkbox-group">
         <label><input type="checkbox" name="aprons" checked={true} disabled readOnly /> Retombées (Obligatoire)</label>
         <div className="rims-options-container" style={{ marginTop: "10px" }}>
-          <input type="number" className="small-input" name="apronHeight" value={config.apronHeight || 40} onChange={handleGlobalChange} onBlur={handleBlur} min="40" max="200" />
+          <div style={{marginBottom:'5px'}}>
+            <input type="number" className="small-input" name="apronHeight" value={config.apronHeight || 40} onChange={handleGlobalChange} onBlur={handleBlur} min="40" max="200" />
+            <span style={{fontSize:'0.7rem', color:'#666', marginLeft:'10px'}}>(Min 40mm - Max 200mm)</span>
+          </div>
           <div className="drilling-options">
-            <button className={config.apronFront?"active-small":""} disabled>Av</button>
-            <button className={config.apronLeft?"active-small":""} onClick={()=>toggleApronSide("apronLeft")}>G</button>
-            <button className={config.apronBack?"active-small":""} onClick={()=>toggleApronSide("apronBack")}>Arr</button>
-            <button className={config.apronRight?"active-small":""} onClick={()=>toggleApronSide("apronRight")}>D</button>
+            <button className={config.apronFront ? "active-small" : ""} disabled>Avant</button>
+            
+            <button 
+                className={config.apronLeft ? "active-small" : ""} 
+                onClick={() => !isApronDisabled("apronLeft") && toggleApronSide("apronLeft")}
+                disabled={isApronDisabled("apronLeft")}
+                style={isApronDisabled("apronLeft") ? {opacity:0.5, cursor:'not-allowed'} : {}}
+            >Gauche</button>
+
+            <button 
+                className={config.apronBack ? "active-small" : ""} 
+                onClick={() => !isApronDisabled("apronBack") && toggleApronSide("apronBack")}
+                disabled={isApronDisabled("apronBack")}
+                style={isApronDisabled("apronBack") ? {opacity:0.5, cursor:'not-allowed'} : {}}
+            >Arrière</button>
+
+            <button 
+                className={config.apronRight ? "active-small" : ""} 
+                onClick={() => !isApronDisabled("apronRight") && toggleApronSide("apronRight")}
+                disabled={isApronDisabled("apronRight")}
+                style={isApronDisabled("apronRight") ? {opacity:0.5, cursor:'not-allowed'} : {}}
+            >Droite</button>
           </div>
         </div>
       </div>

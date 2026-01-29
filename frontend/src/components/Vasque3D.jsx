@@ -21,8 +21,8 @@ const Vasque3D = ({ config }) => {
     "Cuve sanitaire 422x336x139": { l: 422, w: 336, d: 139 },
   };
 
-  const GAP = 0.4; // 40mm
-  const DRAINER_LEN = 3.5; 
+  const GAP_DEFAULT = 40 / UNIT_SCALE; // 40mm
+  const DRAINER_LEN = 3.5; // 350mm / 100
   const GROOVE_W = 0.1;
   const STD_GROOVE_COUNT = 7;
   const TOTAL_DRAINER_WIDTH_STD = 3.5;
@@ -35,17 +35,20 @@ const Vasque3D = ({ config }) => {
       return { count, totalH };
   };
 
-  // --- CALCUL POSITIONS CUVES (NOUVELLE LOGIQUE : ANCRE CUVE 1 + CHAÎNE) ---
+  // --- CALCUL POSITIONS CUVES (MOTEUR BIDIRECTIONNEL) ---
   const calculatedSinks = useMemo(() => {
     const sinks = config.sinks || [
-       { type: config.sink || "Aucune cuve", position: config.position || "center", offset: config.sinkOffset || 100 }
+       { id: 999, type: config.sink || "Aucune cuve", position: config.position || "center", offset: config.sinkOffset || 100 }
     ];
     
     if (sinks.length === 0) return [];
 
+    // 1. Préparation des dimensions
     const items = sinks.map(s => {
         const spec = SINK_SPECS_DIM[s.type] || SINK_SPECS_DIM["Aucune cuve"];
-        const offsetVal = (s.offset || 0) / UNIT_SCALE;
+        // Si offset undefined -> 40 par défaut
+        const offsetVal = (s.offset !== undefined && s.offset !== null) ? s.offset / UNIT_SCALE : GAP_DEFAULT;
+        
         return { 
             ...s, 
             width: spec.l / UNIT_SCALE, 
@@ -55,50 +58,69 @@ const Vasque3D = ({ config }) => {
         };
     });
 
+    // 2. Identification de l'Ancre
+    let anchorIndex = items.findIndex(s => s.id === config.anchorId);
+    if (anchorIndex === -1) anchorIndex = 0;
+
+    const anchorItem = items[anchorIndex];
     const planHalfL = totalL / 2;
-    const calculatedItems = [];
-
-    // --- POSITIONNEMENT CUVE 1 (ANCRE) ---
-    const firstItem = items[0];
-    let x1 = 0;
     
-    if (firstItem.position === "center") {
-        x1 = 0;
-    } else if (firstItem.position === "left") {
-        // Centre Cuve = -L/2 + Offset + W/2
-        x1 = -planHalfL + (firstItem.offsetVal || 1.0) + firstItem.width / 2;
-    } else if (firstItem.position === "right") {
-        // Centre Cuve = L/2 - Offset - W/2
-        x1 = planHalfL - (firstItem.offsetVal || 1.0) - firstItem.width / 2;
+    // 3. Position Ancre
+    let anchorAbsX = 0;
+    if (anchorItem.position === "center") {
+        anchorAbsX = 0;
+    } else if (anchorItem.position === "left") {
+        anchorAbsX = -planHalfL + anchorItem.offsetVal + anchorItem.width / 2;
+    } else if (anchorItem.position === "right") {
+        anchorAbsX = planHalfL - anchorItem.offsetVal - anchorItem.width / 2;
     }
-    
-    calculatedItems.push({ ...firstItem, x: x1, valid: firstItem.type !== "Aucune cuve" });
 
-    // --- POSITIONNEMENT CUVES SUIVANTES (RELATIF EN CHAÎNE) ---
-    for (let i = 1; i < items.length; i++) {
+    const calculatedItems = new Array(items.length);
+
+    // 4. Placement Ancre
+    calculatedItems[anchorIndex] = { ...anchorItem, x: anchorAbsX, valid: anchorItem.type !== "Aucune cuve" };
+
+    // 5. Propagation DROITE
+    for (let i = anchorIndex + 1; i < items.length; i++) {
         const prev = calculatedItems[i-1];
         const curr = items[i];
         
-        let minGap = GAP;
-        // Si cuve précédente a égouttoir à droite OU cuve actuelle a égouttoir à gauche -> Espace += 350mm
-        if (prev.hasDrainer && prev.drainerPosition === 'right') minGap += DRAINER_LEN;
-        if (curr.hasDrainer && curr.drainerPosition === 'left') minGap += DRAINER_LEN;
+        let extraGap = 0;
+        if (prev.hasDrainer && prev.drainerPosition === 'right') extraGap += DRAINER_LEN;
+        if (curr.hasDrainer && curr.drainerPosition === 'left') extraGap += DRAINER_LEN;
 
-        // Position = CentrePrec + DemiLPrec + GAP_TOTAL + DemiLCurr
-        const dist = (prev.width / 2) + minGap + (curr.offsetVal || 0) + (curr.width / 2);
+        // Gap est porté par 'curr' (élément à droite)
+        const dist = (prev.width / 2) + curr.offsetVal + extraGap + (curr.width / 2);
         const x = prev.x + dist;
         
-        calculatedItems.push({ ...curr, x, valid: curr.type !== "Aucune cuve" });
+        calculatedItems[i] = { ...curr, x, valid: curr.type !== "Aucune cuve" };
+    }
+
+    // 6. Propagation GAUCHE
+    for (let i = anchorIndex - 1; i >= 0; i--) {
+        const next = calculatedItems[i+1]; 
+        const curr = items[i];             
+        
+        // Gap est porté par 'curr' (élément à gauche)
+        const gapVal = curr.offsetVal;
+
+        let extraGap = 0;
+        if (curr.hasDrainer && curr.drainerPosition === 'right') extraGap += DRAINER_LEN;
+        if (next.hasDrainer && next.drainerPosition === 'left') extraGap += DRAINER_LEN;
+
+        const dist = (next.width / 2) + gapVal + extraGap + (curr.width / 2);
+        const x = next.x - dist;
+
+        calculatedItems[i] = { ...curr, x, valid: curr.type !== "Aucune cuve" };
     }
 
     return calculatedItems;
-  }, [config.sinks, config.length, totalL]);
+  }, [config.sinks, config.length, totalL, config.anchorId]);
 
-  // --- ELEVATION Y ---
+  // --- SUITE DU RENDU ---
   const maxBasinDepth = calculatedSinks.reduce((max, s) => s.valid && s.depth > max ? s.depth : max, 0);
   const elevationY = maxBasinDepth > 0 ? (maxBasinDepth - 0.4) + 0.02 : 0;
 
-  // --- GÉOMÉTRIE DÉCOUPE MUR (Teethed Hole) - VERSION REFERENCE ---
   const drawTeethedHole = (holePath, sink) => {
       const w = sink.width;
       const h = sink.height;
@@ -121,12 +143,11 @@ const Vasque3D = ({ config }) => {
 
       holePath.moveTo(x, y + r);
 
-      // Côté GAUCHE
+      // GAUCHE
       if (sink.hasDrainer && sink.drainerPosition === "left") {
           const yTop = y + h - r;
           const sortedGrooves = [...grooveYs].sort((a,b) => a - b); 
           let penY = y + r;
-          
           sortedGrooves.forEach(gY => {
               const gBot = gY - GROOVE_W/2;
               const gTop = gY + GROOVE_W/2;
@@ -147,13 +168,12 @@ const Vasque3D = ({ config }) => {
       holePath.lineTo(x + w - r, y + h);
       holePath.absarc(x + w - r, y + h - r, r, Math.PI / 2, 0, true);
 
-      // Côté DROIT
+      // DROIT
       if (sink.hasDrainer && sink.drainerPosition === "right") {
           const yBot = y + r;
           const sortedGrooves = [...grooveYs].sort((a,b) => b - a);
           let penY = y + h - r;
           const rightX = x + w;
-
           sortedGrooves.forEach(gY => {
               const gTop = gY + GROOVE_W/2;
               const gBot = gY - GROOVE_W/2;
@@ -175,7 +195,6 @@ const Vasque3D = ({ config }) => {
       holePath.absarc(x + r, y + r, r, -Math.PI / 2, -Math.PI, true);
   };
 
-  // --- GEOMETRIE PLAN - VERSION REFERENCE ---
   const planComponents = useMemo(() => {
     const drawBaseRect = (shp) => {
       shp.moveTo(-totalL / 2, -totalW / 2);
@@ -217,7 +236,7 @@ const Vasque3D = ({ config }) => {
             drawOneHole(shapeTop, s.x, 0, s.width, s.height, 0.15);
             if(s.hasDrainer) {
                 const isLeft = s.drainerPosition === "left";
-                const SAFETY_GAP = 0.00000000001; 
+                const SAFETY_GAP = 0.001; 
                 const innerEdge = isLeft ? s.x - s.width/2 : s.x + s.width/2;
                 const drainStartEdge = isLeft ? innerEdge - SAFETY_GAP : innerEdge + SAFETY_GAP;
                 const drainCenter = isLeft ? drainStartEdge - DRAINER_LEN/2 : drainStartEdge + DRAINER_LEN/2;
@@ -235,17 +254,15 @@ const Vasque3D = ({ config }) => {
                     const xEnd = drainCenter + DRAINER_LEN/2;
                     
                     if (isLeft) {
-                        // Pointe à Gauche (Loin), Base à Droite (Près)
-                        grooveHole.moveTo(xStart, shapeY); // Pointe
-                        grooveHole.lineTo(xEnd, shapeY + halfW); // Base Haut
-                        grooveHole.lineTo(xEnd, shapeY - halfW); // Base Bas
-                        grooveHole.lineTo(xStart, shapeY); // Retour Pointe
+                        grooveHole.moveTo(xStart, shapeY);
+                        grooveHole.lineTo(xEnd, shapeY + halfW);
+                        grooveHole.lineTo(xEnd, shapeY - halfW);
+                        grooveHole.lineTo(xStart, shapeY);
                     } else {
-                        // Pointe à Droite (Loin), Base à Gauche (Près)
-                        grooveHole.moveTo(xEnd, shapeY); // Pointe
-                        grooveHole.lineTo(xStart, shapeY + halfW); // Base Haut
-                        grooveHole.lineTo(xStart, shapeY - halfW); // Base Bas
-                        grooveHole.lineTo(xEnd, shapeY); // Retour Pointe
+                        grooveHole.moveTo(xEnd, shapeY);
+                        grooveHole.lineTo(xStart, shapeY + halfW);
+                        grooveHole.lineTo(xStart, shapeY - halfW);
+                        grooveHole.lineTo(xEnd, shapeY);
                     }
                     shapeTop.holes.push(grooveHole);
                 }
@@ -264,13 +281,10 @@ const Vasque3D = ({ config }) => {
     }
   }, [totalL, totalW, calculatedSinks, thickness]);
 
-  // --- VISUELS EGOUTTOIR - VERSION REFERENCE ---
   const drainerVisuals = useMemo(() => {
      const visuals = [];
      const geometry = new THREE.CylinderGeometry(0, GROOVE_W/2, DRAINER_LEN, 32, 1, false, 0, Math.PI);
-     
-     // CORRECTION ROTATION : Alignement sur l'axe X
-     geometry.rotateZ(-Math.PI/2); // Y -> X
+     geometry.rotateZ(-Math.PI/2);
      
      const depthScale = 0.08 / (GROOVE_W/2); 
      geometry.scale(1, depthScale, 1);
@@ -286,11 +300,6 @@ const Vasque3D = ({ config }) => {
              
              const { count, totalH } = getDrainerSpec(s.type);
              const startZ = 0 - totalH / 2 + GROOVE_W / 2;
-             
-             // CORRECTION SENS :
-             // Geometrie par défaut (après rotZ -90) : Pointe vers X+ (Droite), Base vers X- (Gauche)
-             // Droite : Base près cuve (X-), Pointe loin (X+). C'est le sens par défaut (rotY = 0).
-             // Gauche : Base près cuve (X+), Pointe loin (X-). Il faut inverser (rotY = PI).
              const rotY = isLeft ? Math.PI : 0; 
 
              for (let i = 0; i < count; i++) {
@@ -306,17 +315,15 @@ const Vasque3D = ({ config }) => {
      return <group>{visuals}</group>;
   }, [calculatedSinks, config.color]);
 
-  // --- HELPER SINGLE SINK (DOUBLE PAROI) - VERSION REFERENCE ---
   const SingleSinkGeometry = ({ s }) => {
       if(!s.valid) return null;
       
-      const SHORTEN_BOTTOM = 0.12; // 12mm
+      const SHORTEN_BOTTOM = 0.12; 
 
       const { outerWallGeom, innerSkinGeom } = useMemo(() => {
         const SHRINK_OFFSET = 0.1; 
         const THIN_SKIN = 0.002;
 
-        // 1. MUR EXTERIEUR (Épais, hauteur réduite)
         const outerShape = new THREE.Shape();
         const wOut = s.width + wallThickness * 2;
         const hOut = s.height + wallThickness * 2;
@@ -326,11 +333,9 @@ const Vasque3D = ({ config }) => {
         drawTeethedHole(holeOut, s);
         outerShape.holes.push(holeOut);
 
-        // MODIF: On réduit la profondeur totale de SHORTEN_BOTTOM supplémentaire
         const geomOut = new THREE.ExtrudeGeometry(outerShape, { depth: s.depth - SHRINK_OFFSET - SHORTEN_BOTTOM, bevelEnabled: false });
         geomOut.rotateX(-Math.PI/2);
 
-        // 2. MUR INTERIEUR (Peau fine, hauteur totale)
         const innerShape = new THREE.Shape();
         const r = 0.15;
         const hw = s.width; const hh = s.height;
@@ -365,7 +370,6 @@ const Vasque3D = ({ config }) => {
 
       return (
           <group position={[s.x, 0, 0]}>
-              {/* MODIF: On remonte le mur extérieur de SHORTEN_BOTTOM pour que l'espace vide soit en bas */}
               <mesh position={[0, floorY + SHORTEN_BOTTOM, 0]} geometry={outerWallGeom}>
                   <meshStandardMaterial {...materialProps} />
               </mesh>
@@ -387,7 +391,7 @@ const Vasque3D = ({ config }) => {
       );
   };
 
-  // --- SPLASHBACK - VERSION REFERENCE ---
+  // --- SPLASHBACK (DEFINITIONS MANQUANTES RAJOUTÉES) ---
   const splashRadius = 0.06;
   const createSplashGeometry = (length, radius, miterStart, miterEnd, reverseCut = false) => {
     let currentLength = length;
