@@ -7,7 +7,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
   const DRAINER_WIDTH_MM = 350;
   const MIN_GAP_BETWEEN_SINKS = 40;
   const MARGIN_PLAN_EDGE = 100;
-  const SINK_DEFAULT_SIZE = 400;
+  const SINK_DEFAULT_SIZE = 400; 
 
   const SINK_SPECS = {
     "Aucune cuve": { l: 0, w: 0, d: 0, price: 0 },
@@ -348,7 +348,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
       id: Date.now(),
       type: "Cuve Labo 400x400x300",
       hasTapHole: false,
-      tapHolePosition: "center",
+      tapHolePosition: "Centre",
       tapHoleOffset: 0,
       hasDrainer: false,
       drainerPosition: "right",
@@ -771,7 +771,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                         className="drilling-options"
                         style={{ marginBottom: "15px" }}
                       >
-                        {["left", "center", "right"].map((opt) => (
+                        {["Gauche", "Centre", "Droite"].map((opt) => (
                           <button
                             key={opt}
                             className={
@@ -785,8 +785,8 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                           </button>
                         ))}
                       </div>
-                      {(sink.tapHolePosition === "left" ||
-                        sink.tapHolePosition === "right") && (
+                      {(sink.tapHolePosition === "Gauche" ||
+                        sink.tapHolePosition === "Droite") && (
                         <div
                           style={{
                             display: "flex",

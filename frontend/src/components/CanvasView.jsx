@@ -1,13 +1,18 @@
 import { OrbitControls, Stage, Environment } from "@react-three/drei";
 import { Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
+import LogoBackground from "./LogoBackground"; // Assurez-vous que le chemin est bon
 
 const CanvasView = ({ canvasContent }) => {
   return (
       <Canvas shadows dpr={[1, 2]} camera={{ position: [4, 4, 4], fov: 50 }}>
-        <color attach="background" args={["#d0d0d0"]} />
+
         <Suspense fallback={null}>
-          <Stage environment="city" intensity={0.7} adjustCamera={false}>
+          {/* Ajout de l'arrière-plan logo */}
+          {/* Ajuster repeatCount selon la taille désirée du quadrillage */}
+          <LogoBackground logoPath="/logo.png" repeatCount={5} />
+
+          <Stage environment="city" intensity={0.8} adjustCamera={false}>
             {canvasContent}
           </Stage>
           <OrbitControls

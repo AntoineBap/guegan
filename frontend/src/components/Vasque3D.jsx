@@ -403,7 +403,7 @@ const Vasque3D = ({ config }) => {
           side: THREE.DoubleSide
       };
 
-      const tapX = s.tapHolePosition === "left" ? -s.tapHoleOffsetVal : s.tapHolePosition === "right" ? s.tapHoleOffsetVal : 0;
+      const tapX = s.tapHolePosition === "Gauche" ? -s.tapHoleOffsetVal : s.tapHolePosition === "Droite" ? s.tapHoleOffsetVal : 0;
 
       return (
           <group position={[s.x, 0, s.z]}>
