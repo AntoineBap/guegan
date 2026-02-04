@@ -5,15 +5,17 @@ require('dotenv').config();
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
 
 const transporter = nodemailer.createTransport({
-    host: "smtp-relay.brevo.com",  // Le serveur de Brevo
-    port: 587,                     // Le port standard
-    secure: false,                 // false pour le port 587
+    host: "smtp-relay.brevo.com",
+    port: 587,
+    secure: false, // Doit être false pour le port 587
     auth: {
-        user: process.env.EMAIL_USER, // Ton email Login Brevo
-        pass: process.env.EMAIL_PASS  // Ta clé SMTP (Master Password)
-    }
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    },
+    // AJOUTE CES OPTIONS POUR LE DEBUG
+    logger: true,
+    debug: true
 });
-
 exports.sendVerificationEmail = async (email, token) => {
     const verificationLink = `${CLIENT_URL}/verify-email/${token}`; // URL du Frontend
 
