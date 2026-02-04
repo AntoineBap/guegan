@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer');
 require('dotenv').config();
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5173";
 
 const transporter = nodemailer.createTransport({
     service: 'gmail', // Ou autre (Outlook, etc.)
@@ -10,7 +11,7 @@ const transporter = nodemailer.createTransport({
 });
 
 exports.sendVerificationEmail = async (email, token) => {
-    const verificationLink = `http://localhost:5173/verify-email/${token}`; // URL du Frontend
+    const verificationLink = `${API_URL}/verify-email/${token}`; // URL du Frontend
 
     const mailOptions = {
         from: '"Guegan Configurator" <no-reply@guegan.fr>',
