@@ -1,26 +1,19 @@
 const nodemailer = require('nodemailer');
 require('dotenv').config();
-// On récupère l'URL du FRONTEND pour faire des liens cliquables dans les emails
-// "http://localhost:5173" est ton port local par défaut pour Vite
-const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
 
 const transporter = nodemailer.createTransport({
-    host: "smtp-relay.brevo.com",
-    port: 587,
-    secure: false, // Doit être false pour le port 587
+    service: 'gmail', // Ou autre (Outlook, etc.)
     auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    },
-    // AJOUTE CES OPTIONS POUR LE DEBUG
-    logger: true,
-    debug: true
+        user: process.env.EMAIL_USER, // Ton email (ex: contact@guegan.fr)
+        pass: process.env.EMAIL_PASS  // Ton mot de passe d'application (PAS ton mdp normal)
+    }
 });
+
 exports.sendVerificationEmail = async (email, token) => {
-    const verificationLink = `${CLIENT_URL}/verify-email/${token}`; // URL du Frontend
+    const verificationLink = `http://localhost:5173/verify-email/${token}`; // URL du Frontend
 
     const mailOptions = {
-        from: '<antoinebaptista030604@gmail.com>',
+        from: '"Guegan Configurator" <no-reply@guegan.fr>',
         to: email,
         subject: 'Confirmation de votre compte Pro',
         html: `
