@@ -5,10 +5,12 @@ require('dotenv').config();
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
 
 const transporter = nodemailer.createTransport({
-    service: 'gmail', // Ou autre (Outlook, etc.)
+    host: "smtp.gmail.com", // On précise le serveur explicitement
+    port: 465,              // On force le port sécurisé
+    secure: true,           // TRUE est obligatoire pour le port 465
     auth: {
-        user: process.env.EMAIL_USER, // Ton email (ex: contact@guegan.fr)
-        pass: process.env.EMAIL_PASS  // Ton mot de passe d'application (PAS ton mdp normal)
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
     }
 });
 
