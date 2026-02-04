@@ -20,7 +20,7 @@ exports.sendVerificationEmail = async (email, token) => {
     const verificationLink = `${CLIENT_URL}/verify-email/${token}`; // URL du Frontend
 
     const mailOptions = {
-        from: '"Guegan Configurator" <antoinebaptista030604@gmail.com>',
+        from: '<antoinebaptista030604@gmail.com>',
         to: email,
         subject: 'Confirmation de votre compte Pro',
         html: `

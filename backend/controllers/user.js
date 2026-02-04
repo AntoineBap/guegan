@@ -83,6 +83,22 @@ exports.signup = async (req, res, next) => {
 
         // 10. Envoi du mail
         await sendVerificationEmail(email, validationToken);
+
+        // ... après le user.save()
+        try {
+            console.log("Tentative d'envoi de mail avec Brevo..."); // Log 1
+            await sendVerificationEmail(email, validationToken);
+            console.log("Mail envoyé avec succès !"); // Log 2
+            
+            return res.status(201).json({ message: 'Inscription réussie !' });
+        } catch (emailError) {
+            console.error("ERREUR CRITIQUE BREVO :", emailError); // Log 3
+            
+            // IMPORTANT : Si le mail plante, on supprime le user pour permettre de réessayer
+            await PendingUser.deleteOne({ email: email });
+            
+            return res.status(500).json({ message: "Erreur lors de l'envoi du mail", error: emailError.message });
+        }
         
         return res.status(201).json({ 
             message: 'Inscription réussie ! Un lien de validation a été envoyé à votre adresse email.' 
