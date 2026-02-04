@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from "react";
-import { useCart } from "../contexts/CartContext"; // 1. IMPORT DU CONTEXTE
+import React, { useMemo, useState, useContext } from "react";
+import { useCart } from "../contexts/CartContext";
+import { AuthContext } from "../contexts/AuthContext"; // 1. IMPORT DU CONTEXTE AUTH
 import "../styles/style.scss";
 
 // --- CONSTANTES ---
@@ -19,35 +20,60 @@ const WATER_DRIP_PRICE_PER_METER = 50;
 const WEIGHT_PLAN_M2 = 39;
 const WEIGHT_VERTICAL_M2 = 21; // Dosserets, Retombées, Cuves
 
-// Petit composant helper pour une ligne : Label ....... Prix
-const SummaryLine = ({ label, price, isSubItem = false, value = null }) => (
-  <div
-    className={`summary-row ${isSubItem ? "sub-item" : ""}`}
-    style={{
-      display: "flex",
-      justifyContent: "space-between",
-      marginBottom: "6px",
-      fontSize: isSubItem ? "0.9rem" : "1rem",
-      color: isSubItem ? "#555" : "#000",
-    }}
-  >
-    <span>
-      {label} {value && <span style={{ fontWeight: "500" }}>: {value}</span>}
-    </span>
-    {price !== undefined && price !== null && (
-      <span style={{ fontWeight: "bold", color: "#d4af37" }}>
-        {price > 0 ? `+ ${price.toFixed(2).replace(".", ",")} €` : ""}
-      </span>
-    )}
-  </div>
-);
+// COMPOSANT LIGNE DE RÉSUMÉ AVEC GESTION DU PRIX FLOUTÉ
+const SummaryLine = ({ label, price, isSubItem = false, value = null, isAuthenticated }) => {
+    
+    // Logique d'affichage du prix
+    const renderPrice = () => {
+        if (price === undefined || price === null) return null;
+        if (price === 0) return "";
+        
+        if (isAuthenticated) {
+            return (
+                <span style={{ fontWeight: "bold", color: "#d4af37" }}>
+                    {`+ ${price.toFixed(2).replace(".", ",")} €`}
+                </span>
+            );
+        } else {
+            // Version sécurisée non connectée (le vrai chiffre n'est pas dans le DOM)
+            return (
+                <span 
+                    style={{ 
+                        fontWeight: "bold", 
+                        color: "#ccc", 
+                        filter: "blur(4px)", 
+                        userSelect: "none" 
+                    }}
+                >
+                    + *** €
+                </span>
+            );
+        }
+    };
 
-// ATTENTION : On reçoit 'onReset' ici, et non plus 'handleAddToCart'
+    return (
+        <div
+            className={`summary-row ${isSubItem ? "sub-item" : ""}`}
+            style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: "6px",
+            fontSize: isSubItem ? "0.9rem" : "1rem",
+            color: isSubItem ? "#555" : "#000",
+            }}
+        >
+            <span>
+                {label} {value && <span style={{ fontWeight: "500" }}>: {value}</span>}
+            </span>
+            {renderPrice()}
+        </div>
+    );
+};
+
 const ConfigResume = ({ config, onReset }) => {
   const [quantity, setQuantity] = useState(1);
-
-  // 1. On récupère la fonction du panier depuis le Contexte
   const { addToCart } = useCart();
+  const { isAuthenticated } = useContext(AuthContext); // Récupération de l'état connecté
 
   // --- FORMULES PRIX & SURFACES ---
 
@@ -92,8 +118,6 @@ const ConfigResume = ({ config, onReset }) => {
         }
 
         // --- CALCUL SURFACE CUVE POUR POIDS ---
-        // Formule : length * depth * 2 + width * depth * 2 + length * width
-        // Attention : spec.l, spec.w, spec.d sont en mm, il faut convertir en m
         const L_m = spec.l / 1000;
         const W_m = spec.w / 1000;
         const D_m = spec.d / 1000;
@@ -310,10 +334,12 @@ const ConfigResume = ({ config, onReset }) => {
             label="Dimensions"
             value={`${config.length} x ${config.width} mm`}
             price={planDetails.price}
+            isAuthenticated={isAuthenticated}
           />
           <SummaryLine
             label="Surface"
             value={`${planDetails.area.toFixed(2)} m²`}
+            isAuthenticated={isAuthenticated}
           />
         </div>
 
@@ -334,13 +360,15 @@ const ConfigResume = ({ config, onReset }) => {
               label="Modèle"
               value={sink.modelName}
               price={sink.basePrice}
+              isAuthenticated={isAuthenticated}
             />
-            <SummaryLine label="Position" value={sink.positionLabel} />
+            <SummaryLine label="Position" value={sink.positionLabel} isAuthenticated={isAuthenticated} />
 
             {sink.isAnchor && sink.position !== "center" && (
               <SummaryLine
                 label="Décalage du bord"
                 value={`${sink.offset} mm`}
+                isAuthenticated={isAuthenticated}
               />
             )}
 
@@ -348,6 +376,7 @@ const ConfigResume = ({ config, onReset }) => {
               <SummaryLine
                 label="Écart avec précédent"
                 value={`${sink.offset} mm`}
+                isAuthenticated={isAuthenticated}
               />
             )}
 
@@ -355,6 +384,7 @@ const ConfigResume = ({ config, onReset }) => {
               label="Perçage Robinetterie"
               value={sink.tapLabel}
               price={sink.tapPrice > 0 ? sink.tapPrice : null}
+              isAuthenticated={isAuthenticated}
             />
 
             {sink.hasTapHole &&
@@ -363,6 +393,7 @@ const ConfigResume = ({ config, onReset }) => {
                 <SummaryLine
                   label="Décalage du centre"
                   value={`${sink.tapHoleOffset} mm`}
+                  isAuthenticated={isAuthenticated}
                 />
               )}
 
@@ -371,6 +402,7 @@ const ConfigResume = ({ config, onReset }) => {
                 label="Égouttoir"
                 value={sink.drainerLabel}
                 price={sink.drainerPrice}
+                isAuthenticated={isAuthenticated}
               />
             )}
           </div>
@@ -392,8 +424,9 @@ const ConfigResume = ({ config, onReset }) => {
               label="Hauteur"
               value={`${rimsDetails.height} mm`}
               price={rimsDetails.price}
+              isAuthenticated={isAuthenticated}
             />
-            <SummaryLine label="Côtés" value={rimsDetails.sides} />
+            <SummaryLine label="Côtés" value={rimsDetails.sides} isAuthenticated={isAuthenticated} />
           </div>
         )}
 
@@ -413,8 +446,9 @@ const ConfigResume = ({ config, onReset }) => {
               label="Hauteur"
               value={`${apronsDetails.height} mm`}
               price={apronsDetails.price}
+              isAuthenticated={isAuthenticated}
             />
-            <SummaryLine label="Côtés" value={apronsDetails.sides} />
+            <SummaryLine label="Côtés" value={apronsDetails.sides} isAuthenticated={isAuthenticated} />
             {config.apronFront && (
               <p
                 style={{
@@ -446,6 +480,7 @@ const ConfigResume = ({ config, onReset }) => {
               label="Usinage"
               value={`Sous plan (L: ${waterDripDetails.length} mm)`}
               price={waterDripDetails.price}
+              isAuthenticated={isAuthenticated}
             />
           </div>
         )}
@@ -469,7 +504,11 @@ const ConfigResume = ({ config, onReset }) => {
             }}
           >
             <span>Prix Unitaire HT</span>
-            <span>{fmt(unitTotalPrice)}</span>
+            {isAuthenticated ? (
+                <span>{fmt(unitTotalPrice)}</span>
+            ) : (
+                <span style={{filter: 'blur(4px)', userSelect:'none'}}>*** €</span>
+            )}
           </div>
 
           {/* Sélecteur de Quantité */}
@@ -516,13 +555,28 @@ const ConfigResume = ({ config, onReset }) => {
             <span style={{ fontSize: "1.2rem", fontWeight: "bold" }}>
               Total HT
             </span>
-            <span
-              className="price-value"
-              style={{ fontSize: "1.6rem", color: "#d4af37" }}
-            >
-              {fmt(grandTotal)}
-            </span>
+            {isAuthenticated ? (
+                <span
+                className="price-value"
+                style={{ fontSize: "1.6rem", color: "#d4af37" }}
+                >
+                {fmt(grandTotal)}
+                </span>
+            ) : (
+                <span
+                className="price-value"
+                style={{ fontSize: "1.6rem", color: "#ccc", filter: 'blur(6px)', userSelect:'none' }}
+                >
+                **** €
+                </span>
+            )}
           </div>
+          
+          {!isAuthenticated && (
+              <div style={{textAlign:'right', fontSize:'0.8rem', color:'#e74c3c', marginTop:'5px', fontWeight:'bold'}}>
+                  🔒 Connectez-vous pour voir les tarifs
+              </div>
+          )}
         </div>
 
         {/* --- ALERT POIDS --- */}
@@ -533,6 +587,7 @@ const ConfigResume = ({ config, onReset }) => {
             padding: "10px",
             borderRadius: "6px",
             marginBottom: "15px",
+            marginTop: "15px",
             fontSize: "0.9rem",
             textAlign: "center",
             border: isHeavy ? "1px solid #ffeeba" : "1px solid #c3e6cb",

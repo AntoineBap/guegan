@@ -1,9 +1,11 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useContext } from "react";
 import ConfigResume from "./ConfigResume";
+import { AuthContext } from "../contexts/AuthContext"; // Import du contexte
 import "../styles/style.scss";
 
-// onReset remplace handleAddToCart qui ne servait à rien ici
 const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
+  const { isAuthenticated } = useContext(AuthContext); // Récupération de l'état connecté
+
   const DRAINER_WIDTH_MM = 350;
   const MIN_GAP_BETWEEN_SINKS = 40;
   const MARGIN_PLAN_EDGE = 100;
@@ -15,6 +17,13 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
     "Cuve Détente 400x400x200": { l: 400, w: 400, d: 200, price: 490 },
     "Cuve Cuisine 500x400x180": { l: 500, w: 400, d: 180, price: 540 },
     "Cuve Sanitaire 422x336x139": { l: 422, w: 336, d: 139, price: 330 },
+  };
+
+  // Helper pour afficher le prix ou flouter
+  const formatOptionPrice = (price) => {
+    if (price === 0) return "";
+    if (isAuthenticated) return `(+${price}€)`;
+    return "(+ **€)"; // Version floutée/masquée
   };
 
   useEffect(() => {
@@ -479,8 +488,6 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
         let canAnchorLeft = true;
         let canAnchorRight = true;
 
-        // --- CORRECTION : CALCUL DE canL et canR ICI ---
-        // On doit définir ces variables car elles sont utilisées dans le JSX plus bas.
         const obstacleL = index === 0 ? absLimitLeft : (layout.items[index - 1]?.rightBound ?? absLimitLeft);
         const distL = currentPos ? (currentPos.leftBound - obstacleL) : 0;
         const canL = distL >= (DRAINER_WIDTH_MM - 10);
@@ -488,7 +495,6 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
         const obstacleR = index === currentSinks.length - 1 ? absLimitRight : (layout.items[index + 1]?.leftBound ?? absLimitRight);
         const distR = currentPos ? (obstacleR - currentPos.rightBound) : 0;
         const canR = distR >= (DRAINER_WIDTH_MM - 10);
-        // ------------------------------------------------
 
         if (isAnchor) {
           const { leftWidth, rightWidth, totalWidth } = layoutDimensions;
@@ -580,10 +586,11 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                   key={opt}
                   className={sink.type === opt ? "active-small" : ""}
                   onClick={() => handleSinkTypeSelect(sink.id, opt)}
+                  style={!isAuthenticated && sink.type !== opt ? {color: '#666'} : {}}
                 >
                   {opt === "Aucune cuve"
                     ? "Aucune"
-                    : `${opt.replace("Cuve ", "")}  (+${SINK_SPECS[opt].price}€)`}
+                    : `${opt.replace("Cuve ", "")} ${formatOptionPrice(SINK_SPECS[opt].price)}`}
                 </button>
               ))}
             </div>
@@ -763,7 +770,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                         updateSink(sink.id, "hasTapHole", e.target.checked)
                       }
                     />{" "}
-                    Perçage robinetterie (Ø35mm) (+15€)
+                    Perçage robinetterie (Ø35mm) {formatOptionPrice(15)}
                   </label>
                   {sink.hasTapHole && (
                     <div style={{ marginLeft: "25px" }}>
@@ -846,7 +853,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                       }
                       disabled={!canL && !canR && !sink.hasDrainer}
                     />{" "}
-                    Rainurage Égouttoir (+50€)
+                    Rainurage Égouttoir {formatOptionPrice(50)}
                   </label>
                   {!canL && !canR && !sink.hasDrainer && (
                     <div
