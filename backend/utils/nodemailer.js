@@ -1,6 +1,8 @@
 const nodemailer = require('nodemailer');
 require('dotenv').config();
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5173";
+// On récupère l'URL du FRONTEND pour faire des liens cliquables dans les emails
+// "http://localhost:5173" est ton port local par défaut pour Vite
+const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
 
 const transporter = nodemailer.createTransport({
     service: 'gmail', // Ou autre (Outlook, etc.)
@@ -11,7 +13,7 @@ const transporter = nodemailer.createTransport({
 });
 
 exports.sendVerificationEmail = async (email, token) => {
-    const verificationLink = `${API_URL}/verify-email/${token}`; // URL du Frontend
+    const verificationLink = `${CLIENT_URL}/verify-email/${token}`; // URL du Frontend
 
     const mailOptions = {
         from: '"Guegan Configurator" <no-reply@guegan.fr>',
