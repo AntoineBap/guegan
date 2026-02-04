@@ -7,7 +7,12 @@ const cors = require('cors');
 
 // Note: C'est mieux de mettre app.use(cors()) DANS app.js, 
 // mais si ça marchait avant, laisse-le ici pour l'instant.
-app.use(cors());
+app.use(cors({
+  origin: 'https://guegan.vercel.app/', // Remplace '*' par 'https://ton-projet.vercel.app' quand tu l'auras
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 const normalizePort = val => {
   const port = parseInt(val, 10);
