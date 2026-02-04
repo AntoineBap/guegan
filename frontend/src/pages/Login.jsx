@@ -2,6 +2,7 @@ import React, { useState, useContext, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import '../styles/header.scss';
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 const Login = () => {
     const navigate = useNavigate();
@@ -139,7 +140,7 @@ const Login = () => {
         const endpoint = isSignUp ? 'signup' : 'login';
         
         try {
-            const response = await fetch(`http://localhost:3000/api/auth/${endpoint}`, {
+            const response = await fetch(`${API_URL}/api/auth/${endpoint}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)

@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'; // 1. Import useRef
 import { useParams, useNavigate } from 'react-router-dom';
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 const VerifyEmail = () => {
     const { token } = useParams();
@@ -17,7 +18,7 @@ const VerifyEmail = () => {
 
         const verifyAccount = async () => {
             try {
-                const response = await fetch(`http://localhost:3000/api/auth/verify/${token}`);
+                const response = await fetch(`${API_URL}/api/auth/verify/${token}`);
                 
                 // On accepte 200 (OK) ou 201 (Created)
                 if (response.ok) {
