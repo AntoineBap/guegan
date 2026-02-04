@@ -5,23 +5,20 @@ require('dotenv').config();
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
 
 const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,            // On repasse sur le port standard
-    secure: false,        // false obligatoire pour le port 587
-    requireTLS: true,     // On force le chiffrement TLS après la connexion
+    host: "smtp-relay.brevo.com",  // Le serveur de Brevo
+    port: 587,                     // Le port standard
+    secure: false,                 // false pour le port 587
     auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    },
-    logger: true,         // Ajoute des logs détaillés sur Render
-    debug: true           // Ajoute des infos de debug
+        user: process.env.EMAIL_USER, // Ton email Login Brevo
+        pass: process.env.EMAIL_PASS  // Ta clé SMTP (Master Password)
+    }
 });
 
 exports.sendVerificationEmail = async (email, token) => {
     const verificationLink = `${CLIENT_URL}/verify-email/${token}`; // URL du Frontend
 
     const mailOptions = {
-        from: '"Guegan Configurator" <no-reply@guegan.fr>',
+        from: '"Guegan Configurator" <antoinebaptista030604@gmail.com>',
         to: email,
         subject: 'Confirmation de votre compte Pro',
         html: `
