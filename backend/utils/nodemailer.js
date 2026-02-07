@@ -1,40 +1,33 @@
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 
-// 1. On configure manuellement le serveur SMTP de Google
-// On n'utilise plus "service: 'gmail'" pour éviter les conflits IPv6
+// Configuration BREVO (Plus robuste pour Render/Vercel)
 const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,              // Port 587 (TLS) est beaucoup plus fiable que 465 pour le localhost
-    secure: false,          // Doit être false pour le port 587
+    host: 'smtp-relay.brevo.com', // Serveur Brevo
+    port: 587,
+    secure: false,
     auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
+        user: process.env.EMAIL_USER, // Ton identifiant Brevo
+        pass: process.env.EMAIL_PASS  // Ta clé SMTP Brevo (pas ton mot de passe de compte)
     },
     tls: {
-        ciphers: 'SSLv3',          // Aide à la compatibilité
-        rejectUnauthorized: false  // Empêche certaines erreurs de certificat en local
-    },
-    // FORCE IPV4 : Cette option est cruciale pour Render/Vercel
-    // Elle empêche Node.js de choisir une adresse IPv6 qui cause l'erreur ENETUNREACH
-    family: 4 
+        rejectUnauthorized: false
+    }
 });
 
 exports.sendVerificationEmail = async (email, token) => {
-    // URL dynamique (Prod ou Local)
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const verificationLink = `${frontendUrl}/verify-email/${token}`; 
 
     const mailOptions = {
-        from: '"Guegan Configurator" <no-reply@guegan.fr>',
+        from: '"Guegan Configurator" <antoinebaptista030604@gmail.com>', // Doit être une adresse validée dans Brevo (Expéditeurs)
         to: email,
         subject: 'Confirmation de votre compte Pro',
         html: `
             <div style="font-family: Arial, sans-serif; color: #333;">
                 <h1>Bienvenue chez Guegan !</h1>
-                <p>Merci de vous être inscrit. Pour activer votre compte professionnel et accéder aux tarifs, veuillez cliquer sur le lien ci-dessous :</p>
-                <a href="${verificationLink}" style="display: inline-block; padding: 10px 20px; background-color: #d4af37; color: white; text-decoration: none; border-radius: 5px; margin-top: 10px;">Confirmer mon email</a>
-                <p style="margin-top: 20px; font-size: 12px; color: #777;">Ce lien est valide pendant 24 heures.</p>
+                <p>Pour activer votre compte, cliquez ci-dessous :</p>
+                <a href="${verificationLink}">Confirmer mon email</a>
             </div>
         `
     };
