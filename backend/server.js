@@ -3,11 +3,7 @@ require('dotenv').config();
 
 const http = require('http');
 const app = require('./app'); // Maintenant, app peut lire les variables .env
-const cors = require('cors');
 
-// Note: C'est mieux de mettre app.use(cors()) DANS app.js, 
-// mais si ça marchait avant, laisse-le ici pour l'instant.
-app.use(cors());
 
 const normalizePort = val => {
   const port = parseInt(val, 10);

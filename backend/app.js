@@ -2,37 +2,33 @@ const express = require("express");
 const app = express();
 const mongoose = require("mongoose");
 const userRoutes = require('./routes/user');
+const cors = require('cors'); // Assure-toi d'avoir fait: npm install cors
 require('dotenv').config();
+
+// --- 1. CONFIGURATION CORS ---
+// Remplace tes anciens headers manuels.
+// Permet à Vercel (FRONTEND_URL) de discuter avec Render.
+app.use(cors({
+    origin: process.env.FRONTEND_URL || '*', // En prod, utilise l'URL Vercel. En dev, accepte tout.
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Origin", "X-Requested-With", "Content", "Accept", "Content-Type", "Authorization"],
+    credentials: true // Important pour les tokens/cookies
+}));
 
 app.use(express.json());
 
-// --- MODIFICATION ICI ---
-// 1. On vérifie si l'URI est bien détectée (sans afficher le mot de passe en clair)
+// --- 2. CONNEXION MONGODB ---
 console.log("Tentative de connexion avec l'URI :", process.env.MONGO_URI ? "Trouvée (Masquée)" : "Non trouvée (Undefined) !");
 
-// 2. Connexion simplifiée (Mongoose 9 gère les options par défaut maintenant)
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("✅ Connexion à MongoDB réussie !"))
   .catch((error) => {
     console.log("❌ Connexion à MongoDB échouée !");
-    console.error(error); // Affiche l'erreur technique précise dans le terminal
+    console.error(error);
   });
-// ------------------------
 
-app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content, Accept, Content-Type, Authorization"
-  );
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PUT, DELETE, PATCH, OPTIONS"
-  );
-  next();
-});
-
+// --- 3. ROUTES ---
 app.use('/api/auth', userRoutes);
 
 module.exports = app;
