@@ -2,15 +2,19 @@ const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const transporter = nodemailer.createTransport({
-    service: 'gmail', // Ou autre (Outlook, etc.)
+    service: 'gmail', 
     auth: {
-        user: process.env.EMAIL_USER, // Ton email (ex: contact@guegan.fr)
-        pass: process.env.EMAIL_PASS  // Ton mot de passe d'application (PAS ton mdp normal)
+        user: process.env.EMAIL_USER, 
+        pass: process.env.EMAIL_PASS 
     }
 });
 
 exports.sendVerificationEmail = async (email, token) => {
-    const verificationLink = `http://localhost:5173/verify-email/${token}`; // URL du Frontend
+    // MODIFICATION ICI : On utilise une variable d'environnement
+    // Si FRONTEND_URL existe (Prod), on l'utilise. Sinon on garde localhost (Dev).
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    
+    const verificationLink = `${frontendUrl}/verify-email/${token}`; 
 
     const mailOptions = {
         from: '"Guegan Configurator" <no-reply@guegan.fr>',
@@ -18,9 +22,8 @@ exports.sendVerificationEmail = async (email, token) => {
         subject: 'Confirmation de votre compte Pro',
         html: `
             <h1>Bienvenue chez Guegan !</h1>
-            <p>Merci de vous être inscrit. Pour activer votre compte professionnel et accéder aux tarifs, veuillez cliquer sur le lien ci-dessous :</p>
-            <a href="${verificationLink}" style="padding: 10px 20px; background-color: #d4af37; color: white; text-decoration: none; border-radius: 5px;">Confirmer mon email</a>
-            <p>Ce lien est valide pendant 24 heures.</p>
+            <p>Merci de vous être inscrit...</p>
+            <a href="${verificationLink}">Confirmer mon email</a>
         `
     };
 
