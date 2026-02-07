@@ -1,20 +1,26 @@
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 
+// 1. On configure manuellement le serveur SMTP de Google
+// On n'utilise plus "service: 'gmail'" pour éviter les conflits IPv6
 const transporter = nodemailer.createTransport({
-    service: 'gmail', 
+    host: 'smtp.gmail.com',
+    port: 587,              // Port 587 (TLS) est beaucoup plus fiable que 465 pour le localhost
+    secure: false,          // Doit être false pour le port 587
     auth: {
-        user: process.env.EMAIL_USER, 
+        user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
     },
-    // --- AJOUT ICI ---
-    family: 4 // Force l'utilisation de l'IPv4 au lieu de l'IPv6
+    tls: {
+        ciphers: 'SSLv3',          // Aide à la compatibilité
+        rejectUnauthorized: false  // Empêche certaines erreurs de certificat en local
+    }
 });
 
 exports.sendVerificationEmail = async (email, token) => {
-    // On définit l'URL dynamiquement (localhost par défaut si pas de variable)
+    // URL dynamique (Prod ou Local)
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    const verificationLink = `${frontendUrl}/verify-email/${token}`;
+    const verificationLink = `${frontendUrl}/verify-email/${token}`; 
 
     const mailOptions = {
         from: '"Guegan Configurator" <no-reply@guegan.fr>',
