@@ -8,7 +8,6 @@ exports.sendVerificationEmail = async (email, token) => {
 
     // 2. Préparation des données pour l'API Brevo
     const apiKey = process.env.BREVO_API_KEY;
-    const senderEmail = process.env.EMAIL_USER; // Ton email de login Brevo
 
     if (!apiKey) {
         console.error("❌ ERREUR : La clé BREVO_API_KEY est manquante.");
