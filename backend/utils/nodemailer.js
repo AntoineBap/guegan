@@ -14,7 +14,10 @@ const transporter = nodemailer.createTransport({
     tls: {
         ciphers: 'SSLv3',          // Aide à la compatibilité
         rejectUnauthorized: false  // Empêche certaines erreurs de certificat en local
-    }
+    },
+    // FORCE IPV4 : Cette option est cruciale pour Render/Vercel
+    // Elle empêche Node.js de choisir une adresse IPv6 qui cause l'erreur ENETUNREACH
+    family: 4 
 });
 
 exports.sendVerificationEmail = async (email, token) => {
