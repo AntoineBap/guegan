@@ -16,9 +16,11 @@ passwordSchema
     .has().not().spaces();
 
 // --- INSCRIPTION (STOCKAGE TEMPORAIRE) ---
+// --- INSCRIPTION (STOCKAGE TEMPORAIRE) ---
 exports.signup = async (req, res, next) => {
     try {
         const { email, password, firstName, lastName, companyName, companyAddress, siret, tvaNumber } = req.body;
+        
         // 1. Validation des champs obligatoires
         if (!email || !password || !firstName || !lastName || !companyName || !companyAddress || !siret || !tvaNumber) {
             return res.status(400).json({ message: "Tous les champs sont obligatoires." });
@@ -65,7 +67,7 @@ exports.signup = async (req, res, next) => {
         const hash = await bcrypt.hash(password, 10);
         const validationToken = crypto.randomBytes(32).toString('hex'); // Token aléatoire
         
-        // 9. Sauvegarde dans PENDING (disparaît dans 24h si non validé)
+        // 9. Sauvegarde dans PENDING
         const pendingUser = new PendingUser({
             email,
             password: hash,
@@ -80,10 +82,18 @@ exports.signup = async (req, res, next) => {
 
         await pendingUser.save();
 
-       tus(500).json({ message: "Erreur lors de l'envoi du mail", error: emailError.messag
-e });
+        // --- CORRECTION ICI : ENVOI DE L'EMAIL ---
+        try {
+            // On tente d'envoyer l'email
+            await sendVerificationEmail(email, validationToken);
+        } catch (emailError) {
+            // Si l'envoi échoue, on supprime l'utilisateur temporaire pour qu'il puisse réessayer
+            await PendingUser.deleteOne({ _id: pendingUser._id });
+            console.error("Erreur envoi email:", emailError);
+            return res.status(500).json({ message: "Erreur lors de l'envoi du mail de validation." });
         }
         
+        // Si tout s'est bien passé
         return res.status(201).json({ 
             message: 'Inscription réussie ! Un lien de validation a été envoyé à votre adresse email.' 
         });
