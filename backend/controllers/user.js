@@ -18,7 +18,6 @@ passwordSchema
 // --- INSCRIPTION ---
 exports.signup = async (req, res, next) => {
     try {
-        // 1. On récupère le panier (cart) envoyé depuis le front
         const { email, password, firstName, lastName, companyName, companyAddress, siret, tvaNumber, cart } = req.body;
         
         if (!email || !password || !firstName || !lastName || !companyName || !companyAddress || !siret || !tvaNumber) {
@@ -51,7 +50,6 @@ exports.signup = async (req, res, next) => {
             siret, 
             tvaNumber, 
             validationToken,
-            // 2. On stocke le panier temporairement
             cart: cart || [] 
         });
 
@@ -113,8 +111,8 @@ exports.verifyEmail = async (req, res, next) => {
             companyAddress: pendingUser.companyAddress,
             siret: pendingUser.siret,
             tvaNumber: pendingUser.tvaNumber,
-            // 3. TRANSFERT DU PANIER : On prend celui stocké dans PendingUser
-            cart: pendingUser.cart || [] 
+            cart: pendingUser.cart || [],
+            role: 'client' // Par défaut
         });
 
         await newUser.save();
@@ -142,7 +140,9 @@ exports.login = async (req, res, next) => {
             token, 
             firstName: user.firstName, 
             companyName: user.companyName,
-            cart: user.cart 
+            cart: user.cart,
+            // 👇 AJOUT ICI : On renvoie le rôle
+            role: user.role 
         });
     } catch (error) {
         return res.status(500).json({ message: "Erreur serveur", error });
@@ -167,6 +167,54 @@ exports.saveCart = async (req, res, next) => {
         return res.status(200).json({ message: "Panier sauvegardé !" });
     } catch (error) {
         console.error("❌ ERREUR SAVE CART:", error);
+        return res.status(500).json({ error });
+    }
+};
+
+exports.createOrder = async (req, res, next) => {
+    try {
+        const { items, totalAmount, billingAddress, shippingAddress } = req.body;
+        
+        // Calcul date limite (J+7)
+        const deadline = new Date();
+        deadline.setDate(deadline.getDate() + 7);
+
+        const newOrder = new Order({
+            userId: req.auth.userId,
+            items,
+            totalAmount,
+            billingAddress,
+            shippingAddress,
+            paymentDeadline: deadline
+        });
+
+        const savedOrder = await newOrder.save();
+
+        // On vide le panier de l'utilisateur après commande
+        await User.updateOne({ _id: req.auth.userId }, { $set: { cart: [] } });
+
+        return res.status(201).json({ 
+            message: "Commande créée !", 
+            orderId: savedOrder._id 
+        });
+    } catch (error) {
+        return res.status(500).json({ error });
+    }
+};
+
+// --- RÉCUPÉRER UNE COMMANDE (Pour la page de confirmation) ---
+exports.getOrder = async (req, res, next) => {
+    try {
+        const order = await Order.findOne({ _id: req.params.id });
+        if (!order) return res.status(404).json({ error: "Commande introuvable" });
+        
+        // Sécurité : vérifier que la commande appartient bien à l'user connecté
+        if (order.userId.toString() !== req.auth.userId) {
+            return res.status(403).json({ error: "Non autorisé" });
+        }
+
+        return res.status(200).json(order);
+    } catch (error) {
         return res.status(500).json({ error });
     }
 };

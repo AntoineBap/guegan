@@ -10,8 +10,7 @@ const userSchema = mongoose.Schema({
   companyAddress: { type: String, required: true },
   siret: { type: String, required: true },
   tvaNumber: { type: String, required: true },
-  
-  // On stocke le panier sous forme de tableau d'objets libre
+  role: { type: String, default: 'client', enum: ['client', 'admin'] },
   cart: { type: Array, default: [] } 
 });
 

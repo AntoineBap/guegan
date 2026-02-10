@@ -2,7 +2,10 @@ import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Main from './pages/Main';
 import Login from './pages/Login';
-import VerifyEmail from './pages/VerifyEmail'; // <--- Import de la nouvelle page de validation
+import VerifyEmail from './pages/VerifyEmail';
+import AdminDashboard from './pages/AdminDashboard';
+import Checkout from './pages/Checkout';
+import OrderConfirmation from './pages/OrderConfirmation';
 import { CartProvider } from './contexts/CartContext.jsx';
 import { AuthProvider } from './contexts/AuthContext.jsx';
 import './styles/style.scss'; 
@@ -22,6 +25,9 @@ function App() {
                 
                 {/* Route de validation d'email (le token est dynamique) */}
                 <Route path="/verify-email/:token" element={<VerifyEmail />} />
+                <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/checkout" element={<Checkout />} />
+                <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
               </Routes>
             </div>
           </BrowserRouter>

@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useContext } from "react";
 import { useCart } from "../contexts/CartContext";
-import { AuthContext } from "../contexts/AuthContext"; // 1. IMPORT DU CONTEXTE AUTH
-import "../styles/style.scss";
+import { AuthContext } from "../contexts/AuthContext";
+import "../styles/configResume.scss";
 
 // --- CONSTANTES ---
 const SINK_SPECS = {
@@ -18,64 +18,47 @@ const WATER_DRIP_PRICE_PER_METER = 50;
 
 // Constantes de Poids (kg/m2)
 const WEIGHT_PLAN_M2 = 39;
-const WEIGHT_VERTICAL_M2 = 21; // Dosserets, Retombées, Cuves
+const WEIGHT_VERTICAL_M2 = 21;
 
-// COMPOSANT LIGNE DE RÉSUMÉ AVEC GESTION DU PRIX FLOUTÉ
-const SummaryLine = ({ label, price, isSubItem = false, value = null, isAuthenticated }) => {
-    
-    // Logique d'affichage du prix
-    const renderPrice = () => {
-        if (price === undefined || price === null) return null;
-        if (price === 0) return "";
-        
-        if (isAuthenticated) {
-            return (
-                <span style={{ fontWeight: "bold", color: "#d4af37" }}>
-                    {`+ ${price.toFixed(2).replace(".", ",")} €`}
-                </span>
-            );
-        } else {
-            // Version sécurisée non connectée (le vrai chiffre n'est pas dans le DOM)
-            return (
-                <span 
-                    style={{ 
-                        fontWeight: "bold", 
-                        color: "#ccc", 
-                        filter: "blur(4px)", 
-                        userSelect: "none" 
-                    }}
-                >
-                    + *** €
-                </span>
-            );
-        }
-    };
+// --- SOUS-COMPOSANT : LIGNE DE RÉSUMÉ ---
+const SummaryLine = ({
+  label,
+  price,
+  isSubItem = false,
+  value = null,
+  isAuthenticated,
+}) => {
+  const renderPrice = () => {
+    if (price === undefined || price === null) return null;
+    if (price === 0) return "";
 
-    return (
-        <div
-            className={`summary-row ${isSubItem ? "sub-item" : ""}`}
-            style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginBottom: "6px",
-            fontSize: isSubItem ? "0.9rem" : "1rem",
-            color: isSubItem ? "#555" : "#000",
-            }}
-        >
-            <span>
-                {label} {value && <span style={{ fontWeight: "500" }}>: {value}</span>}
-            </span>
-            {renderPrice()}
-        </div>
-    );
+    if (isAuthenticated) {
+      return (
+        <span className="price-tag">
+          {`+ ${price.toFixed(2).replace(".", ",")} €`}
+        </span>
+      );
+    } else {
+      return <span className="price-tag blurred">+ *** €</span>;
+    }
+  };
+
+  return (
+    <div className={`summary-row ${isSubItem ? "sub-item" : ""}`}>
+      <span>
+        {label} {value && <span className="label-value">: {value}</span>}
+      </span>
+      {renderPrice()}
+    </div>
+  );
 };
 
 const ConfigResume = ({ config, onReset }) => {
   const [quantity, setQuantity] = useState(1);
   const { addToCart } = useCart();
-  const { isAuthenticated } = useContext(AuthContext); // Récupération de l'état connecté
+  const { isAuthenticated } = useContext(AuthContext);
 
-  // --- FORMULES PRIX & SURFACES ---
+  // --- 1. CALCULS PRIX & SURFACES ---
 
   const planDetails = useMemo(() => {
     const widthM = config.width / 1000;
@@ -89,10 +72,14 @@ const ConfigResume = ({ config, onReset }) => {
     const sinks = config.sinks || [];
     if (sinks.length === 0) return [];
 
+    // On trouve l'index de la cuve ancrée pour déterminer la position relative des autres
+    const anchorIndex = sinks.findIndex(s => s.id === config.anchorId);
+
     return sinks
       .map((sink, index) => {
         if (sink.type === "Aucune cuve") return null;
 
+        const isAnchor = sink.id === config.anchorId;
         const spec = SINK_SPECS[sink.type] || { price: 0, l: 0, w: 0, d: 0 };
         const basePrice = spec.price;
         const tapPrice =
@@ -117,12 +104,25 @@ const ConfigResume = ({ config, onReset }) => {
           drainerLabel = sink.drainerPosition === "left" ? "Gauche" : "Droite";
         }
 
-        // --- CALCUL SURFACE CUVE POUR POIDS ---
         const L_m = spec.l / 1000;
         const W_m = spec.w / 1000;
         const D_m = spec.d / 1000;
-
         const surfaceM2 = L_m * D_m * 2 + W_m * D_m * 2 + L_m * W_m;
+
+        // Titre personnalisé avec mention (ANCRÉE)
+        const title = `Cuve #${index + 1}${isAnchor ? " (ANCRÉE)" : ""}`;
+
+        // Libellé dynamique pour l'écart
+        let gapLabel = "Écart";
+        if (!isAnchor) {
+            if (index < anchorIndex) {
+                // Cuve située à GAUCHE de l'ancre
+                gapLabel = "Écart Gauche avec Cuve suivante";
+            } else {
+                // Cuve située à DROITE de l'ancre (index > anchorIndex)
+                gapLabel = "Écart droit avec Cuve précédente";
+            }
+        }
 
         return {
           ...sink,
@@ -131,12 +131,14 @@ const ConfigResume = ({ config, onReset }) => {
           positionLabel,
           tapLabel,
           drainerLabel,
-          isAnchor: sink.id === config.anchorId,
+          isAnchor,
           basePrice,
           tapPrice,
           drainerPrice,
           totalForCalc: basePrice + tapPrice + drainerPrice,
-          surfaceM2, // Stocké pour le calcul global
+          surfaceM2,
+          title,     // Nouveau titre
+          gapLabel   // Nouveau label d'écart
         };
       })
       .filter(Boolean);
@@ -243,36 +245,31 @@ const ConfigResume = ({ config, onReset }) => {
     return { price, length: config.length };
   }, [config.splashback, config.length]);
 
-  // --- CALCUL POIDS ---
+  // --- 2. CALCUL POIDS ---
   const totalWeight = useMemo(() => {
     let weight = 0;
-
-    // 1. Plan (39 kg/m2)
     weight += planDetails.area * WEIGHT_PLAN_M2;
 
-    // 2. Dosserets (21 kg/m2)
     if (rimsDetails) {
       const areaRims =
         (rimsDetails.totalLengthMm / 1000) * (rimsDetails.height / 1000);
       weight += areaRims * WEIGHT_VERTICAL_M2;
     }
 
-    // 3. Retombées (21 kg/m2)
     if (apronsDetails) {
       const areaAprons =
         (apronsDetails.totalLengthMm / 1000) * (apronsDetails.height / 1000);
       weight += areaAprons * WEIGHT_VERTICAL_M2;
     }
 
-    // 4. Cuves (21 kg/m2 surface développée)
     sinksDetails.forEach((sink) => {
       weight += sink.surfaceM2 * WEIGHT_VERTICAL_M2;
     });
 
-    return Math.round(weight * 100) / 100; // Arrondi 2 décimales
+    return Math.round(weight * 100) / 100;
   }, [planDetails, rimsDetails, apronsDetails, sinksDetails]);
 
-  // --- TOTAL PRIX ---
+  // --- 3. TOTAL PRIX ---
   const unitTotalPrice = useMemo(() => {
     let total = planDetails.price;
     sinksDetails.forEach((s) => (total += s.totalForCalc));
@@ -282,19 +279,18 @@ const ConfigResume = ({ config, onReset }) => {
     return total;
   }, [planDetails, sinksDetails, rimsDetails, apronsDetails, waterDripDetails]);
 
-  // Grand Total avec Quantité
   const grandTotal = unitTotalPrice * quantity;
-
   const fmt = (n) => n.toFixed(2).replace(".", ",") + " €";
+  const isHeavy = totalWeight > 80;
 
-  // 2. FONCTION QUI SE DECLENCHE AU CLIC
+  // --- 4. AJOUT AU PANIER ---
   const performAddToCart = () => {
     const finalItem = {
       ...config,
       unitPrice: unitTotalPrice,
       quantity,
       totalPrice: grandTotal,
-      totalWeight, // On stocke aussi le poids unitaire
+      totalWeight,
     };
 
     addToCart(finalItem);
@@ -311,58 +307,43 @@ const ConfigResume = ({ config, onReset }) => {
     }
   };
 
-  // Seuil pour alerte poids (ex: 80kg pour 2 personnes)
-  const isHeavy = totalWeight > 80;
-
   return (
     <div className="summary-panel">
       <div className="summary-card">
         <h2>Résumé de votre configuration</h2>
 
-        {/* --- SECTION PLAN --- */}
+        {/* --- PLAN --- */}
         <div className="summary-section">
-          <h3
-            style={{
-              borderBottom: "1px solid #eee",
-              paddingBottom: "5px",
-              marginBottom: "10px",
-            }}
-          >
-            Plan de travail
-          </h3>
+          <h3>Plan de travail</h3>
           <SummaryLine
             label="Dimensions"
             value={`${config.length} x ${config.width} mm`}
             price={planDetails.price}
             isAuthenticated={isAuthenticated}
           />
-          <SummaryLine
-            label="Surface"
-            value={`${planDetails.area.toFixed(2)} m²`}
-            isAuthenticated={isAuthenticated}
-          />
+          {/* Surface supprimée selon demande */}
         </div>
 
-        {/* --- SECTION CUVES --- */}
+        {/* --- CUVES --- */}
         {sinksDetails.map((sink) => (
           <div key={sink.index} className="summary-section">
-            <h3
-              style={{
-                borderBottom: "1px solid #eee",
-                paddingBottom: "5px",
-                marginBottom: "10px",
-              }}
-            >
-              Cuve #{sink.index}
-            </h3>
-
+            <h3>{sink.title}</h3>
+            
             <SummaryLine
               label="Modèle"
               value={sink.modelName}
               price={sink.basePrice}
               isAuthenticated={isAuthenticated}
             />
-            <SummaryLine label="Position" value={sink.positionLabel} isAuthenticated={isAuthenticated} />
+            
+            {/* Position affichée uniquement si c'est la cuve ancrée */}
+            {sink.isAnchor && (
+                <SummaryLine
+                label="Position"
+                value={sink.positionLabel}
+                isAuthenticated={isAuthenticated}
+                />
+            )}
 
             {sink.isAnchor && sink.position !== "center" && (
               <SummaryLine
@@ -371,21 +352,25 @@ const ConfigResume = ({ config, onReset }) => {
                 isAuthenticated={isAuthenticated}
               />
             )}
-
+            
+            {/* Gestion des écarts pour les cuves non ancrées */}
             {!sink.isAnchor && (
               <SummaryLine
-                label="Écart avec précédent"
+                label={sink.gapLabel}
                 value={`${sink.offset} mm`}
                 isAuthenticated={isAuthenticated}
               />
             )}
 
-            <SummaryLine
-              label="Perçage Robinetterie"
-              value={sink.tapLabel}
-              price={sink.tapPrice > 0 ? sink.tapPrice : null}
-              isAuthenticated={isAuthenticated}
-            />
+            {/* Affichage conditionnel du perçage robinetterie */}
+            {sink.hasTapHole && (
+                <SummaryLine
+                label="Perçage Robinetterie"
+                value={sink.tapLabel}
+                price={sink.tapPrice > 0 ? sink.tapPrice : null}
+                isAuthenticated={isAuthenticated}
+                />
+            )}
 
             {sink.hasTapHole &&
               (sink.tapHolePosition === "left" ||
@@ -396,7 +381,6 @@ const ConfigResume = ({ config, onReset }) => {
                   isAuthenticated={isAuthenticated}
                 />
               )}
-
             {sink.hasDrainer && (
               <SummaryLine
                 label="Égouttoir"
@@ -408,119 +392,69 @@ const ConfigResume = ({ config, onReset }) => {
           </div>
         ))}
 
-        {/* --- SECTION DOSSERETS --- */}
+        {/* --- DOSSERETS --- */}
         {rimsDetails && (
           <div className="summary-section">
-            <h3
-              style={{
-                borderBottom: "1px solid #eee",
-                paddingBottom: "5px",
-                marginBottom: "10px",
-              }}
-            >
-              Dosserets
-            </h3>
+            <h3>Dosserets</h3>
             <SummaryLine
               label="Hauteur"
               value={`${rimsDetails.height} mm`}
               price={rimsDetails.price}
               isAuthenticated={isAuthenticated}
             />
-            <SummaryLine label="Côtés" value={rimsDetails.sides} isAuthenticated={isAuthenticated} />
+            <SummaryLine
+              label="Côtés"
+              value={rimsDetails.sides}
+              isAuthenticated={isAuthenticated}
+            />
           </div>
         )}
 
-        {/* --- SECTION RETOMBEES --- */}
+        {/* --- RETOMBEES --- */}
         {apronsDetails && (
           <div className="summary-section">
-            <h3
-              style={{
-                borderBottom: "1px solid #eee",
-                paddingBottom: "5px",
-                marginBottom: "10px",
-              }}
-            >
-              Retombées
-            </h3>
+            <h3>Retombées</h3>
             <SummaryLine
               label="Hauteur"
               value={`${apronsDetails.height} mm`}
               price={apronsDetails.price}
               isAuthenticated={isAuthenticated}
             />
-            <SummaryLine label="Côtés" value={apronsDetails.sides} isAuthenticated={isAuthenticated} />
-            {config.apronFront && (
-              <p
-                style={{
-                  fontSize: "0.75rem",
-                  color: "#888",
-                  fontStyle: "italic",
-                  margin: "4px 0",
-                }}
-              >
-                (Face avant : hauteur calculée -40mm)
-              </p>
-            )}
+            <SummaryLine
+              label="Côtés"
+              value={apronsDetails.sides}
+              isAuthenticated={isAuthenticated}
+            />
+            {/* Note sur la hauteur de face supprimée selon demande */}
           </div>
         )}
 
-        {/* --- SECTION GOUTTE D'EAU --- */}
+        {/* --- GOUTTE D'EAU --- */}
         {waterDripDetails && (
           <div className="summary-section">
-            <h3
-              style={{
-                borderBottom: "1px solid #eee",
-                paddingBottom: "5px",
-                marginBottom: "10px",
-              }}
-            >
-              Goutte d'eau
-            </h3>
+            <h3>Goutte d'eau</h3>
             <SummaryLine
-              label="Usinage"
-              value={`Sous plan (L: ${waterDripDetails.length} mm)`}
+              label="Longueur"
+              value={`${waterDripDetails.length} mm`}
               price={waterDripDetails.price}
               isAuthenticated={isAuthenticated}
             />
           </div>
         )}
 
-        {/* --- TOTAL ET QUANTITE --- */}
-        <div
-          style={{
-            marginTop: "20px",
-            borderTop: "2px solid #ccc",
-            paddingTop: "15px",
-          }}
-        >
-          {/* Prix Unitaire */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              color: "#666",
-              fontSize: "0.9rem",
-              marginBottom: "10px",
-            }}
-          >
+        {/* --- FOOTER --- */}
+        <div className="summary-footer">
+          <div className="unit-price-row">
             <span>Prix Unitaire HT</span>
             {isAuthenticated ? (
-                <span>{fmt(unitTotalPrice)}</span>
+              <span>{fmt(unitTotalPrice)}</span>
             ) : (
-                <span style={{filter: 'blur(4px)', userSelect:'none'}}>*** €</span>
+              <span className="blurred">*** €</span>
             )}
           </div>
 
-          {/* Sélecteur de Quantité */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "15px",
-            }}
-          >
-            <label style={{ fontWeight: "bold" }}>Quantité</label>
+          <div className="quantity-row">
+            <label>Quantité</label>
             <input
               type="number"
               min="1"
@@ -529,81 +463,37 @@ const ConfigResume = ({ config, onReset }) => {
                 const val = parseInt(e.target.value);
                 setQuantity(val > 0 ? val : 1);
               }}
-              style={{
-                width: "80px",
-                padding: "8px",
-                textAlign: "center",
-                fontWeight: "bold",
-                fontSize: "1rem",
-                border: "1px solid #ccc",
-                borderRadius: "4px",
-              }}
             />
           </div>
 
-          {/* Total Final */}
-          <div
-            className="price-section"
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              borderTop: "1px solid #eee",
-              paddingTop: "15px",
-            }}
-          >
-            <span style={{ fontSize: "1.2rem", fontWeight: "bold" }}>
-              Total HT
-            </span>
+          <div className="total-row">
+            <span className="total-label">Total HT</span>
             {isAuthenticated ? (
-                <span
-                className="price-value"
-                style={{ fontSize: "1.6rem", color: "#d4af37" }}
-                >
-                {fmt(grandTotal)}
-                </span>
+              <span className="total-value">{fmt(grandTotal)}</span>
             ) : (
-                <span
-                className="price-value"
-                style={{ fontSize: "1.6rem", color: "#ccc", filter: 'blur(6px)', userSelect:'none' }}
-                >
-                **** €
-                </span>
+              <span className="total-value blurred">**** €</span>
             )}
           </div>
-          
-          {!isAuthenticated && (
-              <div style={{textAlign:'right', fontSize:'0.8rem', color:'#e74c3c', marginTop:'5px', fontWeight:'bold'}}>
-                  🔒 Connectez-vous pour voir les tarifs
-              </div>
-          )}
-        </div>
 
-        {/* --- ALERT POIDS --- */}
-        <div
-          style={{
-            backgroundColor: isHeavy ? "#fff3cd" : "#e8f5e9",
-            color: isHeavy ? "#856404" : "#155724",
-            padding: "10px",
-            borderRadius: "6px",
-            marginBottom: "15px",
-            marginTop: "15px",
-            fontSize: "0.9rem",
-            textAlign: "center",
-            border: isHeavy ? "1px solid #ffeeba" : "1px solid #c3e6cb",
-          }}
-        >
-          {isHeavy && <span style={{ marginRight: "5px" }}>⚠️</span>}
-          Poids estimé : <strong>{totalWeight} kg</strong>
-          {isHeavy && (
-            <div style={{ fontSize: "0.8em", marginTop: "3px" }}>
-              Attention, charge lourde (prévoir manutention).
+          {!isAuthenticated && (
+            <div className="lock-msg">
+              🔒 Connectez-vous pour voir les tarifs
             </div>
           )}
         </div>
 
-        {/* BOUTON AJOUT PANIER */}
-        <button className="btn-primary" onClick={performAddToCart}>
+        {/* --- POIDS --- */}
+        <div className={`weight-alert ${isHeavy ? "heavy" : "light"}`}>
+          {isHeavy && <span style={{ marginRight: "5px" }}>⚠️</span>}
+          Poids estimé : <strong>{totalWeight} kg</strong>
+          {isHeavy && (
+            <span className="sub-text">
+              Attention, charge lourde (prévoir manutention).
+            </span>
+          )}
+        </div>
+
+        <button className="btn-add-cart" onClick={performAddToCart}>
           Ajouter au panier ({quantity})
         </button>
       </div>

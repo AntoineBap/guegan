@@ -1,58 +1,49 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import '../styles/cart.scss';
 
 const Cart = ({ cartItems, updateItem, removeItem, closeCart, onLoadConfig }) => {
-  const [selectedIds, setSelectedIds] = useState([]);
-  
-  // État pour savoir quel item est "ouvert" (détails techniques)
-  const [expandedId, setExpandedId] = useState(null);
+  const navigate = useNavigate();
+  // On utilise les INDEX (0, 1, 2...) au lieu des IDs
+  const [selectedIndices, setSelectedIndices] = useState([]);
+  const [expandedIndex, setExpandedIndex] = useState(null);
 
   // --- SYNCHRONISATION SÉLECTION ---
   useEffect(() => {
-    setSelectedIds(prevSelected => {
-        // On garde ceux qui sont déjà sélectionnés et qui existent toujours dans le panier
-        // (On continue d'utiliser les IDs pour la sélection visuelle, c'est plus stable)
-        const currentValidIds = prevSelected.filter(id => cartItems.find(item => item.id === id));
-        
-        // Si le panier change (ajout), on veut peut-être sélectionner les nouveaux par défaut.
-        // Ici, on remet tout par défaut pour simplifier l'UX.
-        const allIds = cartItems.map(i => i.id);
-        return allIds;
-    });
+    // Par défaut, on sélectionne tous les index disponibles
+    const allIndices = cartItems.map((_, index) => index);
+    setSelectedIndices(allIndices);
   }, [cartItems.length]);
 
-  const toggleSelection = (id) => {
-    setSelectedIds(prev => 
-      prev.includes(id) ? prev.filter(pid => pid !== id) : [...prev, id]
+  const toggleSelection = (index) => {
+    setSelectedIndices(prev => 
+      prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index]
     );
   };
 
-  const toggleDetails = (id) => {
-    setExpandedId(prev => (prev === id ? null : id));
+  const toggleDetails = (index) => {
+    setExpandedIndex(prev => (prev === index ? null : index));
   };
 
-  // --- ACTIONS ---
-  
-  // CORRECTION ICI : On prend l'INDEX, pas l'ID
   const handleDelete = (index) => {
     if (window.confirm("Voulez-vous vraiment retirer cet article du panier ?")) {
-      removeItem(index); // On envoie l'index (0, 1, 2...) au Context
+      removeItem(index);
+      // On retire aussi l'index de la sélection pour éviter des bugs visuels
+      setSelectedIndices(prev => prev.filter(i => i !== index));
     }
   };
 
-  // CORRECTION ICI : On prend l'INDEX et on envoie un OBJET quantity
   const handleQuantityChange = (index, newQty) => {
       const qty = parseInt(newQty) || 1;
-      // On envoie : Index, et l'objet des changements
       updateItem(index, { quantity: qty });
   };
 
-  // Calcul dynamique du total (basé sur les IDs sélectionnés)
+  // Calcul dynamique du total (basé sur les INDEX sélectionnés)
   const totalToPay = useMemo(() => {
     return cartItems
-      .filter(item => selectedIds.includes(item.id))
+      .filter((_, index) => selectedIndices.includes(index))
       .reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
-  }, [cartItems, selectedIds]);
+  }, [cartItems, selectedIndices]);
 
   const fmt = (n) => n.toFixed(2).replace('.', ',') + ' €';
 
@@ -68,17 +59,16 @@ const Cart = ({ cartItems, updateItem, removeItem, closeCart, onLoadConfig }) =>
           {cartItems.length === 0 ? (
             <div className="empty-cart">Votre panier est vide.</div>
           ) : (
-            // AJOUT DE 'index' DANS LE MAP
             cartItems.map((item, index) => (
-              <div key={index} className={`cart-item ${selectedIds.includes(item.id) ? 'selected' : ''}`}>
+              <div key={index} className={`cart-item ${selectedIndices.includes(index) ? 'selected' : ''}`}>
                 
                 {/* LIGNE PRINCIPALE */}
                 <div className="cart-item-main">
                     <div className="item-select">
                     <input 
                         type="checkbox" 
-                        checked={selectedIds.includes(item.id)} 
-                        onChange={() => toggleSelection(item.id)} 
+                        checked={selectedIndices.includes(index)} 
+                        onChange={() => toggleSelection(index)} 
                     />
                     </div>
                     
@@ -87,8 +77,8 @@ const Cart = ({ cartItems, updateItem, removeItem, closeCart, onLoadConfig }) =>
                     <p className="details">Dim: {item.length}x{item.width}mm • {item.sinks ? item.sinks.length : 0} Cuve(s)</p>
                     
                     <div className="item-actions-row">
-                        <button className="btn-text" onClick={() => toggleDetails(item.id)}>
-                            {expandedId === item.id ? "Masquer détails ▲" : "Voir détails ▼"}
+                        <button className="btn-text" onClick={() => toggleDetails(index)}>
+                            {expandedIndex === index ? "Masquer détails ▲" : "Voir détails ▼"}
                         </button>
                         
                         {onLoadConfig && (
@@ -108,18 +98,16 @@ const Cart = ({ cartItems, updateItem, removeItem, closeCart, onLoadConfig }) =>
                             type="number" 
                             min="1" 
                             value={item.quantity} 
-                            // ON UTILISE L'INDEX ICI
                             onChange={(e) => handleQuantityChange(index, e.target.value)} 
                             />
                         </div>
                         <span className="item-total">{fmt(item.unitPrice * item.quantity)}</span>
-                        {/* ON UTILISE L'INDEX ICI POUR LA SUPPRESSION */}
                         <button className="delete-btn" onClick={() => handleDelete(index)}>🗑️</button>
                     </div>
                 </div>
 
-                {/* ZONE DETAILS (Reste identique) */}
-                {expandedId === item.id && (
+                {/* ZONE DETAILS */}
+                {expandedIndex === index && (
                     <div className="cart-item-details fade-in">
                         <h4>Caractéristiques complètes :</h4>
                         <ul>
@@ -127,7 +115,7 @@ const Cart = ({ cartItems, updateItem, removeItem, closeCart, onLoadConfig }) =>
                             <li><strong>Couleur :</strong> {item.color === 'white' ? "Blanc Pur" : "Autre"}</li>
                             
                             {item.sinks && item.sinks.map((s, idx) => (
-                                <li key={s.id || idx} className="sub-group">
+                                <li key={idx} className="sub-group">
                                     <strong>Cuve #{idx+1} :</strong> {s.type ? s.type.replace("Cuve ", "") : "Standard"}
                                     <br/>Position: {s.position === 'center' ? 'Centrée' : s.position} 
                                     {s.position !== 'center' && ` (${s.offset}mm)`}
@@ -166,7 +154,10 @@ const Cart = ({ cartItems, updateItem, removeItem, closeCart, onLoadConfig }) =>
           <button 
             className="checkout-btn" 
             disabled={totalToPay === 0}
-            onClick={() => alert("Redirection vers le paiement...")}
+            onClick={() => {
+                closeCart(); 
+                navigate('/checkout'); 
+            }}
           >
             Passer au paiement
           </button>

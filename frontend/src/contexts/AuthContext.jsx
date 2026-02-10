@@ -3,11 +3,13 @@ import React, { createContext, useState } from 'react';
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-    // 1. On initialise DIRECTEMENT depuis le localStorage pour ne rien perdre au refresh
+    // 1. Initialisation depuis le localStorage
     const [token, setToken] = useState(() => localStorage.getItem('token') || null);
     const [userId, setUserId] = useState(() => localStorage.getItem('userId') || null);
     
-    // Pour les infos utilisateur (nom, entreprise...), on gère le JSON.parse
+    // NOUVEAU : On gère le rôle
+    const [role, setRole] = useState(() => localStorage.getItem('role') || 'client');
+
     const [user, setUser] = useState(() => {
         const savedUser = localStorage.getItem('user');
         try {
@@ -17,31 +19,33 @@ export const AuthProvider = ({ children }) => {
         }
     });
 
-    // 2. isAuthenticated est simplement "est-ce qu'on a un token ?"
     const isAuthenticated = !!token;
+    // Helper pour savoir si c'est un admin
+    const isAdmin = isAuthenticated && role === 'admin';
 
-    const login = (newToken, newUserId, newUserInfo) => {
-        // Mise à jour du State (pour l'affichage immédiat)
+    // Mise à jour de login pour accepter le role
+    const login = (newToken, newUserId, newUserInfo, newRole) => {
         setToken(newToken);
         setUserId(newUserId);
         setUser(newUserInfo);
+        setRole(newRole || 'client');
 
-        // Mise à jour du Storage (pour la persistance au refresh)
         localStorage.setItem('token', newToken);
         localStorage.setItem('userId', newUserId);
         localStorage.setItem('user', JSON.stringify(newUserInfo));
+        localStorage.setItem('role', newRole || 'client');
     };
 
     const logout = () => {
         setToken(null);
         setUserId(null);
         setUser(null);
+        setRole(null);
 
         localStorage.removeItem('token');
         localStorage.removeItem('userId');
         localStorage.removeItem('user');
-        
-        // Optionnel : on nettoie aussi le panier local par sécurité
+        localStorage.removeItem('role');
         localStorage.removeItem('guest_cart');
     };
 
@@ -50,6 +54,8 @@ export const AuthProvider = ({ children }) => {
             token, 
             userId, 
             user, 
+            role,      // On expose le rôle
+            isAdmin,   // On expose le booléen pratique
             isAuthenticated, 
             login, 
             logout 

@@ -1,13 +1,18 @@
 // src/styles/login.scss
 
 .login-page {
-  min-height: 100vh;
+  /* Scroll Fix */
+  height: 100vh;
+  width: 100%;
+  overflow-y: auto; 
+  
   display: flex;
-  align-items: center;
-  justify-content: center;
   background-color: #f4f6f8;
   font-family: system-ui, -apple-system, sans-serif;
-  padding: 20px;
+  
+  /* Padding confortable pour le scroll */
+  padding: 40px 20px; 
+  box-sizing: border-box; 
 
   /* PLACEHOLDER COLOR */
   input::placeholder {
@@ -17,21 +22,24 @@
   }
 
   .login-card {
+    /* Centrage intelligent */
+    margin: auto; 
+    
     background: white;
-    padding: 40px;
+    padding: 30px; /* Un peu moins de padding interne aussi */
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     width: 100%;
     max-width: 500px;
     text-align: center;
     animation: slideUp 0.4s ease-out;
-
+    
     .back-btn {
       background: none;
       border: none;
       cursor: pointer;
       color: #666;
-      margin-bottom: 20px;
+      margin-bottom: 15px; /* Réduit de 20 à 15 */
       font-size: 0.9rem;
       display: flex;
       align-items: center;
@@ -45,15 +53,15 @@
     }
 
     h2 {
-      margin-bottom: 25px;
+      margin-bottom: 20px; /* Réduit de 25 à 20 */
       color: #222;
     }
 
     /* MESSAGES D'ALERTE */
     .alert-box {
-      padding: 12px;
+      padding: 10px;
       border-radius: 6px;
-      margin-bottom: 20px;
+      margin-bottom: 15px;
       font-size: 0.9rem;
       text-align: left;
 
@@ -74,15 +82,17 @@
     form {
       display: flex;
       flex-direction: column;
-      gap: 15px;
+      /* 👇 C'EST ICI : Écart réduit entre les champs */
+      gap: 10px; 
 
       .form-row {
         display: flex;
-        gap: 15px;
+        margin-bottom: 0.1rem;
+        gap: 10px; 
         
         @media (max-width: 480px) {
           flex-direction: column;
-          gap: 15px;
+          gap: 10px;
         }
 
         .form-col {
@@ -91,20 +101,21 @@
       }
 
       .form-group {
-        position: relative; // Pour les suggestions d'adresse et l'icone oeil
+        position: relative; 
       }
 
       label {
         display: block;
         text-align: left;
-        margin-bottom: 6px;
+        /* Marge sous le label réduite */
+        margin-bottom: 4px; 
         font-size: 0.85rem;
         font-weight: 700;
         color: #111;
       }
 
       input {
-        padding: 12px;
+        padding: 10px; /* Un peu plus fin */
         border-radius: 6px;
         border: 1px solid #ccc;
         outline: none;
@@ -185,8 +196,8 @@
       .password-reqs {
         font-size: 0.8rem;
         text-align: left;
-        margin: 5px 0 15px 0;
-        padding: 10px;
+        margin: 5px 0 10px 0;
+        padding: 8px;
         background: #f8f9fa;
         border-radius: 5px;
         border: 1px solid #eee;
@@ -202,7 +213,7 @@
       }
 
       .submit-btn {
-        padding: 14px;
+        padding: 12px;
         background: #111;
         color: white;
         border: none;
@@ -210,7 +221,7 @@
         cursor: pointer;
         font-size: 1rem;
         font-weight: 600;
-        margin-top: 10px;
+        margin-top: 5px;
         transition: opacity 0.2s, background-color 0.2s;
 
         &:hover {
@@ -225,7 +236,7 @@
     }
 
     .toggle-text {
-      margin-top: 25px;
+      margin-top: 20px;
       color: #666;
       font-size: 0.9rem;
 

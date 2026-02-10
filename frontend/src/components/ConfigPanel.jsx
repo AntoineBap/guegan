@@ -480,7 +480,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
               : MIN_GAP_BETWEEN_SINKS;
         const sinkSpec = SINK_SPECS[sink.type] || { l: 0 };
         const sinkWidth = sinkSpec.l;
-        const maxTapOffset = Math.floor(sinkWidth / 2 - 20);
+        const maxTapOffset = Math.floor(sinkWidth / 2 - 17);
 
         let minOffset = 0;
         let maxOffset = 0;

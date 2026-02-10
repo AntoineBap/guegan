@@ -2,7 +2,7 @@ import React, { useState, useContext, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext'; 
-import '../styles/login.scss'; // Import du nouveau fichier SCSS
+import '../styles/login.scss'; 
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
@@ -188,16 +188,28 @@ const Login = () => {
                     setIsAddressSelected(false);
                     window.scrollTo(0, 0);
                 } else {
-                    login(data.token, data.userId, { 
-                        firstName: data.firstName, 
-                        companyName: data.companyName 
-                    });
+                    // --- CONNEXION REUSSIE ---
+                    // On passe le RÔLE (data.role) à la fonction login
+                    login(
+                        data.token, 
+                        data.userId, 
+                        { 
+                            firstName: data.firstName, 
+                            companyName: data.companyName 
+                        },
+                        data.role // <-- AJOUT DU ROLE
+                    );
                     
                     if (mergeCartAfterLogin) {
                         mergeCartAfterLogin(data.cart || []); 
                     }
 
-                    navigate('/'); 
+                    // --- REDIRECTION INTELLIGENTE ---
+                    if (data.role === 'admin') {
+                        navigate('/admin');
+                    } else {
+                        navigate('/'); 
+                    }
                 }
             } else {
                 setGlobalError(data.message || data.error || "Une erreur est survenue.");

@@ -1,0 +1,220 @@
+// src/styles/configResume.scss
+
+.summary-panel {
+  // Ajustez la largeur ou le positionnement selon votre layout global
+  width: 100%;
+
+  .summary-card {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+
+    h2 {
+      margin-bottom: 25px;
+      font-size: 1.4rem;
+      color: #111;
+      text-align: center;
+    }
+
+    /* --- SECTIONS (Plan, Cuves, etc.) --- */
+    .summary-section {
+      margin-bottom: 20px;
+
+      h3 {
+        border-bottom: 1px solid #eee;
+        padding-bottom: 5px;
+        margin-bottom: 10px;
+        font-size: 1rem;
+        font-weight: 700;
+        color: #333;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .note {
+        font-size: 0.75rem;
+        color: #888;
+        font-style: italic;
+        margin: 4px 0;
+      }
+    }
+
+    /* --- LIGNES DE RÉSUMÉ --- */
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      font-size: 1rem;
+      color: #000;
+
+      &.sub-item {
+        font-size: 0.9rem;
+        color: #555;
+        padding-left: 10px; // Petit retrait pour hiérarchiser
+      }
+
+      .label-value {
+        font-weight: 500;
+      }
+
+      .price-tag {
+        font-weight: bold;
+        color: #d4af37; // Couleur Or/Premium
+
+        &.blurred {
+          color: #ccc;
+          filter: blur(4px);
+          user-select: none;
+        }
+      }
+    }
+
+    /* --- FOOTER DU RÉSUMÉ (TOTAUX) --- */
+    .summary-footer {
+      margin-top: 25px;
+      border-top: 2px solid #e0e0e0;
+      padding-top: 20px;
+
+      /* Ligne Prix Unitaire */
+      .unit-price-row {
+        display: flex;
+        justify-content: space-between;
+        color: #666;
+        font-size: 0.9rem;
+        margin-bottom: 15px;
+
+        .blurred {
+          filter: blur(4px);
+          user-select: none;
+        }
+      }
+
+      /* Ligne Quantité */
+      .quantity-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+
+        label {
+          font-weight: bold;
+          color: #222;
+        }
+
+        input {
+          width: 80px;
+          padding: 8px;
+          text-align: center;
+          font-weight: bold;
+          font-size: 1rem;
+          border: 1px solid #ccc;
+          border-radius: 6px;
+          outline: none;
+          transition: border-color 0.2s;
+
+          &:focus {
+            border-color: #111;
+          }
+        }
+      }
+
+      /* Ligne Grand Total */
+      .total-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-top: 1px solid #eee;
+        padding-top: 15px;
+
+        .total-label {
+          font-size: 1.2rem;
+          font-weight: 800;
+          color: #111;
+        }
+
+        .total-value {
+          font-size: 1.6rem;
+          color: #d4af37;
+          font-weight: 800;
+
+          &.blurred {
+            color: #ccc;
+            filter: blur(6px);
+            user-select: none;
+          }
+        }
+      }
+
+      .lock-msg {
+        text-align: right;
+        font-size: 0.85rem;
+        color: #e74c3c;
+        margin-top: 8px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 5px;
+      }
+    }
+
+    /* --- ALERTE POIDS --- */
+    .weight-alert {
+      padding: 12px;
+      border-radius: 6px;
+      margin: 20px 0;
+      font-size: 0.9rem;
+      text-align: center;
+      border: 1px solid transparent;
+
+      &.heavy {
+        background-color: #fff3cd;
+        color: #856404;
+        border-color: #ffeeba;
+      }
+
+      &.light {
+        background-color: #f0fdf4; // Vert très clair
+        color: #166534;
+        border-color: #bbf7d0;
+      }
+
+      strong {
+        font-weight: 800;
+      }
+
+      .sub-text {
+        font-size: 0.8em;
+        margin-top: 4px;
+        display: block;
+        opacity: 0.9;
+      }
+    }
+
+    /* --- BOUTON AJOUT --- */
+    .btn-add-cart {
+      width: 100%;
+      padding: 16px;
+      background: #111;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1.1rem;
+      font-weight: 700;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+
+      &:hover {
+        background: #333;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+      }
+
+      &:active {
+        transform: translateY(0);
+      }
+    }
+  }
+}

@@ -1,32 +1,34 @@
-import React, { useContext } from 'react'; // <--- Import useContext
+import React, { useContext } from 'react'; 
 import { useNavigate } from 'react-router-dom';
-import { AuthContext } from '../contexts/AuthContext'; // <--- Import AuthContext
-import '../styles/header.scss';
+import { AuthContext } from '../contexts/AuthContext';
+import '../styles/header.scss'; // Import du SCSS
 
 const Header = ({ toggleCart, cartCount }) => {
   const navigate = useNavigate();
-  const { isAuthenticated, logout } = useContext(AuthContext); // <--- On récupère l'état
+  const { isAuthenticated, logout } = useContext(AuthContext);
 
   return (
     <header className="header">
-      <div className="logo" onClick={() => navigate('/')} style={{cursor: 'pointer'}}>
-        GUEGAN <span style={{fontSize:'0.5em', color:'#888'}}>Configurator</span>
+      <div className="logo" onClick={() => navigate('/')}>
+        GUEGAN <span className="subtitle">Configurator</span>
       </div>
       
       <div className="header-actions">
         {isAuthenticated ? (
             // SI CONNECTÉ : Bouton Profil / Déconnexion
-            <div style={{display:'flex', gap:'10px'}}>
-                <button className="auth-btn" style={{borderColor: 'green', color: 'green'}}>
-                    <span className="icon">👤</span> Mon Profil
+            <div className="auth-group">
+                <button className="profile-btn">
+                    <span className="icon">👤</span> 
+                    <span className="text">Mon Profil</span>
                 </button>
-                <button className="auth-btn" onClick={logout} style={{borderColor: '#e74c3c', color: '#e74c3c'}}>
-                    Déconnexion
+                <button className="logout-btn" onClick={logout}>
+                    <span className="icon">🚪</span> 
+                    <span className="text">Déconnexion</span>
                 </button>
             </div>
         ) : (
             // SI PAS CONNECTÉ : Bouton Login
-            <button className="auth-btn" onClick={() => navigate('/login')}>
+            <button className="login-btn" onClick={() => navigate('/login')}>
                 <span className="icon">👤</span>
                 <span className="text">Connexion</span>
             </button>
