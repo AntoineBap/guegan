@@ -21,9 +21,7 @@
     gap: 6px;
     transition: transform 0.2s;
 
-    &:hover {
-      transform: translateY(-1px);
-    }
+    &:hover { transform: translateY(-1px); }
 
     .subtitle {
       font-size: 0.8rem;
@@ -39,13 +37,12 @@
     align-items: center;
     gap: 15px;
 
-    /* Groupe de boutons quand on est connecté */
     .auth-group {
       display: flex;
       gap: 10px;
+      align-items: center;
     }
 
-    /* Style général des boutons du header */
     button {
       display: flex;
       align-items: center;
@@ -60,59 +57,91 @@
       cursor: pointer;
       transition: all 0.2s ease;
 
-      .icon {
-        font-size: 1.1rem;
-      }
-
-      &:hover {
-        background-color: #f9f9f9;
-        border-color: #ccc;
-      }
+      .icon { font-size: 1.1rem; }
+      &:hover { background-color: #f9f9f9; border-color: #ccc; }
     }
 
-    /* Bouton Connexion (Invité) */
+    .admin-btn {
+      background-color: #111;
+      color: #d4af37;
+      border-color: #111;
+      &:hover { background-color: #333; color: white; border-color: #333; }
+    }
+
     .login-btn {
-      &:hover {
-        background-color: #f0fdf4; // Vert très clair
-        border-color: #222;
+      &:hover { background-color: #f0fdf4; border-color: #222; }
+    }
+
+    /* --- DROPDOWN PROFIL (Modifié) --- */
+    .profile-dropdown {
+      position: relative;
+      display: inline-block;
+      /* On retire le padding ici pour que la souris puisse passer du bouton au menu sans "trou" */
+
+      .profile-btn {
+        color: #166534;
+        border-color: #bbf7d0;
+        background-color: #f0fdf4;
+        
+        /* Style quand le menu est ouvert */
+        &.active {
+            background-color: #dcfce7;
+            border-color: #166534;
+        }
+      }
+
+      .dropdown-content {
+        /* État par défaut : Caché mais présent pour l'animation */
+        visibility: hidden;
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+
+        position: absolute;
+        right: 0;
+        top: 100%; /* Collé juste en dessous */
+        background-color: white;
+        min-width: 180px;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        border: 1px solid #eee;
+        border-radius: 8px;
+        padding: 5px;
+        z-index: 10;
+        margin-top: 5px; /* Petit espace esthétique */
+
+        /* Quand la classe .visible est ajoutée par React */
+        &.visible {
+            visibility: visible;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .logout-item {
+          width: 100%;
+          text-align: left;
+          background: none;
+          border: none;
+          color: #e74c3c;
+          padding: 10px 15px;
+          border-radius: 4px;
+          font-weight: 500;
+          justify-content: flex-start;
+
+          &:hover {
+            background-color: #fee2e2;
+            color: #991b1b;
+          }
+        }
       }
     }
 
-    /* Bouton Mon Profil */
-    .profile-btn {
-      color: #166534;
-      border-color: #bbf7d0;
-      background-color: #f0fdf4;
-
-      &:hover {
-        background-color: #dcfce7;
-        border-color: #166534;
-      }
-    }
-
-    /* Bouton Déconnexion */
-    .logout-btn {
-      color: #991b1b;
-      border-color: #fecaca;
-      background-color: #fef2f2;
-
-      &:hover {
-        background-color: #fee2e2;
-        border-color: #991b1b;
-      }
-    }
-
-    /* Bouton Panier */
     .cart-btn {
       position: relative;
       background-color: #111;
       color: white;
       border: 1px solid #111;
 
-      &:hover {
-        background-color: #333;
-        transform: translateY(-1px);
-      }
+      &:hover { background-color: #333; transform: translateY(-1px); }
 
       .badge {
         position: absolute;
@@ -134,20 +163,13 @@
     }
   }
 
-  /* Responsive Mobile */
   @media (max-width: 600px) {
     padding: 15px 20px;
-
     .header-actions {
       gap: 10px;
-
       button {
         padding: 8px 10px;
-        
-        /* On cache le texte sur mobile pour gagner de la place */
-        .text {
-          display: none;
-        }
+        .text { display: none; }
       }
     }
   }

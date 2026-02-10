@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
 import { AuthContext } from './AuthContext';
 
 const CartContext = createContext();
@@ -7,7 +7,7 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 export const useCart = () => useContext(CartContext);
 
 export const CartProvider = ({ children }) => {
-    // 1. Initialisation
+    // 1. Initialisation Panier Global
     const [cartItems, setCartItems] = useState(() => {
         try {
             const localData = localStorage.getItem('guest_cart');
@@ -17,41 +17,28 @@ export const CartProvider = ({ children }) => {
         }
     });
 
+    // NOUVEAU : État pour stocker UNIQUEMENT les items à payer
+    const [checkoutItems, setCheckoutItems] = useState([]);
+
     const [isDataLoaded, setIsDataLoaded] = useState(false);
     const [isCartOpen, setIsCartOpen] = useState(false);
     
-    // On récupère les infos d'auth
     const { token, isAuthenticated } = useContext(AuthContext);
-
-    // --- DEBUG : Ce log va s'afficher à chaque changement ---
-    useEffect(() => {
-        console.log("🔍 ÉTAT DU CONTEXTE :", { 
-            connecté: isAuthenticated, 
-            tokenPrésent: !!token, 
-            nbArticles: cartItems.length,
-            donnéesChargées: isDataLoaded 
-        });
-    }, [isAuthenticated, token, cartItems.length, isDataLoaded]);
-
 
     // --- EFFET 1 : CHARGEMENT INITIAL (FETCH) ---
     useEffect(() => {
         const fetchCart = async () => {
             if (isAuthenticated && token) {
                 try {
-                    console.log("🔄 Tentative de récupération du panier BDD...");
                     const response = await fetch(`${API_URL}/api/auth/cart`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     
                     if (response.ok) {
                         const savedCart = await response.json();
-                        console.log("✅ Panier BDD reçu :", savedCart);
                         if (Array.isArray(savedCart)) {
                             setCartItems(savedCart);
                         }
-                    } else {
-                        console.log("⚠️ Réponse serveur non-OK pour le panier:", response.status);
                     }
                 } catch (error) {
                     console.error("❌ Erreur chargement panier:", error);
@@ -67,63 +54,29 @@ export const CartProvider = ({ children }) => {
         }
     }, [isAuthenticated, token]);
 
-
     // --- EFFET 2 : SAUVEGARDE AUTOMATIQUE ---
     useEffect(() => {
         if (!isDataLoaded) return;
-
-        // A. CAS CONNECTÉ
         if (isAuthenticated && token) {
-            // On sauvegarde si on a des items OU si le tableau est vide (pour vider la BDD aussi)
-            console.log("💾 Déclenchement sauvegarde BDD...");
             saveCartToBackend(cartItems);
             localStorage.removeItem('guest_cart');
-        } 
-        // B. CAS INVITÉ
-        else {
+        } else {
             localStorage.setItem('guest_cart', JSON.stringify(cartItems));
         }
     }, [cartItems, isAuthenticated, token, isDataLoaded]);
 
-
-    // --- EFFET 3 : DÉCONNEXION ---
-    const [wasAuthenticated, setWasAuthenticated] = useState(isAuthenticated);
-    useEffect(() => {
-        if (wasAuthenticated && !isAuthenticated) {
-            console.log("👋 Déconnexion détectée -> Reset local");
-            setCartItems([]); 
-            localStorage.removeItem('guest_cart');
-            setIsDataLoaded(true);
-        }
-        setWasAuthenticated(isAuthenticated);
-    }, [isAuthenticated]);
-
-
     // --- FONCTION SAUVEGARDE API ---
     const saveCartToBackend = async (items) => {
-        if (!token) {
-            console.error("⛔ Pas de token, annulation sauvegarde.");
-            return;
-        }
-
-        console.log(`📤 Envoi POST vers ${API_URL}/api/auth/cart avec ${items.length} items`);
-        
+        if (!token) return;
         try {
-            const response = await fetch(`${API_URL}/api/auth/cart`, {
-                method: 'POST', // On utilise bien POST ici
+            await fetch(`${API_URL}/api/auth/cart`, {
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({ cart: items })
             });
-            
-            if (response.ok) {
-                console.log("✅ Sauvegarde BDD réussie (200 OK)");
-            } else {
-                const text = await response.text();
-                console.error(`❌ Erreur sauvegarde: ${response.status} - ${text}`);
-            }
         } catch (error) {
             console.error("❌ Erreur réseau sauvegarde:", error);
         }
@@ -161,11 +114,11 @@ export const CartProvider = ({ children }) => {
 
     const clearCart = () => {
         setCartItems([]);
+        setCheckoutItems([]); // On vide aussi le checkout
         localStorage.removeItem('guest_cart');
     };
 
     const mergeCartAfterLogin = (dbCart = []) => {
-        console.log("📥 Fusion Panier Login :", dbCart);
         setCartItems(prevGuestCart => {
             let finalCart = [];
             if (!dbCart || dbCart.length === 0) finalCart = [...prevGuestCart];
@@ -176,16 +129,25 @@ export const CartProvider = ({ children }) => {
         setIsDataLoaded(true);
     };
 
+    // NOUVEAU : Fonction pour préparer le checkout
+    const proceedToCheckout = (selectedIndices) => {
+        // On filtre le panier global pour ne garder que les indices sélectionnés
+        const itemsToBuy = cartItems.filter((_, index) => selectedIndices.includes(index));
+        setCheckoutItems(itemsToBuy);
+    };
+
     return (
         <CartContext.Provider value={{
             cartItems,
+            checkoutItems, // On expose les items à payer
             addToCart,
             removeFromCart,
             updateCartItem,
             clearCart,
             isCartOpen,
             setIsCartOpen,
-            mergeCartAfterLogin
+            mergeCartAfterLogin,
+            proceedToCheckout // On expose la fonction
         }}>
             {children}
         </CartContext.Provider>

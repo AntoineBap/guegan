@@ -1,12 +1,14 @@
-import React, { useState, useMemo, useEffect, useContext } from 'react'; // 1. Import useContext
+import React, { useState, useMemo, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AuthContext } from '../contexts/AuthContext'; // 2. Import AuthContext
+import { AuthContext } from '../contexts/AuthContext';
+import { useCart } from '../contexts/CartContext'; // On utilise useCart ici aussi
 import '../styles/cart.scss';
 
-const Cart = ({ cartItems, updateItem, removeItem, closeCart, onLoadConfig }) => {
+const Cart = ({ updateItem, removeItem, closeCart, onLoadConfig }) => {
   const navigate = useNavigate();
-  // 3. Récupération du statut de connexion
   const { isAuthenticated } = useContext(AuthContext);
+  // On récupère cartItems et la fonction proceedToCheckout du contexte
+  const { cartItems, proceedToCheckout } = useCart(); 
 
   const [selectedIndices, setSelectedIndices] = useState([]);
   const [expandedIndex, setExpandedIndex] = useState(null);
@@ -47,6 +49,16 @@ const Cart = ({ cartItems, updateItem, removeItem, closeCart, onLoadConfig }) =>
 
   const fmt = (n) => n.toFixed(2).replace('.', ',') + ' €';
 
+  // --- LOGIQUE DE PAIEMENT ---
+  const handleCheckoutClick = () => {
+      // 1. On envoie les items sélectionnés au Contexte
+      proceedToCheckout(selectedIndices);
+      // 2. On ferme le panneau
+      closeCart();
+      // 3. On navigue
+      navigate('/checkout');
+  };
+
   return (
     <div className="cart-overlay">
       <div className="cart-panel">
@@ -85,7 +97,7 @@ const Cart = ({ cartItems, updateItem, removeItem, closeCart, onLoadConfig }) =>
                             <>
                                 <span className="separator">•</span>
                                 <button className="btn-text load-btn" onClick={() => {
-                                    closeCart(); // On ferme le panier pour voir la 3D
+                                    closeCart(); 
                                     onLoadConfig(item);
                                 }}>
                                     👁️ Voir en 3D
@@ -155,7 +167,6 @@ const Cart = ({ cartItems, updateItem, removeItem, closeCart, onLoadConfig }) =>
             <span className="amount">{fmt(totalToPay)}</span>
           </div>
 
-          {/* 4. BLOC DE GESTION AUTHENTIFICATION */}
           {!isAuthenticated && (
               <div style={{textAlign: 'center', marginBottom: '10px'}}>
                   <p style={{color: '#e74c3c', fontSize: '0.9rem', marginBottom: '8px', fontWeight: '600'}}>
@@ -185,14 +196,9 @@ const Cart = ({ cartItems, updateItem, removeItem, closeCart, onLoadConfig }) =>
 
           <button 
             className="checkout-btn" 
-            // 5. Désactivation si panier vide OU non connecté
             disabled={totalToPay === 0 || !isAuthenticated}
-            // Style grisé explicite si non connecté
             style={!isAuthenticated ? { opacity: 0.5, cursor: 'not-allowed', backgroundColor: '#ccc' } : {}}
-            onClick={() => {
-                closeCart(); 
-                navigate('/checkout'); 
-            }}
+            onClick={handleCheckoutClick}
           >
             Passer au paiement
           </button>

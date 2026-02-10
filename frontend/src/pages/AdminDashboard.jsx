@@ -1,13 +1,14 @@
 import React, { useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
-import '../styles/adminDashboard.scss'; // Import du style
+// 👇 Import du composant Header
+import Header from '../components/Header';
+import '../styles/adminDashboard.scss';
 
 const AdminDashboard = () => {
-    const { isAuthenticated, isAdmin, logout } = useContext(AuthContext);
+    const { isAuthenticated, isAdmin } = useContext(AuthContext);
     const navigate = useNavigate();
 
-    // Sécurité : Redirection si pas admin
     useEffect(() => {
         if (!isAuthenticated) {
             navigate('/login');
@@ -18,11 +19,10 @@ const AdminDashboard = () => {
 
     if (!isAdmin) return null;
 
-    // --- CONFIGURATION DES SECTIONS ---
     const sections = [
         {
             title: "En attente de paiement",
-            count: 0, // À dynamiser plus tard
+            count: 0,
             path: "/admin/orders-pending",
             icon: "⏳",
             type: "type-warning"
@@ -50,7 +50,7 @@ const AdminDashboard = () => {
         },
         {
             title: "Modifier les Variables",
-            count: null, // Pas de compteur pour les réglages
+            count: null, 
             path: "/admin/settings",
             icon: "⚙️",
             type: "type-settings"
@@ -58,31 +58,31 @@ const AdminDashboard = () => {
     ];
 
     return (
-        <div className="admin-dashboard">
-            <div className="admin-header">
-                <h1>GUEGAN <span className="gold">Admin</span></h1>
-                <button className="logout-btn" onClick={logout}>
-                    Déconnexion
-                </button>
-            </div>
+        <div style={{ backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
+            {/* 👇 LE HEADER EST ICI */}
+            <Header />
 
-            <div className="dashboard-grid">
-                {sections.map((section, index) => (
-                    <div 
-                        key={index} 
-                        className={`dashboard-card ${section.type}`}
-                        onClick={() => navigate(section.path)}
-                    >
-                        <div>
-                            <div className="card-icon">{section.icon}</div>
-                            <h3 className="card-title">{section.title}</h3>
-                            {section.count !== null && (
-                                <div className="card-count">{section.count}</div>
-                            )}
+            <div className="admin-dashboard">
+                <h2 style={{ marginBottom: '30px', color: '#333' }}>Vue d'ensemble</h2>
+
+                <div className="dashboard-grid">
+                    {sections.map((section, index) => (
+                        <div 
+                            key={index} 
+                            className={`dashboard-card ${section.type}`}
+                            onClick={() => navigate(section.path)}
+                        >
+                            <div>
+                                <div className="card-icon">{section.icon}</div>
+                                <h3 className="card-title">{section.title}</h3>
+                                {section.count !== null && (
+                                    <div className="card-count">{section.count}</div>
+                                )}
+                            </div>
+                            <span className="card-arrow">➔</span>
                         </div>
-                        <span className="card-arrow">➔</span>
-                    </div>
-                ))}
+                    ))}
+                </div>
             </div>
         </div>
     );

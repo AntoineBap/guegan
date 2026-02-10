@@ -7,15 +7,14 @@ import '../styles/checkout.scss';
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 const Checkout = () => {
-    const { cartItems, clearCart } = useCart();
+    // On récupère checkoutItems (les items filtrés)
+    const { checkoutItems, clearCart } = useCart();
     const { user, token, isAuthenticated } = useContext(AuthContext);
     const navigate = useNavigate();
 
     const [useSameAddress, setUseSameAddress] = useState(true);
     const [acceptedTerms, setAcceptedTerms] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    
-    // NOUVEAU : État pour voir les détails d'un item dans le résumé
     const [expandedItemIndex, setExpandedItemIndex] = useState(null);
 
     // Initialisation Adresses
@@ -26,21 +25,30 @@ const Checkout = () => {
         firstName: '', lastName: '', company: '', address: '', city: '', zip: '', country: 'France'
     });
 
-    // Pré-remplissage si connecté
+    // --- PRÉ-REMPLISSAGE AUTOMATIQUE ---
     useEffect(() => {
         if (user) {
-            setBilling({
+            setBilling(prev => ({
+                ...prev,
                 firstName: user.firstName || '',
                 lastName: user.lastName || '',
                 company: user.companyName || '',
-                address: user.companyAddress || '',
-                city: '', zip: '', country: 'France'
-            });
+                address: user.companyAddress || '', // L'adresse du compte
+                // Note : Si votre objet user n'a pas city/zip séparés, ils restent vides à compléter
+                city: user.city || '', 
+                zip: user.zip || ''
+            }));
         }
     }, [user]);
 
-    // Calcul Total
-    const totalAmount = cartItems.reduce((acc, item) => acc + (item.unitPrice * item.quantity), 0);
+    // Sécurité : Si aucun item à payer, retour au configurateur
+    useEffect(() => {
+        if (!checkoutItems || checkoutItems.length === 0) {
+            navigate('/');
+        }
+    }, [checkoutItems, navigate]);
+
+    const totalAmount = checkoutItems.reduce((acc, item) => acc + (item.unitPrice * item.quantity), 0);
 
     const handleBillingChange = (e) => setBilling({...billing, [e.target.name]: e.target.value});
     const handleShippingChange = (e) => setShipping({...shipping, [e.target.name]: e.target.value});
@@ -64,7 +72,7 @@ const Checkout = () => {
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    items: cartItems,
+                    items: checkoutItems,
                     totalAmount,
                     billingAddress: billing,
                     shippingAddress: finalShipping
@@ -77,7 +85,6 @@ const Checkout = () => {
                 clearCart(); 
                 navigate(`/order-confirmation/${data.orderId}`);
             } else {
-                // CORRECTION ERREUR : On affiche l'erreur réelle renvoyée par le backend
                 alert("Erreur: " + (data.message || data.error || "Une erreur est survenue"));
             }
         } catch (error) {
@@ -87,7 +94,7 @@ const Checkout = () => {
         setIsSubmitting(false);
     };
 
-    if (cartItems.length === 0) return <div className="checkout-page"><p>Votre panier est vide.</p></div>;
+    if (checkoutItems.length === 0) return null;
 
     return (
         <div className="checkout-page">
@@ -96,17 +103,37 @@ const Checkout = () => {
             <div className="checkout-container">
                 {/* COLONNE GAUCHE : FORMULAIRES */}
                 <div className="form-column">
-                    <form onSubmit={handleSubmit}>
-                        {/* ADRESSE FACTURATION */}
+                    <form id="checkout-form" onSubmit={handleSubmit}>
+                        
+                        {/* --- ADRESSE FACTURATION --- */}
                         <section>
                             <h2>📍 Adresse de Facturation</h2>
                             <div className="form-grid">
-                                <input type="text" name="firstName" placeholder="Prénom" value={billing.firstName} onChange={handleBillingChange} required />
-                                <input type="text" name="lastName" placeholder="Nom" value={billing.lastName} onChange={handleBillingChange} required />
-                                <input type="text" name="company" placeholder="Société" value={billing.company} onChange={handleBillingChange} />
-                                <input type="text" name="address" placeholder="Adresse complète" className="full-width" value={billing.address} onChange={handleBillingChange} required />
-                                <input type="text" name="zip" placeholder="Code Postal" value={billing.zip} onChange={handleBillingChange} required />
-                                <input type="text" name="city" placeholder="Ville" value={billing.city} onChange={handleBillingChange} required />
+                                <div className="field-group">
+                                    <label>Prénom</label>
+                                    <input type="text" name="firstName" placeholder="Jean" value={billing.firstName} onChange={handleBillingChange} required />
+                                </div>
+                                <div className="field-group">
+                                    <label>Nom</label>
+                                    <input type="text" name="lastName" placeholder="Dupont" value={billing.lastName} onChange={handleBillingChange} required />
+                                </div>
+                                <div className="field-group">
+                                    <label>Nom de l'entreprise</label>
+                                    <input type="text" name="company" placeholder="Menuiserie Guegan" value={billing.company} onChange={handleBillingChange} />
+                                </div>
+                                {/* Vide pour l'équilibre de la grille si besoin, sinon css gère */}
+                                <div className="field-group full-width">
+                                    <label>Adresse</label>
+                                    <input type="text" name="address" placeholder="1 Avenue des Champs-Élysées" value={billing.address} onChange={handleBillingChange} required />
+                                </div>
+                                <div className="field-group">
+                                    <label>Code Postal</label>
+                                    <input type="text" name="zip" placeholder="75008" value={billing.zip} onChange={handleBillingChange} required />
+                                </div>
+                                <div className="field-group">
+                                    <label>Ville</label>
+                                    <input type="text" name="city" placeholder="Paris" value={billing.city} onChange={handleBillingChange} required />
+                                </div>
                             </div>
                         </section>
 
@@ -122,17 +149,35 @@ const Checkout = () => {
                             </label>
                         </div>
 
-                        {/* ADRESSE LIVRAISON (Si différente) */}
+                        {/* --- ADRESSE LIVRAISON (Si différente) --- */}
                         {!useSameAddress && (
                             <section className="fade-in">
                                 <h2>🚚 Adresse de Livraison</h2>
                                 <div className="form-grid">
-                                    <input type="text" name="firstName" placeholder="Prénom" value={shipping.firstName} onChange={handleShippingChange} required />
-                                    <input type="text" name="lastName" placeholder="Nom" value={shipping.lastName} onChange={handleShippingChange} required />
-                                    <input type="text" name="company" placeholder="Société (Optionnel)" value={shipping.company} onChange={handleShippingChange} />
-                                    <input type="text" name="address" placeholder="Adresse complète" className="full-width" value={shipping.address} onChange={handleShippingChange} required />
-                                    <input type="text" name="zip" placeholder="Code Postal" value={shipping.zip} onChange={handleShippingChange} required />
-                                    <input type="text" name="city" placeholder="Ville" value={shipping.city} onChange={handleShippingChange} required />
+                                    <div className="field-group">
+                                        <label>Prénom</label>
+                                        <input type="text" name="firstName" placeholder="Jean" value={shipping.firstName} onChange={handleShippingChange} required />
+                                    </div>
+                                    <div className="field-group">
+                                        <label>Nom</label>
+                                        <input type="text" name="lastName" placeholder="Dupont" value={shipping.lastName} onChange={handleShippingChange} required />
+                                    </div>
+                                    <div className="field-group">
+                                        <label>Nom de l'entreprise</label>
+                                        <input type="text" name="company" placeholder="Menuiserie Guegan" value={shipping.company} onChange={handleShippingChange} />
+                                    </div>
+                                    <div className="field-group full-width">
+                                        <label>Adresse</label>
+                                        <input type="text" name="address" placeholder="1 Avenue des Champs-Élysées" value={shipping.address} onChange={handleShippingChange} required />
+                                    </div>
+                                    <div className="field-group">
+                                        <label>Code Postal</label>
+                                        <input type="text" name="zip" placeholder="75008" value={shipping.zip} onChange={handleShippingChange} required />
+                                    </div>
+                                    <div className="field-group">
+                                        <label>Ville</label>
+                                        <input type="text" name="city" placeholder="Paris" value={shipping.city} onChange={handleShippingChange} required />
+                                    </div>
                                 </div>
                             </section>
                         )}
@@ -155,19 +200,15 @@ const Checkout = () => {
                                 J'ai lu et j'accepte que ma commande de produits sur-mesure ne soit ni échangeable ni remboursable une fois la fabrication lancée.
                             </label>
                         </div>
-
-                        <button type="submit" className="validate-btn" disabled={isSubmitting || !acceptedTerms}>
-                            {isSubmitting ? "Validation..." : `Confirmer et Payer (${totalAmount.toFixed(2)} €)`}
-                        </button>
                     </form>
                 </div>
 
-                {/* COLONNE DROITE : RESUME DÉTAILLÉ */}
+                {/* COLONNE DROITE : RESUME */}
                 <div className="summary-column">
                     <div className="summary-card">
-                        <h3>Résumé ({cartItems.length} articles)</h3>
+                        <h3>Résumé ({checkoutItems.length} articles)</h3>
                         <div className="items-list">
-                            {cartItems.map((item, idx) => (
+                            {checkoutItems.map((item, idx) => (
                                 <div key={idx} className="summary-item-wrapper">
                                     <div className="mini-item">
                                         <div>
@@ -208,6 +249,16 @@ const Checkout = () => {
                             <span>Total HT</span>
                             <span>{totalAmount.toFixed(2)} €</span>
                         </div>
+
+                        <button 
+                            type="submit" 
+                            form="checkout-form" 
+                            className="validate-btn" 
+                            disabled={isSubmitting || !acceptedTerms}
+                            style={{ marginTop: '20px' }}
+                        >
+                            {isSubmitting ? "Validation..." : "Confirmer et Payer"}
+                        </button>
                     </div>
                 </div>
             </div>
