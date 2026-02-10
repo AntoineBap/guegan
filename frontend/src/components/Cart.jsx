@@ -1,16 +1,18 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useContext } from 'react'; // 1. Import useContext
 import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../contexts/AuthContext'; // 2. Import AuthContext
 import '../styles/cart.scss';
 
 const Cart = ({ cartItems, updateItem, removeItem, closeCart, onLoadConfig }) => {
   const navigate = useNavigate();
-  // On utilise les INDEX (0, 1, 2...) au lieu des IDs
+  // 3. Récupération du statut de connexion
+  const { isAuthenticated } = useContext(AuthContext);
+
   const [selectedIndices, setSelectedIndices] = useState([]);
   const [expandedIndex, setExpandedIndex] = useState(null);
 
   // --- SYNCHRONISATION SÉLECTION ---
   useEffect(() => {
-    // Par défaut, on sélectionne tous les index disponibles
     const allIndices = cartItems.map((_, index) => index);
     setSelectedIndices(allIndices);
   }, [cartItems.length]);
@@ -28,7 +30,6 @@ const Cart = ({ cartItems, updateItem, removeItem, closeCart, onLoadConfig }) =>
   const handleDelete = (index) => {
     if (window.confirm("Voulez-vous vraiment retirer cet article du panier ?")) {
       removeItem(index);
-      // On retire aussi l'index de la sélection pour éviter des bugs visuels
       setSelectedIndices(prev => prev.filter(i => i !== index));
     }
   };
@@ -38,7 +39,6 @@ const Cart = ({ cartItems, updateItem, removeItem, closeCart, onLoadConfig }) =>
       updateItem(index, { quantity: qty });
   };
 
-  // Calcul dynamique du total (basé sur les INDEX sélectionnés)
   const totalToPay = useMemo(() => {
     return cartItems
       .filter((_, index) => selectedIndices.includes(index))
@@ -84,7 +84,10 @@ const Cart = ({ cartItems, updateItem, removeItem, closeCart, onLoadConfig }) =>
                         {onLoadConfig && (
                             <>
                                 <span className="separator">•</span>
-                                <button className="btn-text load-btn" onClick={() => onLoadConfig(item)}>
+                                <button className="btn-text load-btn" onClick={() => {
+                                    closeCart(); // On ferme le panier pour voir la 3D
+                                    onLoadConfig(item);
+                                }}>
                                     👁️ Voir en 3D
                                 </button>
                             </>
@@ -151,9 +154,41 @@ const Cart = ({ cartItems, updateItem, removeItem, closeCart, onLoadConfig }) =>
             <span>Total Sélectionné (HT)</span>
             <span className="amount">{fmt(totalToPay)}</span>
           </div>
+
+          {/* 4. BLOC DE GESTION AUTHENTIFICATION */}
+          {!isAuthenticated && (
+              <div style={{textAlign: 'center', marginBottom: '10px'}}>
+                  <p style={{color: '#e74c3c', fontSize: '0.9rem', marginBottom: '8px', fontWeight: '600'}}>
+                      ⚠️ Veuillez vous connecter pour passer au paiement
+                  </p>
+                  <button 
+                      onClick={() => {
+                          closeCart();
+                          navigate('/login');
+                      }}
+                      style={{
+                          width: '100%',
+                          padding: '10px',
+                          backgroundColor: 'white',
+                          border: '1px solid #111',
+                          color: '#111',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontWeight: 'bold',
+                          marginBottom: '10px'
+                      }}
+                  >
+                      Se connecter
+                  </button>
+              </div>
+          )}
+
           <button 
             className="checkout-btn" 
-            disabled={totalToPay === 0}
+            // 5. Désactivation si panier vide OU non connecté
+            disabled={totalToPay === 0 || !isAuthenticated}
+            // Style grisé explicite si non connecté
+            style={!isAuthenticated ? { opacity: 0.5, cursor: 'not-allowed', backgroundColor: '#ccc' } : {}}
             onClick={() => {
                 closeCart(); 
                 navigate('/checkout'); 
