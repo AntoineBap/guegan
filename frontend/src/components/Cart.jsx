@@ -1,30 +1,25 @@
-import React, { useState, useMemo, useEffect } from 'react'; // Ajout de useEffect
+import React, { useState, useMemo, useEffect } from 'react';
 import '../styles/cart.scss';
 
 const Cart = ({ cartItems, updateItem, removeItem, closeCart, onLoadConfig }) => {
   const [selectedIds, setSelectedIds] = useState([]);
   
-  // État pour savoir quel item est "ouvert"
+  // État pour savoir quel item est "ouvert" (détails techniques)
   const [expandedId, setExpandedId] = useState(null);
 
-  // SYNCHRONISATION : Quand le panier change (ajout/suppression), on met à jour la sélection
-  // Si un nouvel ID apparaît, on le sélectionne par défaut.
+  // --- SYNCHRONISATION SÉLECTION ---
   useEffect(() => {
     setSelectedIds(prevSelected => {
-        // On garde ceux qui sont déjà sélectionnés et qui existent toujours
+        // On garde ceux qui sont déjà sélectionnés et qui existent toujours dans le panier
+        // (On continue d'utiliser les IDs pour la sélection visuelle, c'est plus stable)
         const currentValidIds = prevSelected.filter(id => cartItems.find(item => item.id === id));
         
-        // On trouve les nouveaux items (ceux qui ne sont pas encore dans prevSelected)
-        // Note: ceci sélectionne tout par défaut à l'ouverture, ou ajoute les nouveaux
+        // Si le panier change (ajout), on veut peut-être sélectionner les nouveaux par défaut.
+        // Ici, on remet tout par défaut pour simplifier l'UX.
         const allIds = cartItems.map(i => i.id);
-        
-        // Si c'est le premier chargement ou si un item a été ajouté, on veut probablement tout sélectionner
-        // ou juste ajouter le nouveau. Pour simplifier : on sélectionne tout ce qui est dans le panier.
-        // Si vous préférez garder l'état "décoché" des anciens, la logique serait plus complexe.
-        // Ici, on réinitialise la sélection pour correspondre au contenu du panier.
         return allIds;
     });
-  }, [cartItems.length]); // Dépend de la taille du panier
+  }, [cartItems.length]);
 
   const toggleSelection = (id) => {
     setSelectedIds(prev => 
@@ -36,14 +31,23 @@ const Cart = ({ cartItems, updateItem, removeItem, closeCart, onLoadConfig }) =>
     setExpandedId(prev => (prev === id ? null : id));
   };
 
-  const handleDelete = (id) => {
+  // --- ACTIONS ---
+  
+  // CORRECTION ICI : On prend l'INDEX, pas l'ID
+  const handleDelete = (index) => {
     if (window.confirm("Voulez-vous vraiment retirer cet article du panier ?")) {
-      removeItem(id);
-      // Pas besoin de mettre à jour selectedIds ici manuellement, le useEffect le fera
+      removeItem(index); // On envoie l'index (0, 1, 2...) au Context
     }
   };
 
-  // Calcul dynamique
+  // CORRECTION ICI : On prend l'INDEX et on envoie un OBJET quantity
+  const handleQuantityChange = (index, newQty) => {
+      const qty = parseInt(newQty) || 1;
+      // On envoie : Index, et l'objet des changements
+      updateItem(index, { quantity: qty });
+  };
+
+  // Calcul dynamique du total (basé sur les IDs sélectionnés)
   const totalToPay = useMemo(() => {
     return cartItems
       .filter(item => selectedIds.includes(item.id))
@@ -64,8 +68,9 @@ const Cart = ({ cartItems, updateItem, removeItem, closeCart, onLoadConfig }) =>
           {cartItems.length === 0 ? (
             <div className="empty-cart">Votre panier est vide.</div>
           ) : (
-            cartItems.map((item) => (
-              <div key={item.id} className={`cart-item ${selectedIds.includes(item.id) ? 'selected' : ''}`}>
+            // AJOUT DE 'index' DANS LE MAP
+            cartItems.map((item, index) => (
+              <div key={index} className={`cart-item ${selectedIds.includes(item.id) ? 'selected' : ''}`}>
                 
                 {/* LIGNE PRINCIPALE */}
                 <div className="cart-item-main">
@@ -86,7 +91,6 @@ const Cart = ({ cartItems, updateItem, removeItem, closeCart, onLoadConfig }) =>
                             {expandedId === item.id ? "Masquer détails ▲" : "Voir détails ▼"}
                         </button>
                         
-                        {/* Afficher le bouton charger SEULEMENT si la fonction existe */}
                         {onLoadConfig && (
                             <>
                                 <span className="separator">•</span>
@@ -104,15 +108,17 @@ const Cart = ({ cartItems, updateItem, removeItem, closeCart, onLoadConfig }) =>
                             type="number" 
                             min="1" 
                             value={item.quantity} 
-                            onChange={(e) => updateItem(item.id, parseInt(e.target.value) || 1)} 
+                            // ON UTILISE L'INDEX ICI
+                            onChange={(e) => handleQuantityChange(index, e.target.value)} 
                             />
                         </div>
                         <span className="item-total">{fmt(item.unitPrice * item.quantity)}</span>
-                        <button className="delete-btn" onClick={() => handleDelete(item.id)}>🗑️</button>
+                        {/* ON UTILISE L'INDEX ICI POUR LA SUPPRESSION */}
+                        <button className="delete-btn" onClick={() => handleDelete(index)}>🗑️</button>
                     </div>
                 </div>
 
-                {/* ZONE DETAILS */}
+                {/* ZONE DETAILS (Reste identique) */}
                 {expandedId === item.id && (
                     <div className="cart-item-details fade-in">
                         <h4>Caractéristiques complètes :</h4>
@@ -122,7 +128,7 @@ const Cart = ({ cartItems, updateItem, removeItem, closeCart, onLoadConfig }) =>
                             
                             {item.sinks && item.sinks.map((s, idx) => (
                                 <li key={s.id || idx} className="sub-group">
-                                    <strong>Cuve #{idx+1} :</strong> {s.type.replace("Cuve ", "")}
+                                    <strong>Cuve #{idx+1} :</strong> {s.type ? s.type.replace("Cuve ", "") : "Standard"}
                                     <br/>Position: {s.position === 'center' ? 'Centrée' : s.position} 
                                     {s.position !== 'center' && ` (${s.offset}mm)`}
                                     <br/>Robinet: {s.hasTapHole ? `Oui (${s.tapHolePosition})` : 'Non'}
