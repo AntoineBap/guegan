@@ -102,6 +102,9 @@ const Header = () => {
                     
                     {/* LE CONTENU : La classe .visible gère l'affichage */}
                     <div className={`dropdown-content ${showDropdown ? 'visible' : ''}`}>
+                        <button className="menu-item" onClick={() => navigate('/my-orders')}>
+                          📦 Mes Commandes
+                        </button>
                         <button className="logout-item" onClick={handleLogout}>
                             Se déconnecter
                         </button>

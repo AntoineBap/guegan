@@ -7,7 +7,6 @@ import '../styles/checkout.scss';
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 const Checkout = () => {
-    // On récupère checkoutItems (les items filtrés)
     const { checkoutItems, clearCart } = useCart();
     const { user, token, isAuthenticated } = useContext(AuthContext);
     const navigate = useNavigate();
@@ -25,7 +24,6 @@ const Checkout = () => {
         firstName: '', lastName: '', company: '', address: '', city: '', zip: '', country: 'France'
     });
 
-    // --- PRÉ-REMPLISSAGE AUTOMATIQUE ---
     useEffect(() => {
         if (user) {
             setBilling(prev => ({
@@ -33,15 +31,13 @@ const Checkout = () => {
                 firstName: user.firstName || '',
                 lastName: user.lastName || '',
                 company: user.companyName || '',
-                address: user.companyAddress || '', // L'adresse du compte
-                // Note : Si votre objet user n'a pas city/zip séparés, ils restent vides à compléter
+                address: user.companyAddress || '',
                 city: user.city || '', 
                 zip: user.zip || ''
             }));
         }
     }, [user]);
 
-    // Sécurité : Si aucun item à payer, retour au configurateur
     useEffect(() => {
         if (!checkoutItems || checkoutItems.length === 0) {
             navigate('/');
@@ -85,11 +81,14 @@ const Checkout = () => {
                 clearCart(); 
                 navigate(`/order-confirmation/${data.orderId}`);
             } else {
-                alert("Erreur: " + (data.message || data.error || "Une erreur est survenue"));
+                // Affichage d'erreur détaillé
+                console.error("Erreur Backend :", data);
+                const errorMsg = data.message || data.error || JSON.stringify(data);
+                alert("Erreur lors de la commande : " + errorMsg);
             }
         } catch (error) {
-            console.error(error);
-            alert("Erreur de connexion serveur.");
+            console.error("Erreur Réseau :", error);
+            alert("Impossible de contacter le serveur.");
         }
         setIsSubmitting(false);
     };
@@ -101,11 +100,9 @@ const Checkout = () => {
             <h1>Finalisation de la commande</h1>
             
             <div className="checkout-container">
-                {/* COLONNE GAUCHE : FORMULAIRES */}
                 <div className="form-column">
                     <form id="checkout-form" onSubmit={handleSubmit}>
                         
-                        {/* --- ADRESSE FACTURATION --- */}
                         <section>
                             <h2>📍 Adresse de Facturation</h2>
                             <div className="form-grid">
@@ -121,7 +118,6 @@ const Checkout = () => {
                                     <label>Nom de l'entreprise</label>
                                     <input type="text" name="company" placeholder="Menuiserie Guegan" value={billing.company} onChange={handleBillingChange} />
                                 </div>
-                                {/* Vide pour l'équilibre de la grille si besoin, sinon css gère */}
                                 <div className="field-group full-width">
                                     <label>Adresse</label>
                                     <input type="text" name="address" placeholder="1 Avenue des Champs-Élysées" value={billing.address} onChange={handleBillingChange} required />
@@ -137,7 +133,6 @@ const Checkout = () => {
                             </div>
                         </section>
 
-                        {/* OPTION ADRESSE LIVRAISON */}
                         <div className="checkbox-section">
                             <label>
                                 <input 
@@ -149,7 +144,6 @@ const Checkout = () => {
                             </label>
                         </div>
 
-                        {/* --- ADRESSE LIVRAISON (Si différente) --- */}
                         {!useSameAddress && (
                             <section className="fade-in">
                                 <h2>🚚 Adresse de Livraison</h2>
@@ -182,7 +176,6 @@ const Checkout = () => {
                             </section>
                         )}
 
-                        {/* MENTIONS LEGALES */}
                         <div className="legal-box warning">
                             <h3>⚠️ Renonciation au droit de rétractation</h3>
                             <p>
@@ -203,7 +196,6 @@ const Checkout = () => {
                     </form>
                 </div>
 
-                {/* COLONNE DROITE : RESUME */}
                 <div className="summary-column">
                     <div className="summary-card">
                         <h3>Résumé ({checkoutItems.length} articles)</h3>
@@ -224,7 +216,6 @@ const Checkout = () => {
                                         <span>{(item.unitPrice * item.quantity).toFixed(2)} €</span>
                                     </div>
 
-                                    {/* ZONE DE DÉTAILS DÉROULANTE */}
                                     {expandedItemIndex === idx && (
                                         <div className="mini-item-details">
                                             <ul>

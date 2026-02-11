@@ -1,0 +1,131 @@
+// src/styles/clientOrders.scss
+
+.client-orders-container {
+  padding: 40px;
+  max-width: 1000px;
+  margin: 0 auto;
+  font-family: system-ui, -apple-system, sans-serif;
+
+  h1 {
+    text-align: center;
+    margin-bottom: 40px;
+    color: #111;
+    font-size: 1.8rem;
+  }
+
+  .loading, .empty-state {
+    text-align: center;
+    color: #666;
+    font-size: 1.1rem;
+    margin-top: 50px;
+    font-style: italic;
+  }
+
+  .orders-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+  }
+
+  /* --- CARTE DE COMMANDE --- */
+  .order-card-client {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    border: 1px solid #e0e0e0;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+
+    /* En-tête : Ref + Date + Montant */
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 15px;
+      border-bottom: 1px solid #f0f0f0;
+      padding-bottom: 10px;
+
+      .left {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+
+        .order-ref {
+          font-weight: 700;
+          color: #333;
+          font-size: 1rem;
+        }
+
+        .order-date {
+          font-size: 0.8rem;
+          color: #888;
+        }
+      }
+
+      .right {
+        .amount {
+          font-weight: 800;
+          color: #111;
+          font-size: 1.1rem;
+        }
+      }
+    }
+
+    /* Ligne de statut */
+    .order-status-row {
+      margin-bottom: 15px;
+
+      .status-badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 20px;
+        color: white;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+    }
+
+    /* Aperçu des articles */
+    .order-items-preview {
+      background-color: #f9f9f9;
+      padding: 12px;
+      border-radius: 6px;
+      flex: 1; /* Pousse le contenu pour aligner les cartes */
+
+      .mini-item {
+        font-size: 0.85rem;
+        color: #555;
+        margin-bottom: 4px;
+        
+        &:last-child {
+          margin-bottom: 0;
+        }
+
+        /* Petit point devant chaque item */
+        &::before {
+          content: "•";
+          margin-right: 6px;
+          color: #ccc;
+        }
+      }
+    }
+  }
+
+  /* Responsive Mobile */
+  @media (max-width: 600px) {
+    padding: 20px;
+    
+    .orders-list {
+      grid-template-columns: 1fr; /* Une seule colonne sur mobile */
+    }
+  }
+}

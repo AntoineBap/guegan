@@ -11,5 +11,6 @@ router.get('/cart', auth, userCtrl.getCart);
 router.post('/cart', auth, userCtrl.saveCart);
 router.post('/order', auth, userCtrl.createOrder);
 router.get('/order/:id', auth, userCtrl.getOrder); 
+router.get('/my-orders', auth, userCtrl.getMyOrders);
 
 module.exports = router;

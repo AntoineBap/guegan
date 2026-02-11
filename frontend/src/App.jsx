@@ -5,6 +5,8 @@ import Login from './pages/Login';
 import VerifyEmail from './pages/VerifyEmail';
 import AdminDashboard from './pages/AdminDashboard';
 import Checkout from './pages/Checkout';
+import AdminOrders from './pages/AdminOrders';
+import ClientOrders from './pages/ClientOrders';
 import OrderConfirmation from './pages/OrderConfirmation';
 import { CartProvider } from './contexts/CartContext.jsx';
 import { AuthProvider } from './contexts/AuthContext.jsx';
@@ -28,6 +30,8 @@ function App() {
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
+                <Route path="/admin/orders/:status" element={<AdminOrders />} />
+                <Route path="/my-orders" element={<ClientOrders />} />
               </Routes>
             </div>
           </BrowserRouter>

@@ -2,6 +2,7 @@ const express = require("express");
 const app = express();
 const mongoose = require("mongoose");
 const userRoutes = require('./routes/user');
+const adminRoutes = require('./routes/admin');
 const cors = require('cors'); // Assure-toi d'avoir fait: npm install cors
 require('dotenv').config();
 
@@ -30,5 +31,6 @@ mongoose
 
 // --- 3. ROUTES ---
 app.use('/api/auth', userRoutes);
+app.use('/api/admin', adminRoutes);
 
 module.exports = app;
