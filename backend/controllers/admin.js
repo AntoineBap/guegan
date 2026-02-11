@@ -86,3 +86,20 @@ exports.updateOrderStatus = async (req, res) => {
         res.status(500).json({ error });
     }
 };
+
+exports.getOrderDetails = async (req, res) => {
+    try {
+        // On récupère la commande par son ID et on peuple les infos user
+        const order = await Order.findById(req.params.id)
+            .populate('userId', '-password'); // On exclut le mot de passe
+        
+        if (!order) {
+            return res.status(404).json({ message: "Commande introuvable" });
+        }
+
+        res.status(200).json(order);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: error.message });
+    }
+};

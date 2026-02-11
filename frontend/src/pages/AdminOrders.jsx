@@ -29,26 +29,20 @@ const AdminOrders = () => {
     const fetchOrders = async () => {
         setLoading(true);
         try {
-            console.log(`📡 Fetching orders for status: ${status}`);
             const response = await fetch(`${API_URL}/api/admin/orders/${status}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
             if (response.ok) {
                 const data = await response.json();
-                console.log("📦 Données reçues :", data);
-
-                // SÉCURITÉ : Vérifie si c'est un tableau direct ou un objet { orders: [...] }
+                // Gestion robuste des données (tableau ou objet)
                 if (Array.isArray(data)) {
                     setOrders(data);
                 } else if (data.orders && Array.isArray(data.orders)) {
                     setOrders(data.orders);
                 } else {
-                    console.error("Format de données inattendu", data);
                     setOrders([]);
                 }
-            } else {
-                console.error("Erreur serveur :", response.status);
             }
         } catch (error) {
             console.error("Erreur fetch :", error);
@@ -56,7 +50,8 @@ const AdminOrders = () => {
         setLoading(false);
     };
 
-    const handleStatusUpdate = async (orderId) => {
+    const handleStatusUpdate = async (e, orderId) => {
+        e.stopPropagation(); // Empêche de cliquer sur la carte quand on clique sur le bouton action
         if (!window.confirm("Voulez-vous vraiment changer le statut de cette commande ?")) return;
 
         try {
@@ -70,12 +65,9 @@ const AdminOrders = () => {
             });
 
             if (response.ok) {
-                fetchOrders(); // Rafraichir la liste
-            } else {
-                alert("Erreur lors de la mise à jour");
+                fetchOrders();
             }
         } catch (error) {
-            console.error(error);
             alert("Erreur technique");
         }
     };
@@ -98,12 +90,18 @@ const AdminOrders = () => {
                     <div className="loading">Chargement...</div>
                 ) : orders.length === 0 ? (
                     <div className="empty-state">
-                        <p>Aucune commande trouvée pour le statut : <strong>{status}</strong></p>
+                        <p>Aucune commande trouvée.</p>
                     </div>
                 ) : (
                     <div className="orders-list">
                         {orders.map(order => (
-                            <div key={order._id} className="order-card">
+                            <div 
+                                key={order._id} 
+                                className="order-card"
+                                // 👇 CLIC SUR LA CARTE -> VERS DÉTAILS
+                                onClick={() => navigate(`/admin/order/${order._id}`)}
+                                style={{ cursor: 'pointer', borderLeft: `5px solid ${currentConfig.color}` }}
+                            >
                                 {/* EN-TÊTE CARTE */}
                                 <div className="order-header">
                                     <div className="meta">
@@ -117,33 +115,39 @@ const AdminOrders = () => {
 
                                 {/* INFO CLIENT */}
                                 <div className="client-info">
-                                    <p><strong>Entreprise :</strong> {order.userId?.companyName || order.billingAddress?.company || "N/A"}</p>
-                                    <p><strong>Contact :</strong> {order.billingAddress?.firstName} {order.billingAddress?.lastName}</p>
-                                    <p><strong>Email :</strong> {order.userId?.email || order.billingAddress?.email || "N/A"}</p>
+                                    <p><strong>{order.userId?.companyName || "Client"}</strong></p>
+                                    <p>{order.billingAddress?.firstName} {order.billingAddress?.lastName}</p>
                                 </div>
 
-                                {/* DÉTAIL PRODUITS */}
+                                {/* DÉTAIL PRODUITS RAPIDE */}
                                 <div className="products-summary">
-                                    <h4>Contenu ({order.items.length}) :</h4>
                                     <ul>
-                                        {order.items.map((item, idx) => (
+                                        {order.items.slice(0, 2).map((item, idx) => (
                                             <li key={idx}>
-                                                {item.quantity}x Plan {item.length}x{item.width}mm 
+                                                {item.quantity}x Plan {item.length}x{item.width}mm
                                             </li>
                                         ))}
+                                        {order.items.length > 2 && <li>... (+{order.items.length - 2} autres)</li>}
                                     </ul>
                                 </div>
 
-                                {/* BOUTON D'ACTION */}
-                                {currentConfig.action && (
-                                    <button 
-                                        className="action-btn"
-                                        style={{ backgroundColor: currentConfig.color }}
-                                        onClick={() => handleStatusUpdate(order._id)}
-                                    >
-                                        {currentConfig.action} →
+                                <div style={{marginTop: '15px', display: 'flex', gap: '10px', justifyContent: 'flex-end'}}>
+                                    {/* BOUTON VOIR DÉTAILS EXPLICITE */}
+                                    <button className="details-btn-small">
+                                        🔍 Voir Détails & Plans
                                     </button>
-                                )}
+
+                                    {/* BOUTON D'ACTION (Changer statut) */}
+                                    {currentConfig.action && (
+                                        <button 
+                                            className="action-btn"
+                                            style={{ backgroundColor: currentConfig.color }}
+                                            onClick={(e) => handleStatusUpdate(e, order._id)}
+                                        >
+                                            {currentConfig.action} →
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         ))}
                     </div>

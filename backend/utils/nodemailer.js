@@ -1,5 +1,5 @@
 const SibApiV3Sdk = require('sib-api-v3-sdk');
-const dotenv = require('dotenv');
+require('dotenv').config();
 
 
 // Configuration du client API pour BREVO
