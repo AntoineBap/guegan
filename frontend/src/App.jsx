@@ -10,6 +10,8 @@ import ClientOrders from "./pages/ClientOrders";
 import ProtectedRoute from './components/ProtectedRoute'; 
 import AdminOrderDetails from './pages/AdminOrderDetails';
 import OrderConfirmation from "./pages/OrderConfirmation";
+import CGV from './pages/CGV';
+import AdminUsers from './pages/AdminUsers';
 import { CartProvider } from "./contexts/CartContext.jsx";
 import { AuthProvider } from "./contexts/AuthContext.jsx";
 import "./styles/style.scss";
@@ -27,8 +29,7 @@ function App() {
               {/* Route de connexion / inscription */}
               <Route path="/login" element={<Login />} />
 
-              {/* Route de validation d'email (le token est dynamique) */}
-              <Route path="/verify-email/:token" element={<VerifyEmail />} />
+              <Route path="/verify/:token" element={<VerifyEmail />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/checkout" element={<Checkout />} />
               <Route
@@ -45,6 +46,8 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route path="/cgv" element={<CGV />} />
+              <Route path="/admin/users" element={<AdminUsers />} />
             </Routes>
           </div>
         </BrowserRouter>

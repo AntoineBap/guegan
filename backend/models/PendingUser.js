@@ -6,6 +6,14 @@ const pendingUserSchema = mongoose.Schema({
   password: { type: String, required: true },
   firstName: { type: String, required: true },
   lastName: { type: String, required: true },
+  phone: {
+    type: String,
+    required: true,
+    match: [
+      /^\d+$/,
+      "Le numéro de téléphone ne doit contenir que des chiffres.",
+    ], // Sécurité numérique uniquement
+  },
   companyName: { type: String, required: true },
   companyAddress: { type: String, required: true },
   siret: { type: String, required: true },

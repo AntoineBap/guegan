@@ -117,10 +117,10 @@ const ConfigResume = ({ config, onReset }) => {
         if (!isAnchor) {
             if (index < anchorIndex) {
                 // Cuve située à GAUCHE de l'ancre
-                gapLabel = "Écart Gauche avec Cuve suivante";
+                gapLabel = "Écart à Droite avec la Cuve suivante";
             } else {
                 // Cuve située à DROITE de l'ancre (index > anchorIndex)
-                gapLabel = "Écart droit avec Cuve précédente";
+                gapLabel = "Écart à Gauche avec la Cuve précédente";
             }
         }
 
@@ -432,7 +432,7 @@ const ConfigResume = ({ config, onReset }) => {
         {/* --- GOUTTE D'EAU --- */}
         {waterDripDetails && (
           <div className="summary-section">
-            <h3>Goutte d'eau</h3>
+            <h3>Anti-Goutte d'eau</h3>
             <SummaryLine
               label="Longueur"
               value={`${waterDripDetails.length} mm`}

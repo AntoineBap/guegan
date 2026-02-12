@@ -23,8 +23,7 @@ body {
   height: 100%;
   font-family: "Lato", sans-serif;
   background-color: $white;
-  color: $text;
-  overflow: hidden; // Empêche le scroll sur le body entier
+  color: $text; // Empêche le scroll sur le body entier
 }
 
 h1,
@@ -44,7 +43,7 @@ h2,
   flex-direction: column;
   height: 100vh; // Force la hauteur écran
   width: 100%;
-  overflow: hidden;
+
 }
 
 .main-content {

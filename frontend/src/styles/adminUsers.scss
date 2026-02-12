@@ -1,0 +1,119 @@
+.admin-users-page {
+    background-color: #f4f6f8;
+    min-height: 100vh;
+    font-family: 'Segoe UI', sans-serif;
+
+    .content-wrapper {
+        padding: 30px;
+        max-width: 95%; // Prend presque toute la largeur
+        margin: 0 auto;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+
+        h1 { font-size: 1.8rem; color: #2c3e50; margin: 0; }
+
+        .back-btn {
+            background: none;
+            border: 1px solid #ccc;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            &:hover { background-color: #e0e0e0; }
+        }
+
+        .export-btn {
+            background-color: #217346; // Couleur Excel
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.2s;
+
+            &:hover {
+                background-color: #1e6b41;
+                transform: translateY(-2px);
+            }
+        }
+    }
+
+    .table-wrapper {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+        overflow-x: auto; // Barre de défilement horizontale si besoin
+
+        .users-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            min-width: 1400px; // Force la largeur pour éviter que tout soit écrasé
+
+            thead {
+                background-color: #f8f9fa;
+                border-bottom: 2px solid #e9ecef;
+                
+                th {
+                    text-align: left;
+                    padding: 15px;
+                    color: #495057;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    font-size: 0.8rem;
+                    white-space: nowrap;
+                }
+            }
+
+            tbody {
+                tr {
+                    border-bottom: 1px solid #f1f1f1;
+                    &:hover { background-color: #f8faff; }
+                    &:last-child { border-bottom: none; }
+                }
+
+                td {
+                    padding: 12px 15px;
+                    vertical-align: top;
+                    color: #333;
+                    line-height: 1.4;
+
+                    &.address-cell {
+                        max-width: 250px;
+                        font-size: 0.85rem;
+                        color: #666;
+                    }
+
+                    &.cart-cell {
+                        white-space: pre-wrap; // Important pour afficher les sauts de ligne du panier
+                        font-family: monospace;
+                        font-size: 0.85rem;
+                        color: #555;
+                        background-color: #fafafa;
+                        min-width: 250px;
+                        max-width: 400px;
+                    }
+                }
+            }
+        }
+
+        .empty-state {
+            padding: 40px;
+            text-align: center;
+            color: #888;
+        }
+    }
+
+    .loading {
+        text-align: center;
+        padding: 50px;
+        font-size: 1.2rem;
+        color: #666;
+    }
+}

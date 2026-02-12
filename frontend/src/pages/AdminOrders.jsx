@@ -3,17 +3,19 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import Header from '../components/Header';
 import '../styles/adminOrders.scss';
+// 👇 IMPORT POUR LE PDF
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import DeliveryNote from '../components/DeliveryNote';
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 const AdminOrders = () => {
-    const { status } = useParams(); // 'pending_payment', 'paid', 'shipped'
+    const { status } = useParams(); 
     const { token } = useContext(AuthContext);
     const navigate = useNavigate();
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // Titres dynamiques selon le statut
     const titles = {
         'pending_payment': { label: 'En attente de paiement', action: 'Confirmer le paiement', nextStatus: 'paid', color: '#f39c12' },
         'paid': { label: 'Commandes Payées (À Produire)', action: 'Marquer comme Expédié', nextStatus: 'shipped', color: '#27ae60' },
@@ -35,7 +37,6 @@ const AdminOrders = () => {
 
             if (response.ok) {
                 const data = await response.json();
-                // Gestion robuste des données (tableau ou objet)
                 if (Array.isArray(data)) {
                     setOrders(data);
                 } else if (data.orders && Array.isArray(data.orders)) {
@@ -51,7 +52,7 @@ const AdminOrders = () => {
     };
 
     const handleStatusUpdate = async (e, orderId) => {
-        e.stopPropagation(); // Empêche de cliquer sur la carte quand on clique sur le bouton action
+        e.stopPropagation(); 
         if (!window.confirm("Voulez-vous vraiment changer le statut de cette commande ?")) return;
 
         try {
@@ -68,7 +69,29 @@ const AdminOrders = () => {
                 fetchOrders();
             }
         } catch (error) {
-            alert("Erreur technique");
+            alert("Erreur technique lors de la mise à jour");
+        }
+    };
+
+    const handleDeleteOrder = async (e, orderId, orderNumber) => {
+        e.stopPropagation(); 
+        if (!window.confirm(`Êtes-vous sûr de vouloir supprimer DÉFINITIVEMENT la commande #${orderNumber} ? Cette action est irréversible.`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/api/admin/order/${orderId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (response.ok) {
+                setOrders(orders.filter(o => o._id !== orderId));
+            } else {
+                alert("Erreur lors de la suppression");
+            }
+        } catch (error) {
+            alert("Erreur technique lors de la suppression");
         }
     };
 
@@ -98,14 +121,12 @@ const AdminOrders = () => {
                             <div 
                                 key={order._id} 
                                 className="order-card"
-                                // 👇 CLIC SUR LA CARTE -> VERS DÉTAILS
                                 onClick={() => navigate(`/admin/order/${order._id}`)}
                                 style={{ cursor: 'pointer', borderLeft: `5px solid ${currentConfig.color}` }}
                             >
-                                {/* EN-TÊTE CARTE */}
                                 <div className="order-header">
                                     <div className="meta">
-                                        <span className="order-id">#{order._id.slice(-6).toUpperCase()}</span>
+                                        <span className="order-id">#{order.orderNumber}</span>
                                         <span className="order-date">{formatDate(order.createdAt)}</span>
                                     </div>
                                     <div className="amount">
@@ -113,13 +134,11 @@ const AdminOrders = () => {
                                     </div>
                                 </div>
 
-                                {/* INFO CLIENT */}
                                 <div className="client-info">
-                                    <p><strong>{order.userId?.companyName || "Client"}</strong></p>
+                                    <p><strong>{order.userId?.companyName || "Entreprise inconnue"}</strong></p>
                                     <p>{order.billingAddress?.firstName} {order.billingAddress?.lastName}</p>
                                 </div>
 
-                                {/* DÉTAIL PRODUITS RAPIDE */}
                                 <div className="products-summary">
                                     <ul>
                                         {order.items.slice(0, 2).map((item, idx) => (
@@ -131,13 +150,48 @@ const AdminOrders = () => {
                                     </ul>
                                 </div>
 
-                                <div style={{marginTop: '15px', display: 'flex', gap: '10px', justifyContent: 'flex-end'}}>
-                                    {/* BOUTON VOIR DÉTAILS EXPLICITE */}
-                                    <button className="details-btn-small">
-                                        🔍 Voir Détails & Plans
+                                <div style={{marginTop: '15px', display: 'flex', gap: '15px', justifyContent: 'flex-end', alignItems: 'center'}}>
+                                    
+                                    {/* --- BOUTON BON DE LIVRAISON (UNIQUEMENT SI EXPÉDIÉ) --- */}
+                                    {status === 'shipped' && (
+                                        <div onClick={(e) => e.stopPropagation()}>
+                                            <PDFDownloadLink 
+                                                document={<DeliveryNote order={order} />} 
+                                                fileName={`BL-${order.orderNumber}.pdf`}
+                                                style={{
+                                                    textDecoration: 'none',
+                                                    padding: '8px 12px',
+                                                    backgroundColor: '#7f8c8d',
+                                                    color: 'white',
+                                                    borderRadius: '4px',
+                                                    fontSize: '0.9rem',
+                                                    marginRight: '10px'
+                                                }}
+                                            >
+                                                {({ blob, url, loading, error }) => 
+                                                    loading ? 'Génération...' : '📄 Bon de Livraison'
+                                                }
+                                            </PDFDownloadLink>
+                                        </div>
+                                        
+                                    )}
+
+                                    <button 
+                                        className="delete-btn"
+                                        onClick={(e) => handleDeleteOrder(e, order._id, order.orderNumber)}
+                                        style={{ 
+                                            backgroundColor: 'transparent', 
+                                            border: 'none', 
+                                            color: '#e74c3c', 
+                                            cursor: 'pointer',
+                                            fontSize: '1.2rem',
+                                            padding: '5px'
+                                        }}
+                                        title="Supprimer définitivement"
+                                    >
+                                        🗑️
                                     </button>
 
-                                    {/* BOUTON D'ACTION (Changer statut) */}
                                     {currentConfig.action && (
                                         <button 
                                             className="action-btn"

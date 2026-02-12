@@ -13,7 +13,6 @@ const AdminOrderDetails = () => {
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // --- CHARGEMENT ---
     useEffect(() => {
         const fetchOrderDetails = async () => {
             try {
@@ -24,7 +23,7 @@ const AdminOrderDetails = () => {
                     const data = await response.json();
                     setOrder(data);
                 } else {
-                    console.error("Erreur 404 ou autre");
+                    console.error("Erreur chargement commande");
                 }
             } catch (error) {
                 console.error("Erreur fetch order:", error);
@@ -34,9 +33,7 @@ const AdminOrderDetails = () => {
         fetchOrderDetails();
     }, [id, token]);
 
-    // --- FONCTION "VOIR EN 3D" ---
     const handleOpen3D = (item) => {
-        // Redirection vers l'accueil (Configurateur) avec les données de l'item
         navigate('/', { state: { loadConfig: item } });
     };
 
@@ -48,11 +45,10 @@ const AdminOrderDetails = () => {
             <Header />
             <div className="admin-order-details">
                 
-                {/* EN-TÊTE PAGE */}
                 <div className="details-header">
                     <button onClick={() => navigate(-1)} className="back-btn">← Retour</button>
                     <div>
-                        <h1>Commande #{order._id.slice(-6).toUpperCase()}</h1>
+                        <h1>Commande #{order.orderNumber}</h1>
                         <span className="date-creation">Du {new Date(order.createdAt).toLocaleDateString()}</span>
                     </div>
                     <span className={`status-badge ${order.status}`}>{order.status}</span>
@@ -60,7 +56,7 @@ const AdminOrderDetails = () => {
 
                 <div className="details-grid">
                     
-                    {/* COLONNE GAUCHE : INFOS CLIENT */}
+                    {/* INFOS CLIENT */}
                     <div className="info-column">
                         <div className="info-card">
                             <h3>👤 Client & Facturation</h3>
@@ -77,7 +73,7 @@ const AdminOrderDetails = () => {
                         </div>
                     </div>
 
-                    {/* COLONNE DROITE : LISTE DES ITEMS (Style Cart.jsx) */}
+                    {/* LISTE DES PLANS */}
                     <div className="items-column">
                         <h3>🛠️ Plans à produire ({order.items.length})</h3>
                         
@@ -85,13 +81,10 @@ const AdminOrderDetails = () => {
                             {order.items.map((item, index) => (
                                 <div key={index} className="item-card-detail">
                                     
-                                    {/* En-tête de l'article */}
                                     <div className="item-header-row">
                                         <h4>Plan #{index + 1} - {item.length}x{item.width}mm</h4>
                                         <div className="item-actions">
                                             <span className="qty-badge">Qté: {item.quantity}</span>
-                                            
-                                            {/* LE BOUTON 3D */}
                                             <button 
                                                 className="btn-3d"
                                                 onClick={() => handleOpen3D(item)}
@@ -101,36 +94,51 @@ const AdminOrderDetails = () => {
                                         </div>
                                     </div>
 
-                                    {/* Détails techniques (Copie de la logique Cart.jsx) */}
                                     <div className="item-specs">
                                         <ul>
-                                            <li><strong>Couleur :</strong> {item.color === 'white' ? "Blanc Pur" : "Autre"}</li>
-                                            
-                                            {/* CUVES */}
-                                            {item.sinks && item.sinks.map((s, idx) => (
-                                                <li key={idx} className="sub-spec">
-                                                    📦 <strong>Cuve {idx+1} :</strong> {s.type ? s.type.replace("Cuve ", "") : "Standard"} 
-                                                    <br/>Position: {s.position === 'center' ? 'Centrée' : s.position} 
+                                            {/* CUVES : Masqué si "Aucune cuve" */}
+                                            {item.sinks && item.sinks.length > 0 && item.sinks[0]?.type !== "Aucune cuve" && item.sinks.map((s, idx) => (
+                                                <li key={idx} className="sub-spec" style={{ borderLeft: '3px solid #ddd', paddingLeft: '10px' }}>
+                                                    <strong>Cuve {idx+1} :</strong> {s.type ? s.type.replace("Cuve ", "") : "Standard"} 
+                                                    <br/>Position : {s.position === 'left' ? 'Gauche' : s.position === 'right' ? 'Droite' : 'Centrée'} 
                                                     {s.position !== 'center' && ` (${s.offset}mm)`}
-                                                    <br/>Robinet: {s.hasTapHole ? `Oui (${s.tapHolePosition})` : 'Non'}
+                                                    
+                                                    <br/>Robinet : {s.hasTapHole ? (
+                                                        <>
+                                                            Oui ({s.tapHolePosition === 'left' ? 'Gauche' : s.tapHolePosition === 'right' ? 'Droite' : 'Centré'})
+                                                            {s.tapHoleOffset && s.tapHoleOffset !== 0 ? ` [Décalage : ${s.tapHoleOffset}mm]` : ''}
+                                                        </>
+                                                    ) : 'Non'}
+
+                                                    <br/>Egouttoir : {s.hasDrainer ? `Oui (${s.drainerPosition === 'left' ? 'Gauche' : 'Droite'})` : 'Non'}
                                                 </li>
                                             ))}
 
                                             {/* DOSSERETS */}
                                             {item.rims && (
                                                 <li className="sub-spec">
-                                                    🧱 <strong>Dosserets (H{item.rimHeigh}mm) :</strong> {[item.rimLeft && "Gauche", item.rimBack && "Fond", item.rimRight && "Droite"].filter(Boolean).join(", ")}
+                                                    🧱 <strong>Dosserets (H{item.rimHeigh}mm) :</strong> {[
+                                                        item.rimLeft && "Gauche", 
+                                                        item.rimBack && "Fond", 
+                                                        item.rimRight && "Droite"
+                                                    ].filter(Boolean).join(", ") || "Aucun"}
                                                 </li>
                                             )}
 
                                             {/* RETOMBÉES */}
                                             {item.aprons && (
                                                 <li className="sub-spec">
-                                                    📐 <strong>Retombées (H{item.apronHeight}mm) :</strong> {[item.apronFront && "Avant", item.apronLeft && "Gauche", item.apronBack && "Fond", item.apronRight && "Droite"].filter(Boolean).join(", ")}
+                                                    <strong>Retombées (H{item.apronHeight}mm) :</strong> {[
+                                                        item.apronFront && "Avant", 
+                                                        item.apronLeft && "Gauche", 
+                                                        item.apronBack && "Fond", 
+                                                        item.apronRight && "Droite"
+                                                    ].filter(Boolean).join(", ") || "Aucune"}
                                                 </li>
                                             )}
 
-                                            {item.splashback && <li>💧 <strong>Goutte d'eau :</strong> Oui</li>}
+                                            {/* GOUTTE D'EAU */}
+                                            {item.splashback && <li><strong>Anti-Goutte d'eau :</strong> Oui</li>}
                                         </ul>
                                     </div>
                                 </div>

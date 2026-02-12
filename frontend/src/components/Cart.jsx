@@ -1,13 +1,12 @@
 import React, { useState, useMemo, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
-import { useCart } from '../contexts/CartContext'; // On utilise useCart ici aussi
+import { useCart } from '../contexts/CartContext'; 
 import '../styles/cart.scss';
 
 const Cart = ({ updateItem, removeItem, closeCart, onLoadConfig }) => {
   const navigate = useNavigate();
   const { isAuthenticated } = useContext(AuthContext);
-  // On récupère cartItems et la fonction proceedToCheckout du contexte
   const { cartItems, proceedToCheckout } = useCart(); 
 
   const [selectedIndices, setSelectedIndices] = useState([]);
@@ -49,13 +48,19 @@ const Cart = ({ updateItem, removeItem, closeCart, onLoadConfig }) => {
 
   const fmt = (n) => n.toFixed(2).replace('.', ',') + ' €';
 
+  // --- 🔒 NOUVELLE FONCTION : Gestion de l'affichage du prix ---
+  const renderPrice = (amount) => {
+    if (isAuthenticated) {
+        return fmt(amount);
+    }
+    // Si pas connecté, on affiche un faux montant flouté
+    return <span className="blurred-price" title="Connectez-vous pour voir le prix">XXX,XX €</span>;
+  };
+
   // --- LOGIQUE DE PAIEMENT ---
   const handleCheckoutClick = () => {
-      // 1. On envoie les items sélectionnés au Contexte
       proceedToCheckout(selectedIndices);
-      // 2. On ferme le panneau
       closeCart();
-      // 3. On navigue
       navigate('/checkout');
   };
 
@@ -85,7 +90,7 @@ const Cart = ({ updateItem, removeItem, closeCart, onLoadConfig }) => {
                     </div>
                     
                     <div className="item-info">
-                    <h3>Plan Vasque {item.color === 'white' ? 'Blanc Pur' : ''}</h3>
+                    <h3>Plan Vasque</h3>
                     <p className="details">Dim: {item.length}x{item.width}mm • {item.sinks ? item.sinks.length : 0} Cuve(s)</p>
                     
                     <div className="item-actions-row">
@@ -116,7 +121,8 @@ const Cart = ({ updateItem, removeItem, closeCart, onLoadConfig }) => {
                             onChange={(e) => handleQuantityChange(index, e.target.value)} 
                             />
                         </div>
-                        <span className="item-total">{fmt(item.unitPrice * item.quantity)}</span>
+                        {/* 👇 UTILISATION DE renderPrice ICI */}
+                        <span className="item-total">{renderPrice(item.unitPrice * item.quantity)}</span>
                         <button className="delete-btn" onClick={() => handleDelete(index)}>🗑️</button>
                     </div>
                 </div>
@@ -127,7 +133,7 @@ const Cart = ({ updateItem, removeItem, closeCart, onLoadConfig }) => {
                         <h4>Caractéristiques complètes :</h4>
                         <ul>
                             <li><strong>Dimensions :</strong> L {item.length} x P {item.width} mm</li>
-                            <li><strong>Couleur :</strong> {item.color === 'white' ? "Blanc Pur" : "Autre"}</li>
+                          
                             
                             {item.sinks && item.sinks.map((s, idx) => (
                                 <li key={idx} className="sub-group">
@@ -151,7 +157,7 @@ const Cart = ({ updateItem, removeItem, closeCart, onLoadConfig }) => {
                                 </li>
                             )}
 
-                            {item.splashback && <li><strong>Goutte d'eau :</strong> Oui (sous plan)</li>}
+                            {item.splashback && <li><strong>Anti-Goutte d'eau :</strong> Oui </li>}
                         </ul>
                     </div>
                 )}
@@ -164,13 +170,14 @@ const Cart = ({ updateItem, removeItem, closeCart, onLoadConfig }) => {
         <div className="cart-footer">
           <div className="total-row">
             <span>Total Sélectionné (HT)</span>
-            <span className="amount">{fmt(totalToPay)}</span>
+            {/* 👇 UTILISATION DE renderPrice ICI */}
+            <span className="amount">{renderPrice(totalToPay)}</span>
           </div>
 
           {!isAuthenticated && (
               <div style={{textAlign: 'center', marginBottom: '10px'}}>
                   <p style={{color: '#e74c3c', fontSize: '0.9rem', marginBottom: '8px', fontWeight: '600'}}>
-                      ⚠️ Veuillez vous connecter pour passer au paiement
+                      ⚠️ Veuillez vous connecter pour voir les prix
                   </p>
                   <button 
                       onClick={() => {

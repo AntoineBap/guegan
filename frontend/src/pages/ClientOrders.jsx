@@ -46,7 +46,7 @@ const ClientOrders = () => {
                             return (
                                 <div key={order._id} className="order-card-client">
                                     <div className="order-header">
-                                        <span className="order-ref">#{order._id.slice(-6).toUpperCase()}</span>
+                                        <span className="order-ref">#{order.orderNumber}</span>
                                         <span className="order-date">{new Date(order.createdAt).toLocaleDateString()}</span>
                                         <span className="status-badge" style={{backgroundColor: statusInfo.color}}>
                                             {statusInfo.label}

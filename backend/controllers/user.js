@@ -2,51 +2,94 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const User = require('../models/User');
-const PendingUser = require('../models/PendingUser');
 const Order = require('../models/Order'); 
 const { sendVerificationEmail, sendOrderConfirmationEmail } = require('../utils/nodemailer'); 
-const PasswordValidator = require('password-validator');
 require('dotenv').config();
-
-// --- CONFIGURATION VALIDATION MOT DE PASSE ---
-const passwordSchema = new PasswordValidator();
-passwordSchema.is().min(8).is().max(100).has().uppercase().has().not().spaces();
 
 // --- INSCRIPTION ---
 exports.signup = async (req, res, next) => {
     try {
-        const { email, password, firstName, lastName, companyName, companyAddress, siret, tvaNumber, cart } = req.body;
+        const { email, password, firstName, lastName, phone, companyName, companyAddress, siret, tvaNumber, cart } = req.body;
         
-        if (!email || !password || !firstName || !lastName || !companyName || !companyAddress || !siret || !tvaNumber) {
+        if (!email || !password || !firstName || !lastName || !phone || !companyName || !companyAddress || !siret || !tvaNumber) {
             return res.status(400).json({ message: "Tous les champs sont obligatoires." });
         }
-        if (!passwordSchema.validate(password)) {
-            return res.status(400).json({ message: "Mot de passe invalide (8 char min, 1 majuscule, sans espace)." });
-        }
 
-        const existingUser = await User.findOne({ $or: [{ email }, { siret }] });
-        if (existingUser) return res.status(400).json({ message: "Compte déjà existant." });
+        const existingUser = await User.findOne({ email: email });
+        if (existingUser) {
+            return res.status(400).json({ message: "Cet email est déjà utilisé." });
+        }
 
         const hash = await bcrypt.hash(password, 10);
-        const validationToken = crypto.randomBytes(32).toString('hex');
+        const verificationToken = crypto.randomBytes(32).toString('hex');
         
-        const pendingUser = new PendingUser({
-            email, password: hash, firstName, lastName, companyName, 
-            companyAddress, siret, tvaNumber, validationToken, cart: cart || [] 
+        const user = new User({
+            email, 
+            password: hash, 
+            firstName, 
+            lastName, 
+            phone, 
+            companyName, 
+            companyAddress, 
+            siret, 
+            tvaNumber, 
+            cart: cart || [],
+            role: 'client',
+            isVerified: false, 
+            verificationToken: verificationToken 
         });
 
-        await pendingUser.save();
+        await user.save();
         
         try {
-            await sendVerificationEmail(email, validationToken);
+            await sendVerificationEmail(email, verificationToken);
         } catch (emailError) {
-            console.error("Erreur envoi email inscription:", emailError);
-            // On ne bloque pas l'inscription mais on log l'erreur
+            console.error("Erreur envoi email:", emailError);
         }
         
-        return res.status(201).json({ message: 'Inscription réussie. Vérifiez vos emails.' });
+        return res.status(201).json({ message: 'Compte créé. Veuillez vérifier vos emails.' });
+
     } catch (error) {
-        return res.status(500).json({ message: "Erreur serveur", error: error.message });
+        console.error("Erreur Signup:", error);
+        return res.status(500).json({ message: "Erreur serveur lors de l'inscription", error: error.message });
+    }
+};
+
+// --- VALIDATION EMAIL ---
+exports.verifyEmail = async (req, res) => {
+    try {
+        const { token } = req.params;
+        const user = await User.findOne({ verificationToken: token });
+
+        if (!user) return res.status(404).json({ message: "Lien invalide ou expiré." });
+
+        user.isVerified = true;
+        user.verificationToken = null; 
+        await user.save();
+
+        res.status(200).json({ message: "Compte activé avec succès !" });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// --- RENVOI EMAIL ---
+exports.resendEmail = async (req, res) => {
+    try {
+        const { email } = req.body;
+        const user = await User.findOne({ email });
+
+        if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
+        if (user.isVerified) return res.status(400).json({ message: "Compte déjà vérifié" });
+
+        const newToken = crypto.randomBytes(32).toString('hex');
+        user.verificationToken = newToken;
+        await user.save();
+
+        await sendVerificationEmail(user.email, newToken);
+        res.status(200).json({ message: "Email renvoyé !" });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 };
 
@@ -59,17 +102,21 @@ exports.login = async (req, res, next) => {
         const valid = await bcrypt.compare(req.body.password, user.password);
         if (!valid) return res.status(401).json({ error: 'Mot de passe incorrect' });
 
-        const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'RANDOM_TOKEN_SECRET', { expiresIn: '24h' });
+        if (!user.isVerified) {
+            return res.status(403).json({ error: "Votre compte n'est pas activé. Vérifiez vos emails." });
+        }
+
+        const token = jwt.sign(
+            { userId: user._id, role: user.role },
+            process.env.JWT_SECRET,
+            { expiresIn: '24h' }
+        );
 
         return res.status(200).json({ 
             userId: user._id, 
             token, 
             firstName: user.firstName, 
-            lastName: user.lastName,
-            companyName: user.companyName,
-            companyAddress: user.companyAddress,
-            zip: user.zip,
-            city: user.city,
+            companyName: user.companyName, 
             cart: user.cart,
             role: user.role 
         });
@@ -78,101 +125,87 @@ exports.login = async (req, res, next) => {
     }
 };
 
-// --- PANIER ---
-exports.getCart = async (req, res, next) => {
+// --- AUTRES FONCTIONS (Panier, Commandes) ---
+exports.getCart = async (req, res) => {
     try {
-        const user = await User.findOne({ _id: req.auth.userId });
-        if (!user) return res.status(404).json({ message: "Utilisateur non trouvé" });
-        return res.status(200).json(user.cart);
-    } catch (error) {
-        return res.status(500).json({ error: error.message });
-    }
+        const user = await User.findById(req.auth.userId);
+        res.status(200).json(user ? user.cart : []);
+    } catch (error) { res.status(500).json({ error: error.message }); }
 };
 
-exports.saveCart = async (req, res, next) => {
+exports.saveCart = async (req, res) => {
     try {
-        const { cart } = req.body;
-        await User.updateOne({ _id: req.auth.userId }, { $set: { cart: cart } });
-        return res.status(200).json({ message: "Panier sauvegardé !" });
-    } catch (error) {
-        return res.status(500).json({ error: error.message });
-    }
+        await User.updateOne({ _id: req.auth.userId }, { $set: { cart: req.body.cart } });
+        res.status(200).json({ message: "Panier sauvegardé" });
+    } catch (error) { res.status(500).json({ error: error.message }); }
 };
 
-// --- COMMANDES ---
-
-// 1. Créer une commande (FIXÉ)
-exports.createOrder = async (req, res, next) => {
+exports.createOrder = async (req, res) => {
     try {
         const { items, totalAmount, billingAddress, shippingAddress } = req.body;
-        
-        const deadline = new Date();
-        deadline.setDate(deadline.getDate() + 7); // J+7 pour paiement
+
+        // --- GÉNÉRATION DU NUMÉRO DE COMMANDE SÉQUENTIEL ---
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const datePrefix = `${year}${month}`; // ex: "202602"
+
+        // Cherche la dernière commande du mois en cours
+        const lastOrder = await Order.findOne({
+            orderNumber: new RegExp('^' + datePrefix)
+        }).sort({ orderNumber: -1 });
+
+        let nextNumber = 1;
+        if (lastOrder && lastOrder.orderNumber) {
+            const lastSequence = parseInt(lastOrder.orderNumber.slice(-4));
+            nextNumber = lastSequence + 1;
+        }
+
+        const sequence = String(nextNumber).padStart(4, '0');
+        const finalOrderNumber = `${datePrefix}${sequence}`;
+        // --------------------------------------------------
+
+        const deadline = new Date(); 
+        deadline.setDate(deadline.getDate() + 7); 
 
         const newOrder = new Order({
+            orderNumber: finalOrderNumber,
             userId: req.auth.userId,
-            items,
-            totalAmount,
-            billingAddress,
+            items, 
+            totalAmount, 
+            billingAddress, 
             shippingAddress,
-            paymentDeadline: deadline,
+            paymentDeadline: deadline, 
             status: 'pending_payment'
         });
 
         const savedOrder = await newOrder.save();
-
-        // Récupérer l'utilisateur pour l'envoi de mail
         const user = await User.findById(req.auth.userId);
-        
-        // Envoi email confirmation (Isolé pour ne pas faire planter la réponse HTTP)
-        if (user) {
-            try {
-                await sendOrderConfirmationEmail(savedOrder, user);
-            } catch (emailError) {
-                console.error("❌ AVERTISSEMENT : L'email de confirmation n'a pas pu être envoyé.", emailError.message);
-                // On continue, car la commande est bien enregistrée en BDD
-            }
-        }
+        if (user) sendOrderConfirmationEmail(savedOrder, user).catch(console.error);
 
-        // On vide le panier de l'utilisateur après commande
         await User.updateOne({ _id: req.auth.userId }, { $set: { cart: [] } });
-
         return res.status(201).json({ 
             message: "Commande créée !", 
-            orderId: savedOrder._id 
+            orderId: savedOrder._id,
+            orderNumber: savedOrder.orderNumber 
         });
-    } catch (error) {
-        console.error("❌ ERREUR CRITIQUE COMMANDE :", error);
-        return res.status(500).json({ message: error.message, error: error.toString() });
+    } catch (error) { 
+        return res.status(500).json({ message: error.message }); 
     }
 };
 
-// 2. Récupérer une commande spécifique
-exports.getOrder = async (req, res, next) => {
+exports.getOrder = async (req, res) => {
     try {
-        const order = await Order.findOne({ _id: req.params.id });
-        if (!order) return res.status(404).json({ error: "Commande introuvable" });
-        
-        if (order.userId.toString() !== req.auth.userId) {
-            return res.status(403).json({ error: "Non autorisé" });
-        }
-
-        return res.status(200).json(order);
-    } catch (error) {
-        return res.status(500).json({ error: error.message });
-    }
+        const order = await Order.findById(req.params.id);
+        if (!order) return res.status(404).json({ error: "Introuvable" });
+        if (order.userId.toString() !== req.auth.userId) return res.status(403).json({ error: "Non autorisé" });
+        res.status(200).json(order);
+    } catch (error) { res.status(500).json({ error: error.message }); }
 };
 
-// 3. Récupérer toutes les commandes du client
-exports.getMyOrders = async (req, res, next) => {
+exports.getMyOrders = async (req, res) => {
     try {
         const orders = await Order.find({ userId: req.auth.userId }).sort({ createdAt: -1 });
         res.status(200).json(orders);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+    } catch (error) { res.status(500).json({ error: error.message }); }
 };
-
-// (Placeholders pour éviter les erreurs d'import si utilisés ailleurs)
-exports.verifyEmail = async (req, res) => { res.status(200).json({message: "Not implemented in this snippet"}); };
-exports.resendEmail = async (req, res) => { res.status(200).json({message: "Not implemented in this snippet"}); };

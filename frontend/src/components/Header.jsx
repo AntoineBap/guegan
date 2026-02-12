@@ -10,16 +10,16 @@ const Header = () => {
   const { isAuthenticated, logout, isAdmin } = useContext(AuthContext);
   const { cartItems, setIsCartOpen, isCartOpen } = useCart();
   
-  // --- GESTION DU DROPDOWN PROFIL ---
-  const [isHovered, setIsHovered] = useState(false); // État survol
-  const [isClicked, setIsClicked] = useState(false); // État clic (persistant)
-  const hoverTimeoutRef = useRef(null); // Référence pour le timer du hover
-  const dropdownRef = useRef(null); // Référence pour détecter le clic hors zone
+  const [isHovered, setIsHovered] = useState(false);
+  const [isClicked, setIsClicked] = useState(false);
+  const hoverTimeoutRef = useRef(null);
+  const dropdownRef = useRef(null);
 
-  // Est-ce que le menu doit être affiché ? (Soit survolé, soit cliqué)
   const showDropdown = isHovered || isClicked;
 
-  // Gestion entrée souris (Annule la fermeture si on revient vite)
+  // Détermine si on est sur une page admin
+  const isInternalAdminPage = location.pathname.startsWith('/admin');
+
   const handleMouseEnter = () => {
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current);
@@ -28,19 +28,17 @@ const Header = () => {
     setIsHovered(true);
   };
 
-  // Gestion sortie souris (Ferme après 0.5s)
   const handleMouseLeave = () => {
     hoverTimeoutRef.current = setTimeout(() => {
       setIsHovered(false);
-    }, 500); // 500ms de délai
+    }, 500);
   };
 
-  // Gestion du clic sur le bouton "Mon Profil"
-  const handleProfileClick = () => {
-    setIsClicked(!isClicked); // Bascule l'état permanent
+  const handleProfileClick = (e) => {
+    e.stopPropagation();
+    setIsClicked(!isClicked);
   };
 
-  // Gestion du clic en dehors pour fermer (Perte de focus)
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -49,46 +47,66 @@ const Header = () => {
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [dropdownRef]);
-
-  // --- RESTE DU HEADER ---
-  const cartCount = cartItems.length;
-  const toggleCart = () => setIsCartOpen(!isCartOpen);
+  }, []);
 
   const handleLogout = () => {
-    if (window.confirm("Voulez-vous vraiment vous déconnecter ?")) {
-      logout();
-      navigate('/'); 
-    }
+    logout();
+    setIsClicked(false);
+    navigate('/');
   };
 
-  const isOnAdminPage = location.pathname.startsWith('/admin');
+  const toggleCart = () => {
+    setIsCartOpen(!isCartOpen);
+  };
+
+  const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
     <header className="header">
+      <div className="social-links">
+        <a href="https://www.instagram.com/etablissementsguegan/" target="_blank" rel="noopener noreferrer" className="social-btn instagram">
+          <svg viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+          </svg>
+        </a>
+        <a href="https://www.facebook.com/EtablissementsGUEGAN/" target="_blank" rel="noopener noreferrer" className="social-btn">
+          <svg viewBox="0 0 24 24" fill="black">
+            <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
+          </svg>
+        </a>
+        <a href="https://www.linkedin.com/company/etablissementsguegan/" target="_blank" rel="noopener noreferrer" className="social-btn">
+          <svg viewBox="0 0 24 24" fill="black">
+            <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path>
+            <rect x="2" y="9" width="4" height="12"></rect>
+            <circle cx="4" cy="4" r="2"></circle>
+          </svg>
+        </a>
+      </div>
+
       <div className="logo" onClick={() => navigate('/')}>
         GUEGAN <span className="subtitle">Shop</span>
       </div>
-      
-      <div className="header-actions">
-        {isAuthenticated ? (
-            <div className="auth-group">
-                {isAdmin && (
-                    <button 
-                        className="admin-btn" 
-                        onClick={() => navigate(isOnAdminPage ? '/' : '/admin')}
-                    >
-                        <span className="icon">{isOnAdminPage ? '🛠️' : '⚙️'}</span>
-                        <span className="text">
-                            {isOnAdminPage ? 'Configurateur' : 'Dashboard'}
-                        </span>
-                    </button>
-                )}
 
-                {/* CONTAINER DU DROPDOWN AVEC GESTION SOURIS */}
+      <div className="header-actions">
+        {/* LOGIQUE D'ALTERNANCE : Si Admin, on affiche soit le bouton Admin, soit le bouton Configurateur */}
+        {isAdmin && (
+            isInternalAdminPage ? (
+                <button className="config-btn" onClick={() => navigate('/')}>
+                    🛠️ Configurateur
+                </button>
+            ) : (
+                <button className="admin-btn" onClick={() => navigate('/admin')}>
+                    ⚙️ Admin
+                </button>
+            )
+        )}
+
+        {isAuthenticated ? (
+            <div className="profile-container" ref={dropdownRef}>
                 <div 
-                    className="profile-dropdown" 
-                    ref={dropdownRef} // Pour détecter clic extérieur
+                    className="dropdown-trigger"
                     onMouseEnter={handleMouseEnter}
                     onMouseLeave={handleMouseLeave}
                 >
@@ -100,9 +118,8 @@ const Header = () => {
                         <span className="text">Mon Profil</span>
                     </button>
                     
-                    {/* LE CONTENU : La classe .visible gère l'affichage */}
                     <div className={`dropdown-content ${showDropdown ? 'visible' : ''}`}>
-                        <button className="menu-item" onClick={() => navigate('/my-orders')}>
+                        <button className="menu-item" onClick={() => {navigate('/my-orders'); setIsClicked(false);}}>
                           📦 Mes Commandes
                         </button>
                         <button className="logout-item" onClick={handleLogout}>

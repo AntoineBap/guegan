@@ -405,4 +405,23 @@
     justify-content: center;
     box-shadow: 0 2px 5px rgba(0,0,0,0.15);
   }
+  /* Effet de flou pour les prix non connectés */
+  .blurred-price {
+    color: transparent;
+    text-shadow: 0 0 8px rgba(0,0,0,0.5);
+    user-select: none; /* Empêche de sélectionner le texte caché */
+    cursor: help;
+    position: relative;
+    
+    &:after {
+      content: "🔒";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 0.8rem;
+      color: #333;
+      text-shadow: none;
+    }
+  }
 }

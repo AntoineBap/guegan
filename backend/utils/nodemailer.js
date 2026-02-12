@@ -19,6 +19,7 @@ exports.sendVerificationEmail = async (email, token) => {
     if (!email) return;
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const link = `${frontendUrl}/verify/${token}`;
+    console.log("Lien de vérification généré :", link);
     
     await apiInstance.sendTransacEmail({
         sender: SENDER,
@@ -55,7 +56,7 @@ exports.sendOrderConfirmationEmail = async (order, user) => {
         <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px;">
             <h1 style="color: #27ae60; text-align: center;">Commande Confirmée !</h1>
             <p>Bonjour ${user.firstName},</p>
-            <p>Nous avons bien reçu votre commande <strong>#${order._id.toString().slice(-6).toUpperCase()}</strong>.</p>
+            <p>Nous avons bien reçu votre commande <strong>#${order.orderNumber}</strong>.</p>
             
             <h3>📦 Récapitulatif</h3>
             <table style="width: 100%; border-collapse: collapse;">
@@ -74,7 +75,7 @@ exports.sendOrderConfirmationEmail = async (order, user) => {
                 <p>Merci d'effectuer le virement vers le compte suivant :</p>
                 <p><strong>IBAN :</strong> ${iban}<br/>
                 <strong>BIC :</strong> ${bic}<br/>
-                <strong>Motif :</strong> Commande #${order._id.toString().slice(-6).toUpperCase()}</p>
+                <strong>Motif :</strong> Commande #${order.orderNumber}</p>
             </div>
         </div>
     `;
@@ -82,7 +83,7 @@ exports.sendOrderConfirmationEmail = async (order, user) => {
     await apiInstance.sendTransacEmail({
         sender: SENDER,
         to: [{ email: user.email }],
-        subject: `Confirmation de commande #${order._id.toString().slice(-6).toUpperCase()}`,
+        subject: `Confirmation de commande #${order.orderNumber}`,
         htmlContent: htmlContent
     });
 };
@@ -114,7 +115,7 @@ exports.sendStatusUpdateEmail = async (order, user, status) => {
             <h2 style="color: ${color};">${subject}</h2>
             <p>Bonjour ${user.firstName},</p>
             <p>${message}</p>
-            <p><strong>Commande :</strong> #${order._id.toString().slice(-6).toUpperCase()}</p>
+            <p><strong>Commande :</strong> #${order.orderNumber}</p>
             <br/>
             <div style="text-align: center; margin-top: 20px;">
                 <a href="${frontendUrl}/my-orders" style="background-color: #111; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Suivre ma commande</a>

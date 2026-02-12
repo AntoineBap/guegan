@@ -417,17 +417,6 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
         Votre Plan-Vasque <span className="gold-text">Sur Mesure</span>
       </h1>
 
-      <div className="form-group">
-        <label>Couleur du Solid Surface</label>
-        <div className="corian-color">
-          <button
-            className={config.color === "white" ? "active" : ""}
-            onClick={() => setConfig({ ...config, color: "white" })}
-          >
-            Blanc Pur
-          </button>
-        </div>
-      </div>
 
       <div className="form-group section-box">
         <label className="section-title">Dimensions du Plan</label>
@@ -1123,7 +1112,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
             checked={config.splashback}
             onChange={handleGlobalChange}
           />{" "}
-          Goutte d'eau
+          Anti-Goutte d'eau
         </label>
       </div>
 
