@@ -10,5 +10,7 @@ router.put('/order/:id', auth, adminAuth, adminCtrl.updateOrderStatus);
 router.get('/order-details/:id', auth, adminAuth, adminCtrl.getOrderDetails);
 router.delete('/order/:id', auth, adminAuth, adminCtrl.deleteOrder);
 router.get('/users-export', auth, adminAuth, adminCtrl.getAllUsersWithCarts);
+router.get('/settings/:key', auth, adminAuth, adminCtrl.getSettings);
+router.post('/settings', auth, adminAuth, adminCtrl.updateSettings);
 
 module.exports = router;

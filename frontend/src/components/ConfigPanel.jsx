@@ -1,29 +1,35 @@
 import React, { useEffect, useMemo, useContext } from "react";
 import ConfigResume from "./ConfigResume";
-import { AuthContext } from "../contexts/AuthContext"; // Import du contexte
+import { AuthContext } from "../contexts/AuthContext"; 
+import { SettingsContext } from "../contexts/SettingsContext"; 
 import "../styles/style.scss";
 
 const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
-  const { isAuthenticated } = useContext(AuthContext); // Récupération de l'état connecté
+  const { isAuthenticated } = useContext(AuthContext); 
+  const { settings } = useContext(SettingsContext); // On récupère TOUT l'objet settings
 
   const DRAINER_WIDTH_MM = 350;
   const MIN_GAP_BETWEEN_SINKS = 40;
   const MARGIN_PLAN_EDGE = 100;
   const SINK_DEFAULT_SIZE = 400; 
 
-  const SINK_SPECS = {
+  // --- RECUPERATION DYNAMIQUE DES VARIABLES ---
+  const maxPlanLength = settings.constraints.maxLength || 3600;
+  const maxPlanDepth = settings.constraints.maxDepth || 700;
+  
+  // Construction des Specs de cuve avec les prix dynamiques
+  const SINK_SPECS = useMemo(() => ({
     "Aucune cuve": { l: 0, w: 0, d: 0, price: 0 },
-    "Cuve Labo 400x400x300": { l: 400, w: 400, d: 300, price: 520 },
-    "Cuve Détente 400x400x200": { l: 400, w: 400, d: 200, price: 490 },
-    "Cuve Cuisine 500x400x180": { l: 500, w: 400, d: 180, price: 540 },
-    "Cuve Sanitaire 422x336x139": { l: 422, w: 336, d: 139, price: 330 },
-  };
+    "Cuve Labo 400x400x300": { l: 400, w: 400, d: 300, price: settings.sinkPrices["Cuve Labo 400x400x300"] },
+    "Cuve Détente 400x400x200": { l: 400, w: 400, d: 200, price: settings.sinkPrices["Cuve Détente 400x400x200"] },
+    "Cuve Cuisine 500x400x180": { l: 500, w: 400, d: 180, price: settings.sinkPrices["Cuve Cuisine 500x400x180"] },
+    "Cuve Sanitaire 422x336x139": { l: 422, w: 336, d: 139, price: settings.sinkPrices["Cuve Sanitaire 422x336x139"] },
+  }), [settings.sinkPrices]);
 
-  // Helper pour afficher le prix ou flouter
   const formatOptionPrice = (price) => {
     if (price === 0) return "";
     if (isAuthenticated) return `(+${price}€)`;
-    return "(+ **€)"; // Version floutée/masquée
+    return "(+ **€)"; 
   };
 
   useEffect(() => {
@@ -75,7 +81,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
   const currentSinks = config.sinks || [];
   const hasAtLeastOneSink = currentSinks.some((s) => s.type !== "Aucune cuve");
 
-  // --- LOGIQUE LAYOUT ---
+  // --- LOGIQUE LAYOUT (Inchangée) ---
   const layoutDimensions = useMemo(() => {
     const items = currentSinks.map((s) => ({
       ...s,
@@ -164,7 +170,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
       totalWidth: Math.abs(minX) + maxX,
       positionsRelative: positions,
     };
-  }, [currentSinks, config.anchorId]);
+  }, [currentSinks, config.anchorId, SINK_SPECS]);
 
   const layout = useMemo(() => {
     const { positionsRelative } = layoutDimensions;
@@ -193,7 +199,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
       groupMinX: items.length > 0 ? items[0].leftBound : 0,
       groupMaxX: items.length > 0 ? items[items.length - 1].rightBound : 0,
     };
-  }, [currentSinks, config.length, layoutDimensions, config.anchorId]);
+  }, [currentSinks, config.length, layoutDimensions, config.anchorId, SINK_SPECS]);
 
   const planHalfLength = config.length / 2;
   const absLimitLeft = -planHalfLength + MARGIN_PLAN_EDGE;
@@ -240,10 +246,8 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
       minPlanLength: computedMinLen,
       minPlanDepth: Math.max(400, maxW + 160),
     };
-  }, [currentSinks, layoutDimensions, config.anchorId]);
+  }, [currentSinks, layoutDimensions, config.anchorId, SINK_SPECS]);
 
-  const maxPlanLength = 3600;
-  const maxPlanDepth = 700;
 
   const handleGlobalChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -417,7 +421,6 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
         Votre Plan-Vasque <span className="gold-text">Sur Mesure</span>
       </h1>
 
-
       <div className="form-group section-box">
         <label className="section-title">Dimensions du Plan</label>
         <div className="inputs-row">
@@ -460,7 +463,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
         const isAnchor = sink.id === config.anchorId;
         const isNoSink = sink.type === "Aucune cuve";
         const isMulti = currentSinks.length > 1;
-        const currentPos = layout.items[index]; // Récupération de la position
+        const currentPos = layout.items[index]; 
         const currentSinkOffset =
           sink.offset !== undefined && sink.offset !== null
             ? sink.offset
@@ -759,7 +762,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                         updateSink(sink.id, "hasTapHole", e.target.checked)
                       }
                     />{" "}
-                    Perçage robinetterie (Ø35mm) {formatOptionPrice(15)}
+                    Perçage robinetterie (Ø35mm) {formatOptionPrice(settings.prices.tapHole)}
                   </label>
                   {sink.hasTapHole && (
                     <div style={{ marginLeft: "25px" }}>
@@ -840,9 +843,9 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                       onChange={(e) =>
                         handleDrainerCheck(sink.id, e.target.checked, index)
                       }
-                      disabled={!canL && !canR && !sink.hasDrainer}
+                      disabled={!canL}
                     />{" "}
-                    Rainurage Égouttoir {formatOptionPrice(50)}
+                    Rainurage Égouttoir {formatOptionPrice(settings.prices.drainer)}
                   </label>
                   {!canL && !canR && !sink.hasDrainer && (
                     <div
@@ -940,7 +943,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
         </div>
       )}
 
-      {/* Rims/Aprons UI ... reste identique */}
+      {/* ... (Reste de la logique d'affichage des dosserets/retombées inchangée) ... */}
       <div className="form-group checkbox-group">
         <label>
           <input
@@ -1118,10 +1121,8 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
 
       <div className="actions"></div>
 
-      <ConfigResume
-        config={config}
-        onReset={onReset}
-      />
+      {/* On passe TOUT l'objet settings à Resume (pour les formules et prix) et les specs calculées */}
+      <ConfigResume config={config} onReset={onReset} sinkSpecs={SINK_SPECS} settings={settings} />
     </div>
   );
 };

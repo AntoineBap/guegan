@@ -3,20 +3,7 @@ import { useCart } from "../contexts/CartContext";
 import { AuthContext } from "../contexts/AuthContext";
 import "../styles/configResume.scss";
 
-// --- CONSTANTES ---
-const SINK_SPECS = {
-  "Aucune cuve": { l: 0, w: 0, d: 0, price: 0 },
-  "Cuve Labo 400x400x300": { l: 400, w: 400, d: 300, price: 520 },
-  "Cuve Détente 400x400x200": { l: 400, w: 400, d: 200, price: 490 },
-  "Cuve Cuisine 500x400x180": { l: 500, w: 400, d: 180, price: 540 },
-  "Cuve Sanitaire 422x336x139": { l: 422, w: 336, d: 139, price: 330 },
-};
-
-const TAP_HOLE_PRICE = 15;
-const DRAINER_PRICE = 50;
-const WATER_DRIP_PRICE_PER_METER = 50;
-
-// Constantes de Poids (kg/m2)
+// Constantes de Poids (kg/m2) - Restent en dur car physique des matériaux
 const WEIGHT_PLAN_M2 = 39;
 const WEIGHT_VERTICAL_M2 = 21;
 
@@ -53,10 +40,16 @@ const SummaryLine = ({
   );
 };
 
-const ConfigResume = ({ config, onReset }) => {
+// On récupère settings et sinkSpecs via les props
+const ConfigResume = ({ config, onReset, sinkSpecs, settings }) => {
   const [quantity, setQuantity] = useState(1);
   const { addToCart } = useCart();
   const { isAuthenticated } = useContext(AuthContext);
+
+  // Valeurs par défaut si settings tarde à charger (sécurité)
+  const TAP_HOLE_PRICE = settings?.prices?.tapHole || 15;
+  const DRAINER_PRICE = settings?.prices?.drainer || 50;
+  const WATER_DRIP_PRICE = settings?.prices?.waterDrip || 50;
 
   // --- 1. CALCULS PRIX & SURFACES ---
 
@@ -71,8 +64,8 @@ const ConfigResume = ({ config, onReset }) => {
   const sinksDetails = useMemo(() => {
     const sinks = config.sinks || [];
     if (sinks.length === 0) return [];
+    if (!sinkSpecs) return [];
 
-    // On trouve l'index de la cuve ancrée pour déterminer la position relative des autres
     const anchorIndex = sinks.findIndex(s => s.id === config.anchorId);
 
     return sinks
@@ -80,8 +73,9 @@ const ConfigResume = ({ config, onReset }) => {
         if (sink.type === "Aucune cuve") return null;
 
         const isAnchor = sink.id === config.anchorId;
-        const spec = SINK_SPECS[sink.type] || { price: 0, l: 0, w: 0, d: 0 };
+        const spec = sinkSpecs[sink.type] || { price: 0, l: 0, w: 0, d: 0 };
         const basePrice = spec.price;
+        
         const tapPrice =
           sink.hasTapHole && sink.tapHolePosition !== "none"
             ? TAP_HOLE_PRICE
@@ -109,17 +103,13 @@ const ConfigResume = ({ config, onReset }) => {
         const D_m = spec.d / 1000;
         const surfaceM2 = L_m * D_m * 2 + W_m * D_m * 2 + L_m * W_m;
 
-        // Titre personnalisé avec mention (ANCRÉE)
         const title = `Cuve #${index + 1}${isAnchor ? " (ANCRÉE)" : ""}`;
 
-        // Libellé dynamique pour l'écart
         let gapLabel = "Écart";
         if (!isAnchor) {
             if (index < anchorIndex) {
-                // Cuve située à GAUCHE de l'ancre
                 gapLabel = "Écart à Droite avec la Cuve suivante";
             } else {
-                // Cuve située à DROITE de l'ancre (index > anchorIndex)
                 gapLabel = "Écart à Gauche avec la Cuve précédente";
             }
         }
@@ -137,16 +127,24 @@ const ConfigResume = ({ config, onReset }) => {
           drainerPrice,
           totalForCalc: basePrice + tapPrice + drainerPrice,
           surfaceM2,
-          title,     // Nouveau titre
-          gapLabel   // Nouveau label d'écart
+          title,     
+          gapLabel   
         };
       })
       .filter(Boolean);
-  }, [config.sinks, config.anchorId]);
+  }, [config.sinks, config.anchorId, sinkSpecs, TAP_HOLE_PRICE, DRAINER_PRICE]);
 
-  const getLinearPartPrice = (heightMm, lengthMm) => {
-    if (!heightMm || heightMm <= 17.6) return 0;
-    const pricePerMeter = 53.6 * Math.log(heightMm - 17.6) - 86.4;
+  // Fonction générique pour calculer le prix linéaire avec formule configurable
+  // type = 'rims' ou 'aprons'
+  const getLinearPartPrice = (heightMm, lengthMm, type) => {
+    // Récupération des paramètres de la formule dans les settings
+    const formula = settings?.linearFormula?.[type] || { a: 53.6, b: 17.6, c: 86.4 };
+    
+    if (!heightMm || heightMm <= formula.b) return 0;
+    
+    // Formule: A * ln(h - B) - C
+    const pricePerMeter = formula.a * Math.log(heightMm - formula.b) - formula.c;
+    
     return Math.round(Math.max(0, pricePerMeter) * (lengthMm / 1000));
   };
 
@@ -157,18 +155,19 @@ const ConfigResume = ({ config, onReset }) => {
     let totalLengthMm = 0;
     const sides = [];
 
+    // On utilise le type 'rims' pour la formule
     if (config.rimLeft) {
-      totalPrice += getLinearPartPrice(height, config.width);
+      totalPrice += getLinearPartPrice(height, config.width, 'rims');
       totalLengthMm += config.width;
       sides.push("Gauche");
     }
     if (config.rimBack) {
-      totalPrice += getLinearPartPrice(height, config.length);
+      totalPrice += getLinearPartPrice(height, config.length, 'rims');
       totalLengthMm += config.length;
       sides.push("Arrière");
     }
     if (config.rimRight) {
-      totalPrice += getLinearPartPrice(height, config.width);
+      totalPrice += getLinearPartPrice(height, config.width, 'rims');
       totalLengthMm += config.width;
       sides.push("Droite");
     }
@@ -188,6 +187,7 @@ const ConfigResume = ({ config, onReset }) => {
     config.rimBack,
     config.width,
     config.length,
+    settings // Dépendance ajoutée pour recalculer si formule change
   ]);
 
   const apronsDetails = useMemo(() => {
@@ -198,23 +198,24 @@ const ConfigResume = ({ config, onReset }) => {
     let totalLengthMm = 0;
     const sides = [];
 
+    // On utilise le type 'aprons' pour la formule
     if (config.apronFront) {
-      totalPrice += getLinearPartPrice(frontEffectiveHeight, config.length);
+      totalPrice += getLinearPartPrice(frontEffectiveHeight, config.length, 'aprons');
       totalLengthMm += config.length;
       sides.push("Avant");
     }
     if (config.apronLeft) {
-      totalPrice += getLinearPartPrice(rawHeight, config.width);
+      totalPrice += getLinearPartPrice(rawHeight, config.width, 'aprons');
       totalLengthMm += config.width;
       sides.push("Gauche");
     }
     if (config.apronBack) {
-      totalPrice += getLinearPartPrice(rawHeight, config.length);
+      totalPrice += getLinearPartPrice(rawHeight, config.length, 'aprons');
       totalLengthMm += config.length;
       sides.push("Arrière");
     }
     if (config.apronRight) {
-      totalPrice += getLinearPartPrice(rawHeight, config.width);
+      totalPrice += getLinearPartPrice(rawHeight, config.width, 'aprons');
       totalLengthMm += config.width;
       sides.push("Droite");
     }
@@ -235,15 +236,16 @@ const ConfigResume = ({ config, onReset }) => {
     config.apronBack,
     config.width,
     config.length,
+    settings
   ]);
 
   const waterDripDetails = useMemo(() => {
     if (!config.splashback) return null;
     const price = Math.round(
-      (config.length / 1000) * WATER_DRIP_PRICE_PER_METER,
+      (config.length / 1000) * WATER_DRIP_PRICE,
     );
     return { price, length: config.length };
-  }, [config.splashback, config.length]);
+  }, [config.splashback, config.length, WATER_DRIP_PRICE]);
 
   // --- 2. CALCUL POIDS ---
   const totalWeight = useMemo(() => {
@@ -321,7 +323,6 @@ const ConfigResume = ({ config, onReset }) => {
             price={planDetails.price}
             isAuthenticated={isAuthenticated}
           />
-          {/* Surface supprimée selon demande */}
         </div>
 
         {/* --- CUVES --- */}
@@ -336,7 +337,6 @@ const ConfigResume = ({ config, onReset }) => {
               isAuthenticated={isAuthenticated}
             />
             
-            {/* Position affichée uniquement si c'est la cuve ancrée */}
             {sink.isAnchor && (
                 <SummaryLine
                 label="Position"
@@ -353,7 +353,6 @@ const ConfigResume = ({ config, onReset }) => {
               />
             )}
             
-            {/* Gestion des écarts pour les cuves non ancrées */}
             {!sink.isAnchor && (
               <SummaryLine
                 label={sink.gapLabel}
@@ -362,7 +361,6 @@ const ConfigResume = ({ config, onReset }) => {
               />
             )}
 
-            {/* Affichage conditionnel du perçage robinetterie */}
             {sink.hasTapHole && (
                 <SummaryLine
                 label="Perçage Robinetterie"
@@ -425,7 +423,6 @@ const ConfigResume = ({ config, onReset }) => {
               value={apronsDetails.sides}
               isAuthenticated={isAuthenticated}
             />
-            {/* Note sur la hauteur de face supprimée selon demande */}
           </div>
         )}
 

@@ -1,6 +1,7 @@
 const Order = require('../models/Order');
 const User = require('../models/User');
 const { sendStatusUpdateEmail } = require('../utils/nodemailer');
+const Settings = require('../models/Settings');
 
 // --- 1. DASHBOARD STATS ---
 exports.getDashboardStats = async (req, res) => {
@@ -159,5 +160,28 @@ exports.getAllUsersWithCarts = async (req, res) => {
     } catch (error) {
         console.error("Erreur export users:", error);
         res.status(500).json({ error: "Erreur lors de la récupération des données" });
+    }
+};
+
+exports.getSettings = async (req, res) => {
+    try {
+        const settings = await Settings.findOne({ key: req.params.key });
+        res.status(200).json(settings);
+    } catch (error) {
+        res.status(500).json({ error });
+    }
+};
+
+exports.updateSettings = async (req, res) => {
+    try {
+        const { key, value } = req.body;
+        const settings = await Settings.findOneAndUpdate(
+            { key },
+            { value },
+            { upsert: true, new: true }
+        );
+        res.status(200).json(settings);
+    } catch (error) {
+        res.status(500).json({ error });
     }
 };

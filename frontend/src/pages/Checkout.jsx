@@ -1,7 +1,8 @@
 import React, { useState, useContext, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom"; // 👈 Ajout de Link
+import { useNavigate, Link } from "react-router-dom"; 
 import { useCart } from "../contexts/CartContext";
 import { AuthContext } from "../contexts/AuthContext";
+import { SettingsContext } from "../contexts/SettingsContext"; // 👈 Import du contexte settings
 import "../styles/checkout.scss";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -9,12 +10,12 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 const Checkout = () => {
   const { checkoutItems, clearCart } = useCart();
   const { user, token, isAuthenticated } = useContext(AuthContext);
+  const { settings } = useContext(SettingsContext); // 👈 Récupération des settings
   const navigate = useNavigate();
 
   const [useSameAddress, setUseSameAddress] = useState(true);
-  // États pour les cases à cocher
-  const [acceptedTerms, setAcceptedTerms] = useState(false); // Renonciation rétractation
-  const [acceptedCGV, setAcceptedCGV] = useState(false); // CGV
+  const [acceptedTerms, setAcceptedTerms] = useState(false); 
+  const [acceptedCGV, setAcceptedCGV] = useState(false); 
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [expandedItemIndex, setExpandedItemIndex] = useState(null);
@@ -37,6 +38,9 @@ const Checkout = () => {
     zip: "",
     country: "France",
   });
+
+  // Récupération du délai (Lead Time) depuis les settings, ou 15 par défaut
+  const leadTime = settings?.constraints?.leadTime || 15;
 
   useEffect(() => {
     if (user) {
@@ -75,7 +79,6 @@ const Checkout = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Vérification finale (sécurité)
     if (!acceptedTerms || !acceptedCGV) {
       return alert("Veuillez accepter les conditions pour continuer.");
     }
@@ -213,7 +216,6 @@ const Checkout = () => {
               <section className="fade-in">
                 <h2>🚚 Adresse de Livraison</h2>
                 <div className="form-grid">
-                  {/* Champs adresse livraison identiques... */}
                   <div className="field-group">
                     <label>Prénom</label>
                     <input
@@ -283,7 +285,6 @@ const Checkout = () => {
               </section>
             )}
 
-            {/* --- ZONE LÉGALE --- */}
             <div className="legal-box warning">
               <h3>⚠️ Renonciation au droit de rétractation</h3>
               <p>
@@ -305,7 +306,6 @@ const Checkout = () => {
                 lancée.
               </label>
 
-              {/* --- NOUVELLE CHECKBOX CGV --- */}
               <div
                 style={{
                   marginTop: "15px",
@@ -362,13 +362,10 @@ const Checkout = () => {
                   {expandedItemIndex === idx && (
                     <div className="mini-item-details">
                       <ul>
-                        {/* Dimensions toujours affichées */}
                         <li>
                           <strong>Dimensions :</strong> {item.length}x
                           {item.width}mm
                         </li>
-
-                        {/* CUVES : Ne s'affiche QUE s'il y a au moins une cuve */}
                         {item.sinks &&
                           item.sinks.length > 0 &&
                           item.sinks[0]?.type !== "Aucune cuve" &&
@@ -386,7 +383,6 @@ const Checkout = () => {
                                 ? s.type.replace("Cuve ", "")
                                 : "Standard"}
                               <br />
-                              {/* On définit une petite fonction ou un objet de traduction pour la clarté */}
                               Position :{" "}
                               {s.position === "center"
                                 ? "Centrée"
@@ -425,8 +421,6 @@ const Checkout = () => {
                               )}
                             </li>
                           ))}
-
-                        {/* DOSSERETS */}
                         {item.rims && (
                           <li style={{ marginTop: "5px" }}>
                             <strong>Dosserets (H{item.rimHeigh}mm) :</strong>{" "}
@@ -439,8 +433,6 @@ const Checkout = () => {
                               .join(", ")}
                           </li>
                         )}
-
-                        {/* RETOMBÉES */}
                         {item.aprons && (
                           <li style={{ marginTop: "5px" }}>
                             <strong>Retombées (H{item.apronHeight}mm) :</strong>{" "}
@@ -454,8 +446,6 @@ const Checkout = () => {
                               .join(", ")}
                           </li>
                         )}
-
-                        {/* GOUTTE D'EAU */}
                         {item.splashback && (
                           <li style={{ marginTop: "5px" }}>
                             <strong>Anti-Goutte d'eau :</strong> Oui
@@ -467,6 +457,47 @@ const Checkout = () => {
                 </div>
               ))}
             </div>
+
+            {/* --- NOUVELLE SECTION DÉLAI DE LIVRAISON --- */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "15px",
+                padding: "10px 0",
+                borderBottom: "1px solid #eee",
+                fontSize: "0.95rem",
+                color: "#555",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <span>Délai de mise en livraison</span>
+                <div
+                  title="Ce délai correspond au délai entre la réception du paiement et l'expédition des produits"
+                  style={{
+                    display: "inline-flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    width: "16px",
+                    height: "16px",
+                    borderRadius: "50%",
+                    backgroundColor: "#999",
+                    color: "white",
+                    fontSize: "11px",
+                    fontWeight: "bold",
+                    marginLeft: "8px",
+                    cursor: "help",
+                  }}
+                >
+                  ?
+                </div>
+              </div>
+              <span style={{ fontWeight: "600", color: "#333" }}>
+                {leadTime} jours
+              </span>
+            </div>
+
             <div className="total-row">
               <span>Total HT</span>
               <span>{totalAmount.toFixed(2)} €</span>
@@ -476,7 +507,6 @@ const Checkout = () => {
               type="submit"
               form="checkout-form"
               className="validate-btn"
-              // Le bouton est désactivé si l'une des deux cases n'est pas cochée
               disabled={isSubmitting || !acceptedTerms || !acceptedCGV}
               style={{ marginTop: "20px" }}
             >
