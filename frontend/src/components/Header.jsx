@@ -93,7 +93,7 @@ const Header = () => {
         {/* LOGIQUE D'ALTERNANCE : Si Admin, on affiche soit le bouton Admin, soit le bouton Configurateur */}
         {isAdmin && (
             isInternalAdminPage ? (
-                <button className="config-btn" onClick={() => navigate('/')}>
+                <button className="config-btn" onClick={() => navigate('/configurator')}>
                     🛠️ Configurateur
                 </button>
             ) : (
