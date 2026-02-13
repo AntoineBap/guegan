@@ -1,6 +1,7 @@
 import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Main from "./pages/Main";
+import Home from './pages/Home';
+import Configurator from './pages/Configurator';
 import Login from "./pages/Login";
 import VerifyEmail from "./pages/VerifyEmail";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -27,8 +28,10 @@ function App() {
             <div className="App">
               <Routes>
                 {/* Route principale (Configurateur) */}
-                <Route path="/" element={<Main />} />
+                <Route path="/" element={<Home />} />
 
+                <Route path="/configurator" element={<Configurator />} />
+                
                 {/* Route de connexion / inscription */}
                 <Route path="/login" element={<Login />} />
 

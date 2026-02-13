@@ -1,35 +1,103 @@
-import React, { useEffect, useMemo, useContext } from "react";
+import React, { useEffect, useMemo, useContext, useState, useRef } from "react";
 import ConfigResume from "./ConfigResume";
-import { AuthContext } from "../contexts/AuthContext"; 
-import { SettingsContext } from "../contexts/SettingsContext"; 
+import { AuthContext } from "../contexts/AuthContext";
+import { SettingsContext } from "../contexts/SettingsContext";
 import "../styles/style.scss";
 
 const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
-  const { isAuthenticated } = useContext(AuthContext); 
-  const { settings } = useContext(SettingsContext); // On récupère TOUT l'objet settings
+  const { isAuthenticated } = useContext(AuthContext);
+  const { settings } = useContext(SettingsContext);
+
+  const inputsRef = useRef({});
+  const [alerts, setAlerts] = useState({});
 
   const DRAINER_WIDTH_MM = 350;
   const MIN_GAP_BETWEEN_SINKS = 40;
   const MARGIN_PLAN_EDGE = 100;
-  const SINK_DEFAULT_SIZE = 400; 
+  const SINK_DEFAULT_SIZE = 400;
 
-  // --- RECUPERATION DYNAMIQUE DES VARIABLES ---
   const maxPlanLength = settings.constraints.maxLength || 3600;
   const maxPlanDepth = settings.constraints.maxDepth || 700;
-  
-  // Construction des Specs de cuve avec les prix dynamiques
-  const SINK_SPECS = useMemo(() => ({
-    "Aucune cuve": { l: 0, w: 0, d: 0, price: 0 },
-    "Cuve Labo 400x400x300": { l: 400, w: 400, d: 300, price: settings.sinkPrices["Cuve Labo 400x400x300"] },
-    "Cuve Détente 400x400x200": { l: 400, w: 400, d: 200, price: settings.sinkPrices["Cuve Détente 400x400x200"] },
-    "Cuve Cuisine 500x400x180": { l: 500, w: 400, d: 180, price: settings.sinkPrices["Cuve Cuisine 500x400x180"] },
-    "Cuve Sanitaire 422x336x139": { l: 422, w: 336, d: 139, price: settings.sinkPrices["Cuve Sanitaire 422x336x139"] },
-  }), [settings.sinkPrices]);
+
+  const SINK_SPECS = useMemo(
+    () => ({
+      "Aucune cuve": { l: 0, w: 0, d: 0, price: 0 },
+      "Cuve Labo 400x400x300": {
+        l: 400,
+        w: 400,
+        d: 300,
+        price: settings.sinkPrices["Cuve Labo 400x400x300"],
+      },
+      "Cuve Détente 400x400x200": {
+        l: 400,
+        w: 400,
+        d: 200,
+        price: settings.sinkPrices["Cuve Détente 400x400x200"],
+      },
+      "Cuve Cuisine 500x400x180": {
+        l: 500,
+        w: 400,
+        d: 180,
+        price: settings.sinkPrices["Cuve Cuisine 500x400x180"],
+      },
+      "Cuve Sanitaire 422x336x139": {
+        l: 422,
+        w: 336,
+        d: 139,
+        price: settings.sinkPrices["Cuve Sanitaire 422x336x139"],
+      },
+    }),
+    [settings.sinkPrices],
+  );
 
   const formatOptionPrice = (price) => {
     if (price === 0) return "";
     if (isAuthenticated) return `(+${price}€)`;
-    return "(+ **€)"; 
+    return "(+ **€)";
+  };
+
+  const blockInvalidChar = (e) => {
+    if (["e", "E", "+", "-"].includes(e.key)) {
+      e.preventDefault();
+    }
+  };
+
+  const notifyCorrection = (fieldName, newValue) => {
+    setAlerts((prev) => ({
+      ...prev,
+      [fieldName]: `Ancienne Valeur impossible, ajustée à ${newValue}`,
+    }));
+
+    // Scroll automatique
+    setTimeout(() => {
+      if (inputsRef.current[fieldName]) {
+        inputsRef.current[fieldName].scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }
+    }, 100);
+  };
+
+  const scrollToFirstError = () => {
+    const firstKey = Object.keys(alerts)[0];
+    if (firstKey && inputsRef.current[firstKey]) {
+      inputsRef.current[firstKey].scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+      inputsRef.current[firstKey].focus();
+    }
+  };
+
+  const clearAlert = (fieldName) => {
+    if (alerts[fieldName]) {
+      setAlerts((prev) => {
+        const newState = { ...prev };
+        delete newState[fieldName];
+        return newState;
+      });
+    }
   };
 
   useEffect(() => {
@@ -38,11 +106,10 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
         ...prev,
         aprons: true,
         apronFront: true,
-        apronHeight:
-          prev.apronHeight && prev.apronHeight >= 40 ? prev.apronHeight : 40,
+        apronHeight: prev.apronHeight !== undefined ? prev.apronHeight : 40,
       }));
     }
-    if (config.rims && (!config.rimHeigh || config.rimHeigh < 100)) {
+    if (config.rims && config.rimHeigh === undefined) {
       setConfig((prev) => ({ ...prev, rimHeigh: 100 }));
     }
     if (!config.sinks) {
@@ -72,8 +139,6 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
     config.aprons,
     config.apronFront,
     config.rims,
-    config.rimHeigh,
-    config.apronHeight,
     config.anchorId,
     setConfig,
   ]);
@@ -81,7 +146,6 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
   const currentSinks = config.sinks || [];
   const hasAtLeastOneSink = currentSinks.some((s) => s.type !== "Aucune cuve");
 
-  // --- LOGIQUE LAYOUT (Inchangée) ---
   const layoutDimensions = useMemo(() => {
     const items = currentSinks.map((s) => ({
       ...s,
@@ -117,10 +181,14 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
         extraDrainerGap += DRAINER_WIDTH_MM;
       if (currItem.hasDrainer && currItem.drainerPosition === "left")
         extraDrainerGap += DRAINER_WIDTH_MM;
-      const structuralGap =
-        currItem.offset !== undefined && currItem.offset !== null
-          ? currItem.offset
+
+      const safeOffset =
+        currItem.offset !== "" &&
+        currItem.offset !== null &&
+        !isNaN(parseFloat(currItem.offset))
+          ? parseFloat(currItem.offset)
           : MIN_GAP_BETWEEN_SINKS;
+      const structuralGap = safeOffset;
       const dist =
         prevItem.width / 2 +
         structuralGap +
@@ -139,10 +207,13 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
       const nextPos = positions[i + 1];
       const nextItem = items[i + 1];
       const currItem = items[i];
-      const structuralGap =
-        currItem.offset !== undefined && currItem.offset !== null
-          ? currItem.offset
+      const safeOffset =
+        currItem.offset !== "" &&
+        currItem.offset !== null &&
+        !isNaN(parseFloat(currItem.offset))
+          ? parseFloat(currItem.offset)
           : MIN_GAP_BETWEEN_SINKS;
+      const structuralGap = safeOffset;
       let extraDrainerGap = 0;
       if (currItem.hasDrainer && currItem.drainerPosition === "right")
         extraDrainerGap += DRAINER_WIDTH_MM;
@@ -181,11 +252,17 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
     let anchorAbsX = 0;
     if (anchorItem && anchorItem.type !== "Aucune cuve") {
       const w = SINK_SPECS[anchorItem.type]?.l || 0;
+      const safeOffset =
+        anchorItem.offset !== "" &&
+        anchorItem.offset !== null &&
+        !isNaN(parseFloat(anchorItem.offset))
+          ? parseFloat(anchorItem.offset)
+          : 100;
       if (anchorItem.position === "center") anchorAbsX = 0;
       else if (anchorItem.position === "left")
-        anchorAbsX = -planHalfL + (anchorItem.offset || 100) + w / 2;
+        anchorAbsX = -planHalfL + safeOffset + w / 2;
       else if (anchorItem.position === "right")
-        anchorAbsX = planHalfL - (anchorItem.offset || 100) - w / 2;
+        anchorAbsX = planHalfL - safeOffset - w / 2;
     }
     const items = positionsRelative.map((pos, idx) => ({
       ...currentSinks[idx],
@@ -199,7 +276,13 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
       groupMinX: items.length > 0 ? items[0].leftBound : 0,
       groupMaxX: items.length > 0 ? items[items.length - 1].rightBound : 0,
     };
-  }, [currentSinks, config.length, layoutDimensions, config.anchorId, SINK_SPECS]);
+  }, [
+    currentSinks,
+    config.length,
+    layoutDimensions,
+    config.anchorId,
+    SINK_SPECS,
+  ]);
 
   const planHalfLength = config.length / 2;
   const absLimitLeft = -planHalfLength + MARGIN_PLAN_EDGE;
@@ -216,6 +299,12 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
     const anchorItem = currentSinks[anchorIndex !== -1 ? anchorIndex : 0];
     let situationalMinLen = mechanicalMinLen;
     if (anchorItem && anchorItem.type !== "Aucune cuve") {
+      const safeOffset =
+        anchorItem.offset !== "" &&
+        anchorItem.offset !== null &&
+        !isNaN(parseFloat(anchorItem.offset))
+          ? parseFloat(anchorItem.offset)
+          : MARGIN_PLAN_EDGE;
       if (anchorItem.position === "center") {
         const maxSideFromCenter = Math.max(
           layoutDimensions.leftWidth,
@@ -224,14 +313,10 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
         situationalMinLen = (maxSideFromCenter + MARGIN_PLAN_EDGE) * 2;
       } else if (anchorItem.position === "left") {
         situationalMinLen =
-          (anchorItem.offset || MARGIN_PLAN_EDGE) +
-          layoutDimensions.rightWidth +
-          MARGIN_PLAN_EDGE;
+          safeOffset + layoutDimensions.rightWidth + MARGIN_PLAN_EDGE;
       } else if (anchorItem.position === "right") {
         situationalMinLen =
-          (anchorItem.offset || MARGIN_PLAN_EDGE) +
-          layoutDimensions.leftWidth +
-          MARGIN_PLAN_EDGE;
+          safeOffset + layoutDimensions.leftWidth + MARGIN_PLAN_EDGE;
       }
     }
     const computedMinLen = Math.max(600, mechanicalMinLen, situationalMinLen);
@@ -248,9 +333,9 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
     };
   }, [currentSinks, layoutDimensions, config.anchorId, SINK_SPECS]);
 
-
   const handleGlobalChange = (e) => {
     const { name, value, type, checked } = e.target;
+
     if (name === "rims" && checked) {
       setConfig((prev) => ({ ...prev, rims: true, rimHeigh: 100 }));
       return;
@@ -261,22 +346,108 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
         type === "checkbox"
           ? checked
           : type === "number"
-            ? parseFloat(value)
+            ? value === ""
+              ? ""
+              : parseFloat(value)
             : value,
     }));
   };
 
   const handleBlur = (e) => {
     const { name, value, min, max } = e.target;
-    const val = parseFloat(value);
-    if (isNaN(val)) return;
-    if (min && val < parseFloat(min))
-      setConfig((p) => ({ ...p, [name]: parseFloat(min) }));
-    if (max && val > parseFloat(max))
-      setConfig((p) => ({ ...p, [name]: parseFloat(max) }));
+    let val = parseFloat(value);
+
+    const minVal = min ? parseFloat(min) : 0;
+    const maxVal = max ? parseFloat(max) : Infinity;
+
+    // 1. Correction de la valeur du champ lui-même (Length, Width...)
+    if (isNaN(val) || value === "") {
+      val = minVal;
+      notifyCorrection(name, val);
+    } else {
+      if (val < minVal) {
+        val = minVal;
+        notifyCorrection(name, val);
+      } else if (val > maxVal) {
+        val = maxVal;
+        notifyCorrection(name, val);
+      }
+    }
+
+    // Création d'une config temporaire pour vérifier les conséquences
+    const updatedConfig = { ...config, [name]: val };
+    let finalConfig = { ...updatedConfig };
+    let hasChanges = false;
+
+    // 2. Si on vient de modifier la Largeur (Length), on doit vérifier si cela "écrase" une cuve
+    // Cette logique remplace ce qui était fait automatiquement par le useEffect
+    if (name === "length") {
+      const anchorIndex = finalConfig.sinks.findIndex(
+        (s) => s.id === finalConfig.anchorId,
+      );
+      if (anchorIndex !== -1) {
+        const anchorSink = finalConfig.sinks[anchorIndex];
+        // On ne corrige que si la cuve est ancrée à gauche ou à droite
+        if (
+          anchorSink.type !== "Aucune cuve" &&
+          (anchorSink.position === "left" || anchorSink.position === "right")
+        ) {
+          const sinkSpec = SINK_SPECS[anchorSink.type];
+          const halfW = (sinkSpec ? sinkSpec.l : 0) / 2;
+          const { leftWidth, rightWidth } = layoutDimensions;
+
+          let maxOffset = 0;
+          let minOffset = 0;
+
+          // Recalcul des limites basé sur la NOUVELLE longueur (val)
+          if (anchorSink.position === "left") {
+            minOffset = MARGIN_PLAN_EDGE + (leftWidth - halfW);
+            maxOffset = Math.min(
+              val - MARGIN_PLAN_EDGE - rightWidth - halfW,
+              val / 2 - halfW,
+            );
+          } else {
+            // right
+            minOffset = MARGIN_PLAN_EDGE + (rightWidth - halfW);
+            maxOffset = Math.min(
+              val - MARGIN_PLAN_EDGE - leftWidth - halfW,
+              val / 2 - halfW,
+            );
+          }
+
+          if (maxOffset < minOffset) maxOffset = minOffset;
+
+          const currentOffset = parseFloat(anchorSink.offset);
+          const targetMax = Math.floor(maxOffset);
+          const targetMin = Math.ceil(minOffset);
+
+          // Si le décalage actuel est hors limites, on corrige
+          if (!isNaN(currentOffset) && anchorSink.offset !== "") {
+            if (currentOffset > targetMax) {
+              finalConfig.sinks = finalConfig.sinks.map((s, idx) =>
+                idx === anchorIndex ? { ...s, offset: targetMax } : s,
+              );
+              notifyCorrection(`sink-offset-${anchorSink.id}`, targetMax);
+              hasChanges = true;
+            } else if (currentOffset < targetMin) {
+              finalConfig.sinks = finalConfig.sinks.map((s, idx) =>
+                idx === anchorIndex ? { ...s, offset: targetMin } : s,
+              );
+              notifyCorrection(`sink-offset-${anchorSink.id}`, targetMin);
+              hasChanges = true;
+            }
+          }
+        }
+      }
+    }
+
+    // Mise à jour finale
+    setConfig(finalConfig);
   };
 
   const updateSink = (id, field, value) => {
+    const refKey = field === "offset" ? `sink-offset-${id}` : `sink-tap-${id}`;
+
     setConfig((prev) => ({
       ...prev,
       sinks: prev.sinks.map((s) =>
@@ -316,12 +487,16 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
       index === 0
         ? absLimitLeft
         : (layout.items[index - 1]?.rightBound ?? absLimitLeft);
-    const canL = myPos.leftBound - obstacleL >= DRAINER_WIDTH_MM - 10;
+    const distL = myPos.leftBound - obstacleL;
+    const canL = distL >= DRAINER_WIDTH_MM - 10;
+
     const obstacleR =
       index === currentSinks.length - 1
         ? absLimitRight
         : (layout.items[index + 1]?.leftBound ?? absLimitRight);
-    const canR = obstacleR - myPos.rightBound >= DRAINER_WIDTH_MM - 10;
+    const distR = obstacleR - myPos.rightBound;
+    const canR = distR >= DRAINER_WIDTH_MM - 10;
+
     if (canL && canR) updateSink(id, "drainerPosition", "left");
     else if (canL) updateSink(id, "drainerPosition", "left");
     else if (canR) updateSink(id, "drainerPosition", "right");
@@ -336,13 +511,16 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
 
   const handleSinkTypeSelect = (id, typeName) => {
     const specs = SINK_SPECS[typeName];
+
     if (id === currentSinks[0].id) {
       const requiredMinDepth = typeName === "Aucune cuve" ? 400 : specs.w + 160;
-      setConfig((prev) => ({
-        ...prev,
-        width: prev.width < requiredMinDepth ? requiredMinDepth : prev.width,
-      }));
+
+      if (config.width < requiredMinDepth) {
+        notifyCorrection("width", requiredMinDepth);
+        setConfig((prev) => ({ ...prev, width: requiredMinDepth }));
+      }
     }
+
     updateSink(id, "type", typeName);
     if (typeName === "Aucune cuve") {
       setConfig((prev) => ({
@@ -355,6 +533,34 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
       }));
     }
   };
+
+  // --- GESTION CENTRALISÉE DES CORRECTIONS AUTOMATIQUES (STRUCTURELLES) ---
+  // IMPORTANT : config.length et config.width ONT ÉTÉ RETIRÉS des dépendances
+  // Cela permet de taper librement dans les champs sans que ce useEffect ne se déclenche
+  // La validation de ces champs se fait désormais dans handleBlur
+  useEffect(() => {
+    let changed = false;
+    let newConfig = { ...config };
+
+    // 1. Correction Largeur (Length) - Uniquement si MIN augmente (ajout cuve)
+    if (newConfig.length !== "" && newConfig.length < minPlanLength) {
+      notifyCorrection("length", minPlanLength);
+      newConfig.length = minPlanLength;
+      changed = true;
+    }
+
+    // 2. Correction Profondeur (Width) - Uniquement si MIN augmente
+    if (newConfig.width !== "" && newConfig.width < minPlanDepth) {
+      notifyCorrection("width", minPlanDepth);
+      newConfig.width = minPlanDepth;
+      changed = true;
+    }
+
+    if (changed) {
+      setConfig(newConfig);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [minPlanLength, minPlanDepth]); // <--- DÉPENDANCES RÉDUITES AU STRICT MINIMUM STRUCTUREL
 
   const addNewSink = (side) => {
     const newSink = {
@@ -374,7 +580,6 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
       return { ...prev, sinks: newSinks };
     });
   };
-
   const removeSink = (id) => {
     setConfig((prev) => {
       const newSinks = prev.sinks.filter((s) => s.id !== id);
@@ -397,7 +602,6 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
       return { ...prev, sinks: newSinks, anchorId: newAnchorId };
     });
   };
-
   const toggleRimSide = (side) =>
     setConfig((prev) => ({ ...prev, [side]: !prev[side] }));
   const toggleApronSide = (side) =>
@@ -424,7 +628,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
       <div className="form-group section-box">
         <label className="section-title">Dimensions du Plan</label>
         <div className="inputs-row">
-          <div>
+          <div className="input-wrapper">
             <div className="limit-label">
               Min: {minPlanLength} / Max: {maxPlanLength}
             </div>
@@ -432,15 +636,22 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
             <input
               type="number"
               name="length"
-              value={config.length}
+              ref={(el) => (inputsRef.current["length"] = el)}
+              className={alerts["length"] ? "has-alert" : ""}
+              value={config.length === "" ? "" : config.length}
               onChange={handleGlobalChange}
+              onFocus={() => clearAlert("length")}
               onBlur={handleBlur}
+              onKeyDown={blockInvalidChar}
               min={minPlanLength}
               max={maxPlanLength}
               step="10"
             />
+            {alerts["length"] && (
+              <div className="alert-message">{alerts["length"]}</div>
+            )}
           </div>
-          <div>
+          <div className="input-wrapper">
             <div className="limit-label">
               Min: {minPlanDepth} / Max: {maxPlanDepth}
             </div>
@@ -448,13 +659,20 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
             <input
               type="number"
               name="width"
-              value={config.width}
+              ref={(el) => (inputsRef.current["width"] = el)}
+              className={alerts["width"] ? "has-alert" : ""}
+              value={config.width === "" ? "" : config.width}
               onChange={handleGlobalChange}
+              onFocus={() => clearAlert("width")}
               onBlur={handleBlur}
+              onKeyDown={blockInvalidChar}
               min={minPlanDepth}
               max={maxPlanDepth}
               step="10"
             />
+            {alerts["width"] && (
+              <div className="alert-message">{alerts["width"]}</div>
+            )}
           </div>
         </div>
       </div>
@@ -463,13 +681,15 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
         const isAnchor = sink.id === config.anchorId;
         const isNoSink = sink.type === "Aucune cuve";
         const isMulti = currentSinks.length > 1;
-        const currentPos = layout.items[index]; 
+        const currentPos = layout.items[index];
+
         const currentSinkOffset =
           sink.offset !== undefined && sink.offset !== null
             ? sink.offset
             : isAnchor
               ? 100
               : MIN_GAP_BETWEEN_SINKS;
+
         const sinkSpec = SINK_SPECS[sink.type] || { l: 0 };
         const sinkWidth = sinkSpec.l;
         const maxTapOffset = Math.floor(sinkWidth / 2 - 17);
@@ -480,16 +700,23 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
         let canAnchorLeft = true;
         let canAnchorRight = true;
 
-        const obstacleL = index === 0 ? absLimitLeft : (layout.items[index - 1]?.rightBound ?? absLimitLeft);
-        const distL = currentPos ? (currentPos.leftBound - obstacleL) : 0;
-        const canL = distL >= (DRAINER_WIDTH_MM - 10);
+        const obstacleL =
+          index === 0
+            ? absLimitLeft
+            : (layout.items[index - 1]?.rightBound ?? absLimitLeft);
+        const obstacleR =
+          index === currentSinks.length - 1
+            ? absLimitRight
+            : (layout.items[index + 1]?.leftBound ?? absLimitRight);
 
-        const obstacleR = index === currentSinks.length - 1 ? absLimitRight : (layout.items[index + 1]?.leftBound ?? absLimitRight);
-        const distR = currentPos ? (obstacleR - currentPos.rightBound) : 0;
-        const canR = distR >= (DRAINER_WIDTH_MM - 10);
+        const distL = currentPos ? currentPos.leftBound - obstacleL : 0;
+        const canL = distL >= DRAINER_WIDTH_MM - 10;
+
+        const distR = currentPos ? obstacleR - currentPos.rightBound : 0;
+        const canR = distR >= DRAINER_WIDTH_MM - 10;
 
         if (isAnchor) {
-          const { leftWidth, rightWidth, totalWidth } = layoutDimensions;
+          const { leftWidth, rightWidth } = layoutDimensions;
           const halfL = config.length / 2;
           const maxWing = Math.max(leftWidth, rightWidth);
           canCenter = maxWing + MARGIN_PLAN_EDGE <= halfL;
@@ -578,7 +805,11 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                   key={opt}
                   className={sink.type === opt ? "active-small" : ""}
                   onClick={() => handleSinkTypeSelect(sink.id, opt)}
-                  style={!isAuthenticated && sink.type !== opt ? {color: '#666'} : {}}
+                  style={
+                    !isAuthenticated && sink.type !== opt
+                      ? { color: "#666" }
+                      : {}
+                  }
                 >
                   {opt === "Aucune cuve"
                     ? "Aucune"
@@ -586,6 +817,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                 </button>
               ))}
             </div>
+
             {!isNoSink && (
               <>
                 <div
@@ -658,12 +890,8 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                       </div>
                       {sink.position !== "center" && (
                         <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            marginLeft: "15px",
-                            flex: 1,
-                          }}
+                          className="input-wrapper"
+                          style={{ flex: 1, marginLeft: "15px" }}
                         >
                           <span
                             style={{
@@ -676,17 +904,54 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                           </span>
                           <input
                             type="number"
-                            value={sink.offset}
+                            ref={(el) =>
+                              (inputsRef.current[`sink-offset-${sink.id}`] = el)
+                            }
+                            className={
+                              alerts[`sink-offset-${sink.id}`]
+                                ? "has-alert"
+                                : ""
+                            }
+                            value={sink.offset === "" ? "" : sink.offset}
                             onChange={(e) => {
-                              let val = parseFloat(e.target.value);
-                              if (val < minOffset) val = minOffset;
-                              if (val > maxOffset) val = maxOffset;
+                              let val =
+                                e.target.value === ""
+                                  ? ""
+                                  : parseFloat(e.target.value);
+                              if (val !== "" && val > maxOffset) {
+                                val = Math.floor(maxOffset);
+                              }
                               updateSink(sink.id, "offset", val);
                             }}
+                            onFocus={() => clearAlert(`sink-offset-${sink.id}`)}
+                            onBlur={() => {
+                              let val = parseFloat(sink.offset);
+                              const minV = Math.ceil(minOffset);
+                              const maxV = Math.floor(maxOffset);
+                              const refKey = `sink-offset-${sink.id}`;
+
+                              if (isNaN(val) || sink.offset === "") {
+                                val = minV;
+                                notifyCorrection(refKey, val);
+                              } else if (val < minV) {
+                                val = minV;
+                                notifyCorrection(refKey, val);
+                              } else if (val > maxV) {
+                                val = maxV;
+                                notifyCorrection(refKey, val);
+                              }
+                              updateSink(sink.id, "offset", val);
+                            }}
+                            onKeyDown={blockInvalidChar}
                             min={Math.ceil(minOffset)}
                             max={Math.floor(maxOffset)}
                             step="10"
                           />
+                          {alerts[`sink-offset-${sink.id}`] && (
+                            <div className="alert-message">
+                              {alerts[`sink-offset-${sink.id}`]}
+                            </div>
+                          )}
                           <span style={{ fontSize: "0.65rem", color: "#999" }}>
                             Max: {Math.floor(maxOffset)} (Centré)
                           </span>
@@ -716,26 +981,64 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                         Espace total depuis cuve précédente
                       </span>
                       <div
+                        className="input-wrapper"
                         style={{
                           display: "flex",
-                          alignItems: "center",
+                          flexDirection: "column",
                           gap: "10px",
                         }}
                       >
                         <input
                           type="number"
                           style={{ width: "100px" }}
-                          value={currentSinkOffset}
+                          ref={(el) =>
+                            (inputsRef.current[`sink-offset-${sink.id}`] = el)
+                          }
+                          className={
+                            alerts[`sink-offset-${sink.id}`] ? "has-alert" : ""
+                          }
+                          value={
+                            currentSinkOffset === "" ? "" : currentSinkOffset
+                          }
                           onChange={(e) => {
-                            let val = parseFloat(e.target.value);
-                            if (val < minOffset) val = minOffset;
-                            if (val > maxOffset) val = maxOffset;
+                            let val =
+                              e.target.value === ""
+                                ? ""
+                                : parseFloat(e.target.value);
+                            if (val !== "" && val > maxOffset) {
+                              val = Math.floor(maxOffset);
+                            }
                             updateSink(sink.id, "offset", val);
                           }}
+                          onFocus={() => clearAlert(`sink-offset-${sink.id}`)}
+                          onBlur={() => {
+                            let val = parseFloat(sink.offset);
+                            const refKey = `sink-offset-${sink.id}`;
+                            const minV = minOffset;
+                            const maxV = maxOffset;
+
+                            if (isNaN(val) || sink.offset === "") {
+                              val = minV;
+                              notifyCorrection(refKey, val);
+                            } else if (val < minV) {
+                              val = minV;
+                              notifyCorrection(refKey, val);
+                            } else if (val > maxV) {
+                              val = maxV;
+                              notifyCorrection(refKey, val);
+                            }
+                            updateSink(sink.id, "offset", val);
+                          }}
+                          onKeyDown={blockInvalidChar}
                           min={minOffset}
                           max={Math.floor(maxOffset)}
                           step="10"
                         />
+                        {alerts[`sink-offset-${sink.id}`] && (
+                          <div className="alert-message">
+                            {alerts[`sink-offset-${sink.id}`]}
+                          </div>
+                        )}
                       </div>
                       <span
                         style={{
@@ -750,6 +1053,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                     </div>
                   </>
                 )}
+
                 <div
                   style={{ margin: "20px 0", borderTop: "1px solid #e0e0e0" }}
                 ></div>
@@ -762,7 +1066,8 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                         updateSink(sink.id, "hasTapHole", e.target.checked)
                       }
                     />{" "}
-                    Perçage robinetterie (Ø35mm) {formatOptionPrice(settings.prices.tapHole)}
+                    Perçage robinetterie (Ø35mm){" "}
+                    {formatOptionPrice(settings.prices.tapHole)}
                   </label>
                   {sink.hasTapHole && (
                     <div style={{ marginLeft: "25px" }}>
@@ -787,6 +1092,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                       {(sink.tapHolePosition === "Gauche" ||
                         sink.tapHolePosition === "Droite") && (
                         <div
+                          className="input-wrapper"
                           style={{
                             display: "flex",
                             flexDirection: "column",
@@ -804,20 +1110,50 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                           </span>
                           <input
                             type="number"
-                            className="small-input"
+                            className={`small-input ${alerts[`sink-tap-${sink.id}`] ? "has-alert" : ""}`}
                             style={{ width: "100px" }}
-                            value={sink.tapHoleOffset || 0}
+                            ref={(el) =>
+                              (inputsRef.current[`sink-tap-${sink.id}`] = el)
+                            }
+                            value={
+                              sink.tapHoleOffset === "" ||
+                              sink.tapHoleOffset === undefined
+                                ? ""
+                                : sink.tapHoleOffset
+                            }
                             onChange={(e) => {
-                              let val = parseFloat(e.target.value);
-                              if (isNaN(val)) val = 0;
-                              if (val < 0) val = 0;
-                              if (val > maxTapOffset) val = maxTapOffset;
+                              const val =
+                                e.target.value === ""
+                                  ? ""
+                                  : parseFloat(e.target.value);
                               updateSink(sink.id, "tapHoleOffset", val);
                             }}
+                            onFocus={() => clearAlert(`sink-tap-${sink.id}`)}
+                            onBlur={() => {
+                              let val = parseFloat(sink.tapHoleOffset);
+                              const refKey = `sink-tap-${sink.id}`;
+                              if (isNaN(val)) {
+                                val = 0;
+                                notifyCorrection(refKey, 0);
+                              } else if (val < 0) {
+                                val = 0;
+                                notifyCorrection(refKey, 0);
+                              } else if (val > maxTapOffset) {
+                                val = maxTapOffset;
+                                notifyCorrection(refKey, maxTapOffset);
+                              }
+                              updateSink(sink.id, "tapHoleOffset", val);
+                            }}
+                            onKeyDown={blockInvalidChar}
                             min="0"
                             max={maxTapOffset}
                             step="1"
                           />
+                          {alerts[`sink-tap-${sink.id}`] && (
+                            <div className="alert-message">
+                              {alerts[`sink-tap-${sink.id}`]}
+                            </div>
+                          )}
                           <span style={{ fontSize: "0.7rem", color: "#666" }}>
                             Max: {maxTapOffset}mm
                           </span>
@@ -826,6 +1162,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                     </div>
                   )}
                 </div>
+
                 <div
                   style={{ margin: "20px 0", borderTop: "1px solid #e0e0e0" }}
                 ></div>
@@ -843,9 +1180,10 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                       onChange={(e) =>
                         handleDrainerCheck(sink.id, e.target.checked, index)
                       }
-                      disabled={!canL}
-                    />{" "}
-                    Rainurage Égouttoir {formatOptionPrice(settings.prices.drainer)}
+                      disabled={!sink.hasDrainer && !canL && !canR}
+                    />
+                    Rainurage Égouttoir{" "}
+                    {formatOptionPrice(settings.prices.drainer)}
                   </label>
                   {!canL && !canR && !sink.hasDrainer && (
                     <div
@@ -943,7 +1281,6 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
         </div>
       )}
 
-      {/* ... (Reste de la logique d'affichage des dosserets/retombées inchangée) ... */}
       <div className="form-group checkbox-group">
         <label>
           <input
@@ -956,17 +1293,32 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
         </label>
         {config.rims && (
           <div className="rims-options-container" style={{ marginTop: "10px" }}>
-            <div style={{ marginBottom: "5px" }}>
+            <div className="input-wrapper" style={{ marginBottom: "5px" }}>
+              <span
+                style={{
+                  display: "block",
+                  marginBottom: "5px",
+                  fontSize: "0.9rem",
+                }}
+              >
+                Hauteur (mm)
+              </span>
               <input
                 type="number"
-                className="small-input"
+                className={`small-input ${alerts["rimHeigh"] ? "has-alert" : ""}`}
                 name="rimHeigh"
-                value={config.rimHeigh}
+                ref={(el) => (inputsRef.current["rimHeigh"] = el)}
+                value={config.rimHeigh === "" ? "" : config.rimHeigh}
                 onChange={handleGlobalChange}
+                onFocus={() => clearAlert("rimHeigh")}
                 onBlur={handleBlur}
+                onKeyDown={blockInvalidChar}
                 min="100"
                 max="550"
               />
+              {alerts["rimHeigh"] && (
+                <div className="alert-message">{alerts["rimHeigh"]}</div>
+              )}
               <span
                 style={{
                   fontSize: "0.7rem",
@@ -1037,17 +1389,36 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
           Retombées (Obligatoire)
         </label>
         <div className="rims-options-container" style={{ marginTop: "10px" }}>
-          <div style={{ marginBottom: "5px" }}>
+          <div className="input-wrapper" style={{ marginBottom: "5px" }}>
+            <span
+              style={{
+                display: "block",
+                marginBottom: "5px",
+                fontSize: "0.9rem",
+              }}
+            >
+              Hauteur (mm)
+            </span>
             <input
               type="number"
-              className="small-input"
+              className={`small-input ${alerts["apronHeight"] ? "has-alert" : ""}`}
               name="apronHeight"
-              value={config.apronHeight || 40}
+              ref={(el) => (inputsRef.current["apronHeight"] = el)}
+              value={
+                config.apronHeight === "" || config.apronHeight === undefined
+                  ? ""
+                  : config.apronHeight
+              }
               onChange={handleGlobalChange}
+              onFocus={() => clearAlert("apronHeight")}
               onBlur={handleBlur}
+              onKeyDown={blockInvalidChar}
               min="40"
               max="200"
             />
+            {alerts["apronHeight"] && (
+              <div className="alert-message">{alerts["apronHeight"]}</div>
+            )}
             <span
               style={{ fontSize: "0.7rem", color: "#666", marginLeft: "10px" }}
             >
@@ -1121,8 +1492,14 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
 
       <div className="actions"></div>
 
-      {/* On passe TOUT l'objet settings à Resume (pour les formules et prix) et les specs calculées */}
-      <ConfigResume config={config} onReset={onReset} sinkSpecs={SINK_SPECS} settings={settings} />
+      <ConfigResume
+        config={config}
+        onReset={onReset}
+        sinkSpecs={SINK_SPECS}
+        settings={settings}
+        blockingErrors={Object.keys(alerts).length > 0}
+        onScrollToError={scrollToFirstError}
+      />
     </div>
   );
 };

@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom"; // 👈 IMPORT IMPORTANT
+import { useLocation } from "react-router-dom";
 import "../styles/style.scss";
 import ConfigPanel from "../components/ConfigPanel";
 import Visualizer from "../components/Visualizer";
 import Modal3D from "../components/Modal3D";
 import Header from "../components/Header";
 import Cart from "../components/Cart";
-import { useCart } from "../contexts/CartContext";
+
+// 🔴 CORRECTION ICI : useCart vient de CartContext, pas AuthContext
+import { useCart } from "../contexts/CartContext"; 
 
 const INITIAL_CONFIG = {
   color: "white",
@@ -22,7 +24,7 @@ const INITIAL_CONFIG = {
   anchorId: null
 };
 
-const Main = () => {
+const Configurator = () => {
   const [config, setConfig] = useState(INITIAL_CONFIG);
   const [showModal, setShowModal] = useState(false);
   const [configKey, setConfigKey] = useState(0); 
@@ -96,4 +98,4 @@ const Main = () => {
   );
 };
 
-export default Main;
+export default Configurator;

@@ -31,7 +31,6 @@ exports.getOrdersByStatus = async (req, res) => {
         }
 
         // On récupère les commandes + les infos de l'utilisateur associé
-        // Note: Assure-toi que 'userId' est bien le nom du champ dans ton modèle Order
         const orders = await Order.find({ status: status })
             .populate('userId', 'email phone companyName firstName lastName') 
             .sort({ createdAt: -1 });
@@ -65,7 +64,6 @@ exports.updateOrderStatus = async (req, res) => {
         }
 
         // 2. Récupération du client pour l'email
-        // On vérifie que userId existe avant de chercher
         if (order.userId) {
             const user = await User.findById(order.userId);
             
@@ -122,7 +120,6 @@ exports.deleteOrder = async (req, res) => {
 exports.getAllUsersWithCarts = async (req, res) => {
     try {
         // 1. Récupérer tous les utilisateurs (sauf les admins)
-        // .lean() permet d'obtenir des objets JavaScript simples (plus rapide)
         const users = await User.find({ role: { $ne: 'admin' } })
             .select('-password') 
             .lean(); 
@@ -130,29 +127,41 @@ exports.getAllUsersWithCarts = async (req, res) => {
         // 2. Formater les données pour le tableau
         const formattedUsers = users.map(user => {
             
-            // Formatage du panier (directement depuis l'objet user)
+            // Formatage du panier (texte)
             let cartContentString = "";
+            let totalCartPrice = 0; // Variable pour le total
+
             if (user.cart && user.cart.length > 0) {
+                // Construction du texte du panier
                 cartContentString = user.cart.map(item => 
-                    // Adaptez ici selon la structure exacte de vos items dans le panier
                     `- ${item.quantity}x ${item.material || 'Plan'} ${item.length}x${item.width}mm`
                 ).join('\n');
+
+                // Calcul du prix total du panier DYNAMIQUE (Prix Unitaire * Quantité)
+                // Cela corrige le problème si la quantité change mais que le champ totalPrice n'a pas été mis à jour en base
+                totalCartPrice = user.cart.reduce((acc, item) => {
+                    const unitPrice = item.unitPrice || 0;
+                    const quantity = item.quantity || 1;
+                    return acc + (unitPrice * quantity);
+                }, 0);
+
             } else {
                 cartContentString = "Panier vide";
+                totalCartPrice = 0;
             }
 
             // Retourner l'objet prêt pour le frontend
             return {
-                id: user._id, // Utile pour une clé unique coté front, mais pas affiché
+                id: user._id, 
                 nom_complet: `${user.lastName || ''} ${user.firstName || ''}`.toUpperCase(),
                 email: user.email,
                 telephone: user.phone || "N/A",
                 siret: user.siret || "N/A",
                 entreprise: user.companyName || "N/A",
-                // Dans votre modèle User.js, c'est 'companyAddress', pas 'billingAddress'
                 adresse: user.companyAddress || "N/A", 
                 tva: user.tvaNumber || "N/A",
-                panier: cartContentString
+                panier: cartContentString,
+                total_panier: totalCartPrice // Total recalculé
             };
         });
 
