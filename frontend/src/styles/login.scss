@@ -1,6 +1,5 @@
-@use "sass:color";
+// src/styles/login.scss
 
-// --- VARIABLES ---
 $gold: #d4af37;
 $gold-light: rgba($gold, 0.1);
 $black: #1a1a1a;
@@ -9,210 +8,352 @@ $white: #ffffff;
 $text: #2c2c2c;
 $border-color: #e0e0e0;
 
-@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lato:wght@300;400;700&display=swap");
+.login-page {
+  height: 100vh;
+  width: 100%;
+  overflow-y: auto; 
+  display: flex;
+  background-color: #f4f6f8;
+  font-family: system-ui, -apple-system, sans-serif;
+  padding: 40px 20px; 
+  box-sizing: border-box; 
 
-// --- BASE HOME PAGE ---
-.home-page {
-    min-height: 100vh;
-    font-family: "Lato", sans-serif;
-    position: relative;
-    overflow: hidden; // Important pour ne pas avoir de scrollbars dues au background
-    background-color: $black; // Fond noir par défaut
+  input::placeholder {
+    color: #b0b0b0;
+    font-weight: 600;
+    opacity: 1;
+  }
 
-    // --- ARRIÈRE-PLAN MIXTE (VIDEO + IMAGES) ---
-    .background-container {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 0; // Tout au fond
-        background-color: $black; // Évite les flashs blancs entre les transitions
-
-        .overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            // Dégradé noir semi-transparent pour que le texte soit lisible
-            background: linear-gradient(135deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.3) 100%);
-            z-index: 2; // Au-dessus des images/vidéos
-            pointer-events: none; // Laisse passer les clics si besoin (bien que ce soit du fond)
-        }
-
-        .media-item {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            
-            // Gestion du remplissage
-            object-fit: cover; // Pour la balise video
-            background-size: cover; // Pour les divs images
-            background-position: center;
-            background-repeat: no-repeat;
-            
-            // TRANSITION FLUIDE (FADE IN/OUT)
-            opacity: 0;
-            transition: opacity 1.5s ease-in-out; 
-            z-index: 1;
-
-            &.active {
-                opacity: 1;
-                z-index: 1;
-            }
-        }
+  .login-card {
+    margin: auto; 
+    background: white;
+    padding: 30px; 
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    width: 100%;
+    max-width: 500px;
+    text-align: center;
+    animation: slideUp 0.4s ease-out;
+    
+    .back-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #666;
+      margin-bottom: 15px;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 0;
+      
+      &:hover {
+        color: #111;
+        text-decoration: underline;
+      }
     }
 
-    // --- NAVIGATION (Transparente) ---
-    .home-nav {
-        position: relative;
-        z-index: 10; // Au-dessus du background
+    h2 {
+      margin-bottom: 20px;
+      color: #222;
+    }
+
+    .alert-box {
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      font-size: 0.9rem;
+      text-align: left;
+
+      &.error {
+        background-color: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+      }
+
+      &.success {
+        background-color: #dcfce7;
+        color: #166534;
+        border: 1px solid #bbf7d0;
+      }
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px; 
+
+      .form-row {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 30px 50px;
+        margin-bottom: 0.1rem;
+        gap: 10px; 
         
-        .logo {
-            font-family: "Playfair Display", serif;
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: $white; // Logo en blanc
-            letter-spacing: 2px;
+        @media (max-width: 480px) {
+          flex-direction: column;
+          gap: 10px;
         }
 
-        .nav-links {
+        .form-col {
+          flex: 1;
+        }
+      }
+
+      /* * LE CŒUR DU PROBLÈME ÉTAIT ICI :
+       * Ce style s'applique à TOUS les inputs par défaut.
+       * On utilise :not([type="checkbox"]) pour l'exclure proprement.
+       */
+      input:not([type="checkbox"]) {
+        padding: 10px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        outline: none;
+        font-size: 0.95rem;
+        width: 100%;
+        box-sizing: border-box;
+        color: #333;
+        background-color: #fff;
+        transition: border-color 0.2s, background-color 0.2s;
+
+        &:focus {
+          border-color: #111;
+        }
+
+        &.has-error {
+          border-color: #e74c3c;
+          background-color: #fff5f5;
+        }
+      }
+
+      .form-group {
+        position: relative; 
+        
+        /* --- STYLE CASE À COCHER (STANDARD) --- */
+        &.checkbox-group-login {
+          background: $white;
+          border: 1px solid $border-color;
+          border-radius: 8px;
+          padding: 1.5rem;
+          margin-bottom: 1.5rem;
+          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
+          
+          /* 👇 MODIFICATION ICI : Flex row pour mettre checkbox à gauche */
+          display: flex;
+          flex-direction: row; 
+          align-items: center; /* Aligne verticalement au centre */
+          gap: 15px; /* Espace entre la case et le texte */
+          
+          label {
+            margin: 0;
             display: flex;
             align-items: center;
-        }
-
-        .nav-btn {
-            background: rgba(255, 255, 255, 0.1); // Légèrement transparent
-            border: 1px solid $white;
-            padding: 10px 25px;
-            border-radius: 30px; // Boutons plus ronds
             cursor: pointer;
-            color: $white;
-            font-weight: 500;
-            font-family: "Lato", sans-serif;
-            backdrop-filter: blur(5px); // Effet flou derrière le bouton
-            transition: all 0.3s;
-            
-            &:hover {
-                background: $white;
-                color: $black;
+            text-transform: none;
+            /* 👇 MODIFICATION ICI : Texte en gras */
+            font-weight: 700; 
+            font-size: 1rem;
+            color: #111;
+          }
+          
+          input[type="checkbox"] {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border: 1px solid $black;
+            border-radius: 4px;
+            /* margin-right: 15px; <--- Supprimé car géré par le gap du parent */
+            display: grid;
+            place-content: center;
+            transition: all 0.2s ease;
+            background-color: transparent;
+            margin-bottom: 0;
+            flex-shrink: 0; /* Empêche la case de s'écraser si le texte est long */
+
+            &::before {
+              content: "";
+              width: 14px;
+              height: 14px;
+              transform: scale(0);
+              transition: 120ms transform ease-in-out;
+              box-shadow: inset 1em 1em $gold;
+              transform-origin: center;
+              clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
             }
+            &:checked {
+              background-color: $black;
+              border-color: $black;
+              &::before {
+                transform: scale(1);
+              }
+            }
+          }
         }
-    }
+      }
 
-    // --- HERO CONTENT (Centré) ---
-    .hero-section {
-        position: relative;
-        z-index: 10; // Au-dessus du background
-        flex: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center; // Centrage horizontal
-        padding: 0 20px;
-        height: calc(100vh - 100px); // Toute la hauteur moins la nav environ
+      label {
+        display: block;
+        text-align: left;
+        margin-bottom: 4px; 
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #111;
+      }
 
-        .hero-content {
-            max-width: 800px;
-            text-align: center; // Texte centré
-            color: $white;
+      .error-msg {
+        color: #e74c3c;
+        font-size: 0.75rem;
+        display: block;
+        text-align: left;
+        margin-top: 2px;
+      }
 
-            h1 {
-                font-family: "Playfair Display", serif;
-                font-size: 4.5rem; // Plus gros pour l'impact
-                line-height: 1.1;
-                margin-bottom: 25px;
-                text-shadow: 0 4px 10px rgba(0,0,0,0.3); // Ombre portée pour lisibilité
-
-                .gold-text {
-                    color: $gold;
-                    font-style: italic;
-                }
-            }
-
-            p {
-                font-size: 1.3rem;
-                color: #e0e0e0; // Gris très clair
-                margin-bottom: 50px;
-                line-height: 1.6;
-                font-weight: 300;
-                max-width: 600px;
-                margin-left: auto;
-                margin-right: auto;
-                text-shadow: 0 2px 5px rgba(0,0,0,0.3);
-            }
-
-            .cta-buttons {
-                display: flex;
-                gap: 20px;
-                justify-content: center;
-
-                button {
-                    padding: 16px 40px;
-                    font-size: 1.1rem;
-                    border-radius: 50px; // Boutons pillule
-                    cursor: pointer;
-                    font-weight: 600;
-                    transition: all 0.3s ease;
-                    text-transform: uppercase;
-                    letter-spacing: 1px;
-                    font-family: "Lato", sans-serif;
-                }
-
-                .primary-btn {
-                    background-color: $gold;
-                    color: $white;
-                    border: none;
-                    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4); // Glow doré
-
-                    &:hover {
-                        background-color: color.adjust($gold, $lightness: 5%);
-                        transform: translateY(-3px);
-                        box-shadow: 0 6px 20px rgba(212, 175, 55, 0.6);
-                    }
-                }
-
-                .secondary-btn {
-                    background-color: transparent;
-                    color: $white;
-                    border: 1px solid rgba(255, 255, 255, 0.5);
-                    
-                    &:hover {
-                        border-color: $white;
-                        background-color: rgba(255, 255, 255, 0.1);
-                        transform: translateY(-3px);
-                    }
-                }
-            }
-        }
-    }
-    
-    // --- RESPONSIVE MOBILE ---
-    @media (max-width: 768px) {
-        .home-nav {
-            padding: 20px;
-            .logo { font-size: 1.5rem; }
-            .nav-btn { font-size: 0.8rem; padding: 8px 15px; }
-        }
+      .eye-icon {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-40%);
+        cursor: pointer;
         
-        .hero-section .hero-content {
-            h1 { font-size: 2.8rem; }
-            p { font-size: 1rem; margin-bottom: 30px; }
-            .cta-buttons {
-                flex-direction: column;
-                gap: 15px;
-                
-                button {
-                    width: 100%;
-                    padding: 14px 20px;
-                }
-            }
+        &:hover svg {
+          stroke: #111;
         }
+      }
+
+      .suggestions-list {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #ccc;
+        border-top: none;
+        border-radius: 0 0 6px 6px;
+        z-index: 1000;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        max-height: 200px;
+        overflow-y: auto;
+        text-align: left;
+
+        li {
+          padding: 10px 12px;
+          cursor: pointer;
+          font-size: 0.9rem;
+          border-bottom: 1px solid #f0f0f0;
+
+          &:hover {
+            background-color: #f8f9fa;
+          }
+
+          &:last-child {
+            border-bottom: none;
+          }
+        }
+      }
+
+      .password-reqs {
+        font-size: 0.8rem;
+        text-align: left;
+        margin: 5px 0 10px 0;
+        padding: 8px;
+        background: #f8f9fa;
+        border-radius: 5px;
+        border: 1px solid #eee;
+
+        .req-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+
+          &.valid { color: #2ecc71; }
+          &.invalid { color: #e74c3c; }
+        }
+      }
+
+      .submit-btn {
+        padding: 12px;
+        background: #111;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 1rem;
+        font-weight: 600;
+        margin-top: 5px;
+        transition: opacity 0.2s, background-color 0.2s;
+
+        &:hover {
+          background-color: #333;
+        }
+
+        &:disabled {
+          background-color: #ccc;
+          cursor: not-allowed;
+        }
+      }
     }
+
+    .toggle-text {
+      margin-top: 20px;
+      color: #666;
+      font-size: 0.9rem;
+
+      .link {
+        color: #007bff;
+        cursor: pointer;
+        margin-left: 6px;
+        font-weight: 600;
+        text-decoration: underline;
+
+        &:hover {
+          color: #0056b3;
+        }
+      }
+    }
+  }
+
+  .validation-screen {
+    h2 { color: #2ecc71; margin-bottom: 20px; }
+    p { color: #555; margin-bottom: 20px; line-height: 1.5; }
+    
+    .resend-section {
+      margin-top: 30px;
+      border-top: 1px solid #eee;
+      padding-top: 20px;
+
+      p { font-size: 0.9rem; color: #777; margin-bottom: 10px; }
+
+      .resend-btn {
+        padding: 10px 20px;
+        background: #111;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 600;
+
+        &:disabled {
+          background: #ccc;
+          cursor: not-allowed;
+        }
+      }
+    }
+
+    .back-link {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #007bff;
+      margin-top: 20px;
+      text-decoration: underline;
+    }
+  }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }

@@ -1,28 +1,33 @@
 @use "sass:color";
-$gold: #d4af37;
-$black: #1a1a1a;
-$white: #ffffff;
 
+// --- VARIABLES ---
+$gold: #d4af37;
+$gold-light: rgba($gold, 0.1);
+$black: #1a1a1a;
+$grey-light: #f4f4f6;
+$white: #ffffff;
+$text: #2c2c2c;
+$border-color: #e0e0e0;
+
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lato:wght@300;400;700&display=swap");
+
+// --- BASE HOME PAGE ---
 .home-page {
     min-height: 100vh;
     font-family: "Lato", sans-serif;
     position: relative;
-    overflow: hidden; // Important pour ne pas avoir de scrollbars dues à la vidéo
+    overflow: hidden; // Important pour ne pas avoir de scrollbars dues au background
+    background-color: $black; // Fond noir par défaut
 
-    // --- VIDÉO EN ARRIÈRE-PLAN ---
-    .video-background {
+    // --- ARRIÈRE-PLAN MIXTE (VIDEO + IMAGES) ---
+    .background-container {
         position: absolute;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
         z-index: 0; // Tout au fond
-
-        video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover; // La vidéo remplit tout l'écran sans déformation
-        }
+        background-color: $black; // Évite les flashs blancs entre les transitions
 
         .overlay {
             position: absolute;
@@ -31,27 +36,56 @@ $white: #ffffff;
             width: 100%;
             height: 100%;
             // Dégradé noir semi-transparent pour que le texte soit lisible
-            background: linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 100%);
+            background: linear-gradient(135deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.3) 100%);
+            z-index: 2; // Au-dessus des images/vidéos
+            pointer-events: none; // Laisse passer les clics si besoin (bien que ce soit du fond)
+        }
+
+        .media-item {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            
+            // Gestion du remplissage
+            object-fit: cover; // Pour la balise video
+            background-size: cover; // Pour les divs images
+            background-position: center;
+            background-repeat: no-repeat;
+            
+            // TRANSITION FLUIDE (FADE IN/OUT)
+            opacity: 0;
+            transition: opacity 1.5s ease-in-out; 
             z-index: 1;
+
+            &.active {
+                opacity: 1;
+                z-index: 1;
+            }
         }
     }
 
     // --- NAVIGATION (Transparente) ---
     .home-nav {
         position: relative;
-        z-index: 10; // Au-dessus de la vidéo
+        z-index: 10; // Au-dessus du background
         display: flex;
         justify-content: space-between;
         align-items: center;
         padding: 30px 50px;
-        // Pas de background color ou border ici pour l'effet transparent
-
+        
         .logo {
             font-family: "Playfair Display", serif;
             font-size: 1.8rem;
             font-weight: bold;
             color: $white; // Logo en blanc
             letter-spacing: 2px;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
         }
 
         .nav-btn {
@@ -62,6 +96,8 @@ $white: #ffffff;
             cursor: pointer;
             color: $white;
             font-weight: 500;
+            font-family: "Lato", sans-serif;
+            backdrop-filter: blur(5px); // Effet flou derrière le bouton
             transition: all 0.3s;
             
             &:hover {
@@ -74,13 +110,13 @@ $white: #ffffff;
     // --- HERO CONTENT (Centré) ---
     .hero-section {
         position: relative;
-        z-index: 10; // Au-dessus de la vidéo
+        z-index: 10; // Au-dessus du background
         flex: 1;
         display: flex;
         align-items: center;
         justify-content: center; // Centrage horizontal
         padding: 0 20px;
-        height: calc(100vh - 100px); // Toute la hauteur moins la nav
+        height: calc(100vh - 100px); // Toute la hauteur moins la nav environ
 
         .hero-content {
             max-width: 800px;
@@ -109,6 +145,7 @@ $white: #ffffff;
                 max-width: 600px;
                 margin-left: auto;
                 margin-right: auto;
+                text-shadow: 0 2px 5px rgba(0,0,0,0.3);
             }
 
             .cta-buttons {
@@ -125,6 +162,7 @@ $white: #ffffff;
                     transition: all 0.3s ease;
                     text-transform: uppercase;
                     letter-spacing: 1px;
+                    font-family: "Lato", sans-serif;
                 }
 
                 .primary-btn {
@@ -155,7 +193,7 @@ $white: #ffffff;
         }
     }
     
-    // Ajustements Mobile
+    // --- RESPONSIVE MOBILE ---
     @media (max-width: 768px) {
         .home-nav {
             padding: 20px;
@@ -165,10 +203,15 @@ $white: #ffffff;
         
         .hero-section .hero-content {
             h1 { font-size: 2.8rem; }
-            p { font-size: 1rem; }
+            p { font-size: 1rem; margin-bottom: 30px; }
             .cta-buttons {
                 flex-direction: column;
                 gap: 15px;
+                
+                button {
+                    width: 100%;
+                    padding: 14px 20px;
+                }
             }
         }
     }
