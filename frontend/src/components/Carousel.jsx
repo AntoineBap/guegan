@@ -6,14 +6,12 @@ import {
   usePrevNextButtons
 } from './CarouselArrowButtons'
 import useEmblaCarousel from 'embla-carousel-react'
-import '../styles/carousel.css'
 
 const Carousel = (props) => {
   const { slides, options } = props
   const [emblaRef, emblaApi] = useEmblaCarousel(options)
 
-  const { selectedIndex, scrollSnaps, onDotButtonClick } =
-    useDotButton(emblaApi)
+  const { selectedIndex, scrollSnaps, onDotButtonClick } = useDotButton(emblaApi)
 
   const {
     prevBtnDisabled,
@@ -24,22 +22,27 @@ const Carousel = (props) => {
 
   return (
     <section className="embla">
+      {/* Container principal avec les flèches dedans pour les positionner en absolu */}
       <div className="embla__viewport" ref={emblaRef}>
         <div className="embla__container">
-          {slides.map((index) => (
+          {slides.map((imageSrc, index) => (
             <div className="embla__slide" key={index}>
-              <div className="embla__slide__number">{index + 1}</div>
+              <div className="embla__slide__inner">
+                 <img src={imageSrc} alt={`Slide ${index}`} />
+              </div>
             </div>
           ))}
         </div>
+        
+        {/* BOUTONS FLOTTANTS SUR L'IMAGE */}
+        <div className="embla__buttons">
+            <PrevButton onClick={onPrevButtonClick} disabled={prevBtnDisabled} />
+            <NextButton onClick={onNextButtonClick} disabled={nextBtnDisabled} />
+        </div>
       </div>
 
+      {/* Pagination en bas (optionnel, je le laisse si vous voulez les points) */}
       <div className="embla__controls">
-        <div className="embla__buttons">
-          <PrevButton onClick={onPrevButtonClick} disabled={prevBtnDisabled} />
-          <NextButton onClick={onNextButtonClick} disabled={nextBtnDisabled} />
-        </div>
-
         <div className="embla__dots">
           {scrollSnaps.map((_, index) => (
             <DotButton

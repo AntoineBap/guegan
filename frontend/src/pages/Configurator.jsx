@@ -6,8 +6,7 @@ import Visualizer from "../components/Visualizer";
 import Modal3D from "../components/Modal3D";
 import Header from "../components/Header";
 import Cart from "../components/Cart";
-
-// 🔴 CORRECTION ICI : useCart vient de CartContext, pas AuthContext
+import Carousel from "../components/Carousel";
 import { useCart } from "../contexts/CartContext"; 
 
 const INITIAL_CONFIG = {
@@ -24,6 +23,17 @@ const INITIAL_CONFIG = {
   anchorId: null
 };
 
+// 👇 MODIFICATION : On utilise des images réelles pour le slider
+const SLIDES = [
+    "https://images.pexels.com/photos/1080721/pexels-photo-1080721.jpeg?auto=compress&cs=tinysrgb&w=800",
+    "https://images.pexels.com/photos/2724748/pexels-photo-2724748.jpeg?auto=compress&cs=tinysrgb&w=800",
+    "https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg?auto=compress&cs=tinysrgb&w=800",
+    "https://images.pexels.com/photos/1358900/pexels-photo-1358900.jpeg?auto=compress&cs=tinysrgb&w=800"
+];
+
+// 👇 MODIFICATION : Loop true pour tourner en rond
+const CAROUSEL_OPTIONS = { loop: true };
+
 const Configurator = () => {
   const [config, setConfig] = useState(INITIAL_CONFIG);
   const [showModal, setShowModal] = useState(false);
@@ -31,21 +41,13 @@ const Configurator = () => {
 
   const { cartItems, isCartOpen, setIsCartOpen, updateCartItem, removeFromCart } = useCart();
   
-  // 1. RÉCUPÉRATION DES DONNÉES ENVOYÉES PAR L'ADMIN
   const location = useLocation();
 
   useEffect(() => {
-    // Si on arrive ici avec un "state" contenant "loadConfig" (depuis l'admin)
     if (location.state && location.state.loadConfig) {
         console.log("📥 Chargement configuration Admin:", location.state.loadConfig);
-        
-        // On met à jour la config avec les données reçues
         setConfig(location.state.loadConfig);
-        
-        // On force le rafraîchissement des inputs
         setConfigKey((prev) => prev + 1);
-
-        // Optionnel : On nettoie l'historique pour ne pas recharger la config si on fait F5
         window.history.replaceState({}, document.title);
     }
   }, [location]);
@@ -55,7 +57,6 @@ const Configurator = () => {
       setConfigKey((prev) => prev + 1);
   };
 
-  // Charger une config depuis le panier
   const handleLoadFromCart = (cartItem) => {
       if(window.confirm("Voulez-vous charger cette configuration dans l'éditeur ? (La configuration actuelle non sauvegardée sera perdue)")) {
           const { id, unitPrice, totalPrice, quantity, ...configData } = cartItem;
@@ -89,7 +90,15 @@ const Configurator = () => {
         />
 
         <div className="visualizer-container">
-           <Visualizer config={config} />
+           {/* Partie Haute : 3D */}
+           <div className="canvas-wrapper">
+              <Visualizer config={config} />
+           </div>
+
+           {/* Partie Basse : Carousel */}
+           <div className="carousel-wrapper">
+              <Carousel slides={SLIDES} options={CAROUSEL_OPTIONS} />
+           </div>
         </div>
       </main>
       
