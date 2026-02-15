@@ -12,6 +12,8 @@ $border-color: #e0e0e0;
 .layout {
   display: flex;
   flex-direction: column;
+  
+  // Desktop : On garde le comportement "App" fixe
   position: fixed;
   top: 0;
   left: 0;
@@ -19,6 +21,15 @@ $border-color: #e0e0e0;
   height: 100dvh;
   overflow: hidden;
   background-color: $white;
+
+  // --- MOBILE : On libère le layout pour que le body scrolle ---
+  // C'est ce qui permet de cacher la barre d'adresse du navigateur
+  @media (max-width: 1024px) {
+    position: relative; // Plus de fixed
+    height: auto;       // Hauteur automatique selon le contenu
+    overflow: visible;  // On laisse dépasser le contenu
+    min-height: 100vh;
+  }
 }
 
 // --- MAIN CONTENT ---
@@ -28,11 +39,13 @@ $border-color: #e0e0e0;
   display: flex;
   width: 100%;
   height: 100%;
-  overflow: hidden;
+  overflow: hidden; // Desktop: contient le scroll
   position: relative;
 
   @media (max-width: 1024px) {
-    flex-direction: column; // Espace pour le header fixe
+    flex-direction: column;
+    height: auto;      // Mobile: s'adapte au contenu
+    overflow: visible; // Mobile: le scroll est géré par le body
   }
 }
 
@@ -47,15 +60,13 @@ $border-color: #e0e0e0;
   position: relative;
   order: 2; // A droite sur desktop
   
-  // Modification Layout Desktop pour afficher le carousel en bas
   display: flex;
   flex-direction: column;
 
   .canvas-wrapper {
     width: 100%;
-    // Prend tout l'espace disponible moins la hauteur du carousel
     flex: 1; 
-    min-height: 0; // Important pour flexbox scroll
+    min-height: 0;
     
     > div,
     canvas {
@@ -69,28 +80,32 @@ $border-color: #e0e0e0;
       width: 100%;
       background: $white;
       border-top: 1px solid $border-color;
-      // Affiché par défaut sur PC
       display: block; 
   }
 
-  // Mobile : Fixé en haut
+  // Mobile
   @media (max-width: 1024px) {
     flex: none;
     max-width: 100%;
     width: 100%;
-    height: 30vh; // Hauteur fixe pour la 3D
-    order: 1; // En premier
+    height: 35vh; // Un peu plus grand pour bien voir
+    order: 1;
     border-left: none;
     border-bottom: 1px solid $border-color;
-    z-index: 10; // Au dessus du scroll si besoin
-    display: block; // On repasse en block standard pour mobile
+    display: block;
+    
+    // --- STICKY MOBILE ---
+    // La 3D reste collée en haut (sous le header) quand on scrolle
+    position: sticky; 
+    top: 0; 
+    z-index: 10; 
 
     .canvas-wrapper {
-        height: 100%; // Prend toute la hauteur des 30vh
+        height: 100%;
     }
 
     .desktop-carousel-wrapper {
-        display: none; // Caché sur mobile
+        display: none;
     }
   }
 }
@@ -101,21 +116,24 @@ $border-color: #e0e0e0;
   flex: 0 0 50%;
   max-width: 50%;
   height: 100%;
-  overflow-y: auto; // Scroll indépendant
+  overflow-y: auto; // Scroll indépendant sur Desktop
   -webkit-overflow-scrolling: touch;
-  order: 1; // A gauche sur desktop
+  order: 1; 
   display: flex;
-  flex-direction: column; // Config puis Carousel
+  flex-direction: column;
 
   // Mobile : Prend le reste de la hauteur
   @media (max-width: 1024px) {
-    flex: 1; // Prend tout l'espace sous la 3D
+    flex: none; // Ne force pas l'extension, suit le flux
     max-width: 100%;
     width: 100%;
-    order: 2; // En deuxième
+    order: 2;
     background: white;
-    // C'est ICI que le scroll se fait sur mobile
-    overflow-y: auto;
+    
+    // IMPORTANT : On désactive le scroll interne sur mobile
+    // pour laisser le Layout (et donc le body) scroller.
+    height: auto;
+    overflow-y: visible;
   }
 }
 
@@ -141,13 +159,12 @@ $border-color: #e0e0e0;
   padding: 0;
   background: $white;
   border-top: 1px solid $border-color;
-  // Marge pour ne pas être collé au footer sur mobile
   padding-bottom: env(safe-area-inset-bottom);
   
   &.mobile-only {
-      display: none; // Caché par défaut sur Desktop
+      display: none; 
       @media (max-width: 1024px) {
-          display: block; // Affiché sur mobile
+          display: block; 
       }
   }
 }
@@ -275,7 +292,7 @@ $border-color: #e0e0e0;
   }
 }
 
-// --- UI FORM (Gardés du fichier précédent) ---
+// --- UI FORM ---
 .form-group {
   margin-bottom: 0.5rem;
   label {
