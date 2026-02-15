@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import "../styles/style.scss";
+import "../styles/configurator.scss";
 import ConfigPanel from "../components/ConfigPanel";
 import Visualizer from "../components/Visualizer";
 import Modal3D from "../components/Modal3D";

@@ -8,25 +8,48 @@ $grey-light: #f4f4f6;
 $white: #ffffff;
 $text: #2c2c2c;
 $border-color: #e0e0e0;
-// Ajout de la couleur rouge pour les erreurs
 $error: #e74c3c; 
 
 @import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lato:wght@300;400;700&display=swap");
 
 * {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
-// --- BASE ---
-html,
+// --- BASE (CORRECTION SCROLL MOLETTE) ---
+html {
+  // On autorise le scroll sur html pour que la molette fonctionne nativement
+  overflow-y: auto; 
+  overflow-x: hidden;
+  
+  // On garde ceci pour empêcher l'effet élastique sur Mac/iOS
+  overscroll-behavior: none; 
+  
+  height: 100%;
+  background-color: $white;
+}
+
 body {
   margin: 0;
   padding: 0;
-  height: 100%;
+  width: 100%;
+  min-height: 100%;
+  
   font-family: "Lato", sans-serif;
   background-color: $white;
   color: $text;
-
+  
+  // On laisse le scroll visible par défaut (géré par html)
+  overflow: visible; 
+  
+  -webkit-font-smoothing: antialiased;
+  
+  // Safe areas
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 h1,
@@ -40,272 +63,7 @@ h2,
   font-style: italic;
 }
 
-// --- LAYOUT PRINCIPAL ---
-.layout {
-  display: flex;
-  flex-direction: column;
-  height: 100vh; 
-  width: 100%;
-}
-
-.main-content {
-  display: flex;
-  flex: 1; 
-  width: 100%;
-  height: 100%;
-  overflow: hidden; 
-
-  @media (max-width: 1100px) {
-    flex-direction: column;
-    height: auto;
-    overflow-y: auto; 
-  }
-}
-
-// --- COLONNE GAUCHE (50%) - CONFIG PANEL ---
-.config-panel {
-  flex: 0 0 50%;
-  max-width: 50%;
-  height: 100%;
-  background-color: $white;
-  border-right: 1px solid $border-color;
-  overflow-y: auto; 
-  padding: 3rem 4rem;
-  
-  &::-webkit-scrollbar {
-    width: 8px;
-  }
-  &::-webkit-scrollbar-thumb {
-    background: #ccc;
-    border-radius: 4px;
-  }
-
-  h1 {
-    font-size: 2.2rem;
-    margin-bottom: 2rem;
-    margin-top: 0;
-  }
-
-  @media (max-width: 1100px) {
-    flex: none;
-    max-width: 100%;
-    width: 100%;
-    height: auto;
-    overflow: visible;
-    border-right: none;
-    padding: 2rem;
-  }
-}
-
-// --- COLONNE DROITE (50%) - VISUALIZER & CAROUSEL ---
-.visualizer-container {
-  flex: 0 0 50%; 
-  max-width: 50%;
-  height: 100%; 
-  background-color: #eef0f2;
-  position: relative;
-  overflow: hidden;
-  border-left: 1px solid $border-color;
-
-  display: flex;
-  flex-direction: column;
-
-  // 1. ZÔNE 3D (Flexible)
-  .canvas-wrapper {
-    flex: 1; 
-    position: relative;
-    width: 100%;
-    min-height: 0; 
-    
-    > div {
-      width: 100% !important;
-      height: 100% !important;
-    }
-
-    canvas {
-      width: 100% !important;
-      height: 100% !important;
-      display: block;
-      outline: none;
-    }
-  }
-
-  // 2. ZÔNE CAROUSEL (Fixe)
-  .carousel-wrapper {
-    flex: 0 0 auto; 
-    background: $white;
-    border-top: 1px solid $border-color;
-    padding: 0;
-    z-index: 10;
-  }
-
-  @media (max-width: 1100px) {
-    flex: none;
-    max-width: 100%;
-    width: 100%;
-    height: auto;
-    border-top: 1px solid $border-color;
-    border-left: none;
-
-    .canvas-wrapper {
-      height: 50vh; 
-    }
-  }
-}
-
-// --- CAROUSEL (EMBLA) ---
-.embla {
-  max-width: 100%;
-  margin: auto;
-  position: relative;
-  
-  --slide-spacing: 0rem; 
-  --slide-size: 100%;
-
-  .embla__viewport {
-    overflow: hidden;
-    position: relative; 
-  }
-
-  .embla__container {
-    display: flex;
-    touch-action: pan-y pinch-zoom;
-    margin-left: calc(var(--slide-spacing) * -1);
-  }
-
-  .embla__slide {
-    transform: translate3d(0, 0, 0);
-    flex: 0 0 var(--slide-size);
-    min-width: 0;
-    padding-left: var(--slide-spacing);
-  }
-
-  .embla__slide__inner {
-    position: relative;
-    overflow: hidden;
-    background-color: $black; 
-    
-    // RATIO 2.4:1
-    aspect-ratio: 2.4 / 1;
-    width: 100%;
-    
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover; 
-        display: block;
-    }
-  }
-
-  // BOUTONS
-  .embla__buttons {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    padding: 0 10px; 
-    pointer-events: none; 
-  }
-
-  .embla__button {
-    pointer-events: auto; 
-    -webkit-appearance: none;
-    appearance: none;
-    background-color: rgba($white, 0.7); 
-    touch-action: manipulation;
-    display: inline-flex;
-    text-decoration: none;
-    cursor: pointer;
-    border: none;
-    padding: 0;
-    margin: 0;
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 50%;
-    color: $black;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-
-    &:hover:not(:disabled) {
-        background-color: $white;
-        color: $gold;
-        transform: scale(1.1);
-    }
-
-    &:disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
-    }
-
-    .embla__button__svg {
-      width: 50%;
-      height: 50%;
-    }
-  }
-
-  .embla__controls {
-    position: absolute;
-    bottom: 10px;
-    left: 0;
-    right: 0;
-    display: flex;
-    justify-content: center;
-    pointer-events: none;
-  }
-
-  .embla__dots {
-    display: flex;
-    gap: 0.5rem;
-    background: rgba($black, 0.3);
-    padding: 5px 10px;
-    border-radius: 20px;
-    pointer-events: auto;
-  }
-
-  .embla__dot {
-    -webkit-appearance: none;
-    appearance: none;
-    background-color: transparent;
-    touch-action: manipulation;
-    display: inline-flex;
-    text-decoration: none;
-    cursor: pointer;
-    border: 0;
-    padding: 0;
-    margin: 0;
-    width: 10px;
-    height: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    
-    &:after {
-      content: '';
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background-color: rgba($white, 0.5);
-      transition: all 0.3s;
-    }
-
-    &.embla__dot--selected:after {
-      background-color: $white;
-      transform: scale(1.3);
-    }
-  }
-}
-
-// --- UI INPUTS, BUTTONS, ETC ---
+// --- UI INPUTS GLOBAUX ---
 input[type="number"],
 input[type="text"],
 select,
@@ -317,9 +75,10 @@ textarea {
   background: #f9f9f9;
   color: $black;
   font-family: inherit;
-  font-size: 1rem;
+  font-size: 16px; 
   margin-bottom: 0.5rem;
   transition: 0.3s;
+  appearance: none; 
 
   &:focus {
     outline: none;
@@ -328,11 +87,10 @@ textarea {
     box-shadow: 0 0 0 3px rgba($gold, 0.1);
   }
 
-  // --- MODIFICATION POUR L'ALERTE ROUGE ---
   &.has-alert {
-    border: 2px solid $error !important; // Bordure rouge forcée
-    background-color: rgba($error, 0.05); // Fond légèrement rouge
-    color: $error; // Texte de l'input rouge
+    border: 2px solid $error !important; 
+    background-color: rgba($error, 0.05); 
+    color: $error; 
 
     &:focus {
         border-color: $error !important;
@@ -341,7 +99,6 @@ textarea {
   }
 }
 
-// --- MESSAGE D'ALERTE SOUS L'INPUT ---
 .alert-message {
     color: $error;
     font-size: 0.85rem;
@@ -354,212 +111,4 @@ textarea {
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(-3px); }
     to { opacity: 1; transform: translateY(0); }
-}
-
-.form-group {
-  margin-bottom: 0.5rem;
-  label {
-    display: block;
-    margin-bottom: 0.8rem;
-    font-weight: 700;
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: $black;
-  }
-  &.section-box {
-    background: $white;
-    border: 1px solid $border-color;
-    border-radius: 8px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
-    .section-title {
-      font-size: 1.1rem;
-      text-transform: none;
-      letter-spacing: 0;
-      margin-bottom: 1.2rem;
-      border-bottom: 1px solid $grey-light;
-      padding-bottom: 0.5rem;
-    }
-  }
-}
-
-.inputs-row {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
-  > * {
-    flex: 1;
-    min-width: 150px;
-  }
-  span {
-    font-size: 0.8rem;
-    color: #666;
-    display: block;
-    margin-bottom: 5px;
-  }
-}
-
-.corian-color button,
-.drilling-options button,
-.sink-options-list button {
-  flex: 1;
-  padding: 12px 20px;
-  border: 1px solid $gold;
-  border-radius: 6px;
-  background: $gold-light;
-  color: $black;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-family: "Lato";
-  font-weight: 500;
-  font-size: 0.95rem;
-  &:hover:not(:disabled) {
-    background: rgba($gold, 0.2);
-  }
-  &.active,
-  &.active-small {
-    background: $black;
-    color: $white;
-    border-color: $black;
-    font-weight: 600;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-  }
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    background: #eee;
-    border-color: #ddd;
-    color: #999;
-  }
-}
-.corian-color,
-.drilling-options,
-.sink-options-list {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.sink-options-list {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-}
-
-.checkbox-group {
-  background: $white;
-  border: 1px solid $border-color;
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1rem;
-  label {
-    margin: 0;
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-    text-transform: none;
-    font-weight: 400;
-    font-size: 1rem;
-  }
-  input[type="checkbox"] {
-    appearance: none;
-    -webkit-appearance: none;
-    width: 24px;
-    height: 24px;
-    border: 1px solid $black;
-    border-radius: 4px;
-    margin-right: 15px;
-    display: grid;
-    place-content: center;
-    transition: all 0.2s ease;
-    background-color: transparent;
-    margin-bottom: 0;
-    &::before {
-      content: "";
-      width: 14px;
-      height: 14px;
-      transform: scale(0);
-      transition: 120ms transform ease-in-out;
-      box-shadow: inset 1em 1em $gold;
-      transform-origin: center;
-      clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
-    }
-    &:checked {
-      background-color: $black;
-      border-color: $black;
-      &::before {
-        transform: scale(1);
-      }
-    }
-  }
-}
-
-// --- ACTIONS & MODAL ---
-.actions {
-  display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
-  .btn-secondary {
-    width: 100%;
-    padding: 15px;
-    background: transparent;
-    border: 1px solid $black;
-    border-radius: 6px;
-    color: $black;
-    font-weight: 600;
-    cursor: pointer;
-    transition: 0.3s;
-    &:hover {
-      background: $grey-light;
-    }
-  }
-}
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-.modal-content {
-  background: white;
-  width: 80vw;
-  height: 80vh;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  padding: 2rem;
-  border-radius: 12px;
-  .close-btn {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    background: none;
-    border: none;
-    font-size: 2rem;
-    cursor: pointer;
-    padding: 0;
-    width: auto;
-    &:hover {
-      background: none;
-      color: $gold;
-    }
-  }
-  .canvas-container {
-    flex: 1;
-    background: $grey-light;
-    margin: 1rem 0;
-    border-radius: 8px;
-    overflow: hidden;
-  }
 }

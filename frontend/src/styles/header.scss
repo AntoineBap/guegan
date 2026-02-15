@@ -2,12 +2,16 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  
+  /* Padding par défaut desktop */
   padding: 15px 30px;
+  
   background-color: white;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  position: sticky;
+  position: sticky; /* Sticky pour rester visible mais respecter le scroll si nécessaire */
   top: 0;
   z-index: 100;
+  transition: all 0.3s ease;
 
   .social-links {
     display: flex;
@@ -27,28 +31,12 @@
       transition: all 0.2s ease;
       text-decoration: none;
 
-      svg {
-        width: 18px;
-        height: 18px;
-        fill: #111;
-      }
-
-      &.instagram {
-        svg {
-          fill: none;
-          stroke: #111;
-        }
-      }
-
-      &:hover {
-        transform: translateY(-2px);
-        background-color: #c5a028;
-      }
+      svg { width: 18px; height: 18px; fill: #111; }
+      &.instagram svg { fill: none; stroke: #111; }
+      &:hover { transform: translateY(-2px); background-color: #c5a028; }
     }
 
-    @media (max-width: 768px) {
-      display: none;
-    }
+    @media (max-width: 768px) { display: none; }
   }
 
   .logo {
@@ -59,7 +47,7 @@
     display: flex;
     align-items: baseline;
     gap: 6px;
-    transition: transform 0.2s;
+    transition: transform 0.2s, font-size 0.3s;
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
@@ -77,7 +65,9 @@
     @media (max-width: 768px) {
       position: static;
       transform: none;
-      &:hover { transform: translateY(-1px); }
+      margin-right: auto;
+      font-size: 1.3rem; /* Logo plus petit sur mobile */
+      .subtitle { display: none; } /* On cache le sous-titre sur mobile */
     }
   }
 
@@ -86,6 +76,7 @@
     align-items: center;
     gap: 15px;
 
+    /* Styles de base des boutons */
     button {
       display: flex;
       align-items: center;
@@ -97,120 +88,68 @@
       cursor: pointer;
       font-weight: 600;
       transition: all 0.2s;
+      min-height: 40px; 
 
       .icon { font-size: 1.2rem; }
+      .text { display: block; }
 
-      &:hover {
-        background-color: #f5f5f5;
-        border-color: #bbb;
-      }
+      &:hover { background-color: #f5f5f5; border-color: #bbb; }
     }
 
-    /* Style spécifique pour le bouton Admin (Noir) */
     .admin-btn {
-        background-color: #111;
-        color: white;
-        border: 1px solid #111;
+        background-color: #111; color: white; border: 1px solid #111;
         &:hover { background-color: #333; }
     }
 
-    /* Style spécifique pour le bouton Configurateur (Blanc/Gris) */
     .config-btn {
-        background-color: white;
-        color: #111;
-        border: 1px solid #ddd;
+        background-color: white; color: #111; border: 1px solid #ddd;
         &:hover { background-color: #f5f5f5; border-color: #bbb; }
+    }
+
+    .cart-btn {
+      position: relative; background-color: #111; color: white; border: 1px solid #111;
+      &:hover { background-color: #333; transform: translateY(-1px); }
+      .badge {
+        position: absolute; top: -5px; right: -5px; background-color: #e74c3c; color: white; font-size: 0.75rem; font-weight: 700; min-width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white;
+      }
     }
 
     .profile-container {
       position: relative;
-
-      .profile-btn {
-        &.active {
-          background-color: #f0f0f0;
-          border-color: #999;
-        }
-      }
-
       .dropdown-content {
-        position: absolute;
-        top: 100%;
-        right: 0;
-        background-color: white;
-        min-width: 180px;
-        box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-        border: 1px solid #eee;
-        border-radius: 8px;
-        padding: 8px;
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        visibility: hidden;
-        opacity: 0;
-        transform: translateY(10px);
-        transition: all 0.2s ease;
-        z-index: 10;
-        margin-top: 5px;
-
-        &.visible {
-            visibility: visible;
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .menu-item, .logout-item {
-          width: 100%;
-          text-align: left;
-          background: none;
-          border: none;
-          padding: 10px 15px;
-          border-radius: 4px;
-          font-weight: 500;
-          justify-content: flex-start;
-          transition: background 0.2s;
-
-          &:hover { background-color: #f5f5f5; }
-        }
-
-        .logout-item {
-          color: #e74c3c;
-          &:hover {
-            background-color: #fee2e2;
-            color: #991b1b;
-          }
-        }
+        position: absolute; top: 100%; right: 0; background-color: white; min-width: 180px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); border: 1px solid #eee; border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 4px; visibility: hidden; opacity: 0; transform: translateY(10px); transition: all 0.2s ease; z-index: 10; margin-top: 5px;
+        &.visible { visibility: visible; opacity: 1; transform: translateY(0); }
+        .menu-item, .logout-item { width: 100%; text-align: left; background: none; border: none; padding: 10px 15px; border-radius: 4px; font-weight: 500; transition: background 0.2s; &:hover { background-color: #f5f5f5; } }
+        .logout-item { color: #e74c3c; &:hover { background-color: #fee2e2; color: #991b1b; } }
       }
     }
 
-    .cart-btn {
-      position: relative;
-      background-color: #111;
-      color: white;
-      border: 1px solid #111;
-
-      &:hover { background-color: #333; transform: translateY(-1px); }
-
-      .badge {
-        position: absolute;
-        top: -8px;
-        right: -8px;
-        background-color: #e74c3c;
-        color: white;
-        font-size: 0.75rem;
-        font-weight: 700;
-        min-width: 20px;
-        height: 20px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: 2px solid white;
-      }
-    }
-
+    /* --- RESPONSIVE MOBILE : Header affiné --- */
     @media (max-width: 768px) {
-      .text { display: none; }
-      padding: 8px;
+      gap: 8px;
+      
+      /* On force les boutons à être plus petits et carrés (sans texte) */
+      button {
+        padding: 8px; /* Réduction padding */
+        width: 38px;
+        height: 38px;
+        justify-content: center;
+        
+        .text { display: none; } /* Cache le texte */
+        .icon { font-size: 1.1rem; }
+      }
+
+      /* Le bouton profil peut garder un style spécifique si besoin */
+      .profile-container .profile-btn {
+         width: 38px;
+         height: 38px;
+      }
+      
+      /* Ajustement du bouton panier */
+      .cart-btn {
+         width: 38px;
+         height: 38px;
+      }
     }
   }
 }

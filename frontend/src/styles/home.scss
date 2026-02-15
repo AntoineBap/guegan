@@ -13,73 +13,73 @@ $border-color: #e0e0e0;
 
 // --- BASE HOME PAGE ---
 .home-page {
-    min-height: 100vh;
+    height: 100%;
+    height: 100dvh; // Prend toute la hauteur viewport dynamique
+    width: 100%;
     font-family: "Lato", sans-serif;
     position: relative;
-    overflow: hidden; // Important pour ne pas avoir de scrollbars dues au background
-    background-color: $black; // Fond noir par défaut
+    overflow: hidden; 
+    background-color: $black; 
+    
+    // Empêche le scroll élastique spécifique à la home
+    overscroll-behavior: none; 
 
     // --- ARRIÈRE-PLAN MIXTE (VIDEO + IMAGES) ---
     .background-container {
-        position: absolute;
+        position: fixed; // Fixé pour ne jamais bouger
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        z-index: 0; // Tout au fond
-        background-color: $black; // Évite les flashs blancs entre les transitions
+        height: 100dvh;
+        z-index: 0;
+        background-color: $black; 
 
         .overlay {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            // Dégradé noir semi-transparent pour que le texte soit lisible
+            inset: 0; // Remplace top/left/right/bottom 0
             background: linear-gradient(135deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.3) 100%);
-            z-index: 2; // Au-dessus des images/vidéos
-            pointer-events: none; // Laisse passer les clics si besoin (bien que ce soit du fond)
+            z-index: 2;
+            pointer-events: none;
         }
 
         .media-item {
             position: absolute;
-            top: 0;
-            left: 0;
+            inset: 0;
             width: 100%;
             height: 100%;
-            
-            // Gestion du remplissage
-            object-fit: cover; // Pour la balise video
-            background-size: cover; // Pour les divs images
+            object-fit: cover;
+            background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
-            
-            // TRANSITION FLUIDE (FADE IN/OUT)
             opacity: 0;
             transition: opacity 1.5s ease-in-out; 
             z-index: 1;
 
             &.active {
                 opacity: 1;
-                z-index: 1;
             }
         }
     }
 
-    // --- NAVIGATION (Transparente) ---
+    // --- NAVIGATION ---
     .home-nav {
-        position: relative;
-        z-index: 10; // Au-dessus du background
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 10;
         display: flex;
         justify-content: space-between;
         align-items: center;
         padding: 30px 50px;
+        padding-top: max(30px, env(safe-area-inset-top)); // Respecte l'encoche
         
         .logo {
             font-family: "Playfair Display", serif;
             font-size: 1.8rem;
             font-weight: bold;
-            color: $white; // Logo en blanc
+            color: $white;
             letter-spacing: 2px;
         }
 
@@ -89,15 +89,15 @@ $border-color: #e0e0e0;
         }
 
         .nav-btn {
-            background: rgba(255, 255, 255, 0.1); // Légèrement transparent
+            background: rgba(255, 255, 255, 0.1);
             border: 1px solid $white;
             padding: 10px 25px;
-            border-radius: 30px; // Boutons plus ronds
+            border-radius: 30px;
             cursor: pointer;
             color: $white;
             font-weight: 500;
             font-family: "Lato", sans-serif;
-            backdrop-filter: blur(5px); // Effet flou derrière le bouton
+            backdrop-filter: blur(5px);
             transition: all 0.3s;
             
             &:hover {
@@ -107,28 +107,32 @@ $border-color: #e0e0e0;
         }
     }
 
-    // --- HERO CONTENT (Centré) ---
+    // --- HERO CONTENT ---
     .hero-section {
         position: relative;
-        z-index: 10; // Au-dessus du background
-        flex: 1;
+        z-index: 10;
+        height: 100%;
+        height: 100dvh;
+        width: 100%;
         display: flex;
+        flex-direction: column;
         align-items: center;
-        justify-content: center; // Centrage horizontal
+        justify-content: center;
         padding: 0 20px;
-        height: calc(100vh - 100px); // Toute la hauteur moins la nav environ
+        padding-bottom: env(safe-area-inset-bottom); // Marge bas pour la barre home iOS
 
         .hero-content {
             max-width: 800px;
-            text-align: center; // Texte centré
+            text-align: center;
             color: $white;
+            margin-top: 60px; // Compensation visuelle pour la nav
 
             h1 {
                 font-family: "Playfair Display", serif;
-                font-size: 4.5rem; // Plus gros pour l'impact
+                font-size: 4.5rem;
                 line-height: 1.1;
                 margin-bottom: 25px;
-                text-shadow: 0 4px 10px rgba(0,0,0,0.3); // Ombre portée pour lisibilité
+                text-shadow: 0 4px 10px rgba(0,0,0,0.3);
 
                 .gold-text {
                     color: $gold;
@@ -138,7 +142,7 @@ $border-color: #e0e0e0;
 
             p {
                 font-size: 1.3rem;
-                color: #e0e0e0; // Gris très clair
+                color: #e0e0e0;
                 margin-bottom: 50px;
                 line-height: 1.6;
                 font-weight: 300;
@@ -156,20 +160,21 @@ $border-color: #e0e0e0;
                 button {
                     padding: 16px 40px;
                     font-size: 1.1rem;
-                    border-radius: 50px; // Boutons pillule
+                    border-radius: 50px;
                     cursor: pointer;
                     font-weight: 600;
                     transition: all 0.3s ease;
                     text-transform: uppercase;
                     letter-spacing: 1px;
                     font-family: "Lato", sans-serif;
+                    -webkit-appearance: none; // Supprime le style bouton iOS par défaut
                 }
 
                 .primary-btn {
                     background-color: $gold;
                     color: $white;
                     border: none;
-                    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4); // Glow doré
+                    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
 
                     &:hover {
                         background-color: color.adjust($gold, $lightness: 5%);
@@ -193,24 +198,36 @@ $border-color: #e0e0e0;
         }
     }
     
-    // --- RESPONSIVE MOBILE ---
+    // --- RESPONSIVE MOBILE / TABLETTE ---
     @media (max-width: 768px) {
         .home-nav {
             padding: 20px;
+            padding-top: max(20px, env(safe-area-inset-top));
+            
             .logo { font-size: 1.5rem; }
-            .nav-btn { font-size: 0.8rem; padding: 8px 15px; }
+            .nav-btn { font-size: 0.9rem; padding: 10px 20px; }
         }
         
         .hero-section .hero-content {
-            h1 { font-size: 2.8rem; }
-            p { font-size: 1rem; margin-bottom: 30px; }
+            h1 { 
+                font-size: 2.5rem; // Taille adaptée mobile
+                padding: 0 10px;
+            }
+            p { 
+                font-size: 1rem; 
+                margin-bottom: 30px; 
+                padding: 0 15px;
+            }
             .cta-buttons {
                 flex-direction: column;
                 gap: 15px;
+                width: 100%;
+                max-width: 300px;
+                margin: 0 auto;
                 
                 button {
                     width: 100%;
-                    padding: 14px 20px;
+                    padding: 16px 20px; // Touch target confortable
                 }
             }
         }

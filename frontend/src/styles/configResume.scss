@@ -1,7 +1,6 @@
 // src/styles/configResume.scss
 
 .summary-panel {
-  // Ajustez la largeur ou le positionnement selon votre layout global
   width: 100%;
 
   .summary-card {
@@ -9,6 +8,11 @@
     padding: 30px;
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    
+    // Sur mobile, padding réduit pour gagner de la place
+    @media (max-width: 480px) {
+        padding: 20px;
+    }
 
     h2 {
       margin-bottom: 25px;
@@ -107,7 +111,7 @@
           padding: 8px;
           text-align: center;
           font-weight: bold;
-          font-size: 1rem;
+          font-size: 16px; // Anti-zoom iOS
           border: 1px solid #ccc;
           border-radius: 6px;
           outline: none;

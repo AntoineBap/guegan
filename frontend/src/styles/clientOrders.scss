@@ -2,6 +2,10 @@
 
 .client-orders-container {
   padding: 40px;
+  // Padding safe area
+  padding-top: max(40px, env(safe-area-inset-top));
+  padding-bottom: max(40px, env(safe-area-inset-bottom));
+  
   max-width: 1000px;
   margin: 0 auto;
   font-family: system-ui, -apple-system, sans-serif;
@@ -123,6 +127,8 @@
   /* Responsive Mobile */
   @media (max-width: 600px) {
     padding: 20px;
+    padding-top: max(20px, env(safe-area-inset-top));
+    padding-bottom: max(80px, env(safe-area-inset-bottom)); // Marge pour navigation bottom si existante
     
     .orders-list {
       grid-template-columns: 1fr; /* Une seule colonne sur mobile */

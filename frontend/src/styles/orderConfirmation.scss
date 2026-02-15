@@ -1,5 +1,7 @@
 .confirmation-page {
     padding: 40px;
+    padding-top: max(40px, env(safe-area-inset-top));
+    padding-bottom: max(40px, env(safe-area-inset-bottom));
     background-color: #f4f6f8;
     min-height: 100vh;
     font-family: system-ui, sans-serif;
@@ -43,6 +45,7 @@
 
     .address-card {
         display: flex; gap: 20px;
+        @media (max-width: 480px) { flex-direction: column; gap: 10px; }
         .col { flex: 1; p { margin: 4px 0; color: #555; } }
     }
 
@@ -50,6 +53,11 @@
         width: 100%; border-collapse: collapse; margin-top: 10px;
         th { text-align: left; border-bottom: 2px solid #eee; padding: 10px; color: #888; font-size: 0.9rem; }
         td { padding: 12px 10px; border-bottom: 1px solid #f9f9f9; }
+        
+        @media (max-width: 480px) {
+            font-size: 0.85rem;
+            th, td { padding: 8px 4px; }
+        }
     }
 
     .grand-total {

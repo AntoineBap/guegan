@@ -58,12 +58,8 @@ const Checkout = () => {
     }
   }, [user]);
 
-  useEffect(() => {
-    // On ne redirige pas si la modale de succès est ouverte, même si le panier est vide (car on vient de le vider)
-    if ((!checkoutItems || checkoutItems.length === 0) && !showSuccessModal) {
-      navigate("/my-orders");
-    }
-  }, [checkoutItems, navigate, showSuccessModal]);
+  // SUPPRESSION DU USEEFFECT DE REDIRECTION AUTOMATIQUE ICI
+  // pour éviter que le vidage du panier ne redirige avant l'affichage de la modale.
 
   const totalAmount = checkoutItems.reduce(
     (acc, item) => acc + item.unitPrice * item.quantity,
@@ -110,9 +106,10 @@ const Checkout = () => {
       const data = await response.json();
 
       if (response.ok) {
-        clearCart();
-        // AU LIEU DE NAVIGUER, ON OUVRE LA MODALE
+        // ORDRE IMPORTANT : On active la modale AVANT de vider le panier
+        // pour éviter que le composant ne pense que le panier est vide sans succès.
         setShowSuccessModal(true);
+        clearCart(); 
       } else {
         console.error("Erreur Backend :", data);
         const errorMsg = data.message || data.error || JSON.stringify(data);
@@ -125,8 +122,17 @@ const Checkout = () => {
     setIsSubmitting(false);
   };
 
-  // On modifie la condition de retour anticipé pour permettre l'affichage de la modale même si le panier est vide
-  if (checkoutItems.length === 0 && !showSuccessModal) return null;
+  // Affichage alternatif si le panier est vide ET qu'on n'est pas en succès
+  if (checkoutItems.length === 0 && !showSuccessModal) {
+    return (
+        <div className="checkout-page" style={{ textAlign: 'center', paddingTop: '100px' }}>
+            <h1>Votre panier est vide</h1>
+            <button className="validate-btn" style={{ maxWidth: '300px' }} onClick={() => navigate('/configurator')}>
+                Retourner au configurateur
+            </button>
+        </div>
+    );
+  }
 
   return (
     <div className="checkout-page">
@@ -524,10 +530,11 @@ const Checkout = () => {
       {showSuccessModal && (
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '500px', textAlign: 'center', height: 'auto', padding: '40px' }}>
+            <div style={{ fontSize: '4rem', marginBottom: '15px' }}>🎉</div>
             <h2 style={{ color: '#27ae60', margin: '0 0 20px 0' }}>Félicitations !</h2>
-            <p style={{ fontSize: '1.2rem', color: '#555', marginBottom: '30px' }}>
-              Votre commande est validée avec succès.
-              Veuillez consulter votre <br>boîte mail</br> pour obtenir les informations de virement
+            <p style={{ fontSize: '1.2rem', color: '#555', marginBottom: '30px', lineHeight: '1.5' }}>
+              Votre commande est validée avec succès.<br/>
+              Veuillez consulter votre <strong>boîte mail</strong> pour obtenir les informations de virement.
             </p>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
