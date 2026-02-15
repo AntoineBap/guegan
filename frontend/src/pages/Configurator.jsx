@@ -24,10 +24,7 @@ const INITIAL_CONFIG = {
 };
 
 const SLIDES = [
-    "https://images.pexels.com/photos/1080721/pexels-photo-1080721.jpeg?auto=compress&cs=tinysrgb&w=800",
-    "https://images.pexels.com/photos/2724748/pexels-photo-2724748.jpeg?auto=compress&cs=tinysrgb&w=800",
-    "https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg?auto=compress&cs=tinysrgb&w=800",
-    "https://images.pexels.com/photos/1358900/pexels-photo-1358900.jpeg?auto=compress&cs=tinysrgb&w=800"
+    "img3.jpg","img4.jpg","img5.jpg","img6.jpg"
 ];
 
 const CAROUSEL_OPTIONS = { loop: true };

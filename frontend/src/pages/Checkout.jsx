@@ -7,6 +7,10 @@ import "../styles/checkout.scss";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
+// Coordonnées de l'origine : 1 Rue de l'Industrie, 93000 Bobigny
+const ORIGIN_LAT = 48.9118; 
+const ORIGIN_LON = 2.4397;
+
 const Checkout = () => {
   const { checkoutItems, clearCart } = useCart();
   const { user, token, isAuthenticated } = useContext(AuthContext);
@@ -21,6 +25,7 @@ const Checkout = () => {
   const [expandedItemIndex, setExpandedItemIndex] = useState(null);
   
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [shippingCost, setShippingCost] = useState(0);
 
   const [billing, setBilling] = useState({
     firstName: "",
@@ -62,10 +67,56 @@ const Checkout = () => {
     }
   }, [user]);
 
-  const totalAmount = checkoutItems.reduce(
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; 
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * (Math.PI / 180)) *
+        Math.cos(lat2 * (Math.PI / 180)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
+  useEffect(() => {
+    const targetAddress = useSameAddress ? billing : shipping;
+
+    if (targetAddress.zip && targetAddress.city) {
+      const timer = setTimeout(() => {
+        const query = `${targetAddress.address} ${targetAddress.zip} ${targetAddress.city}`;
+        
+        fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query)}&limit=1`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.features && data.features.length > 0) {
+              const [lon, lat] = data.features[0].geometry.coordinates;
+              const distance = calculateDistance(ORIGIN_LAT, ORIGIN_LON, lat, lon);
+              
+              let price = 0;
+              if (distance <= 250) price = 0;
+              else if (distance <= 400) price = 1;
+              else if (distance <= 600) price = 2;
+              else price = 3;
+
+              setShippingCost(price);
+            }
+          })
+          .catch((err) => console.error("Erreur calcul distance", err));
+      }, 500); 
+
+      return () => clearTimeout(timer);
+    }
+  }, [billing.address, billing.zip, billing.city, shipping.address, shipping.zip, shipping.city, useSameAddress]);
+
+  const itemsTotal = checkoutItems.reduce(
     (acc, item) => acc + item.unitPrice * item.quantity,
     0,
   );
+
+  const finalTotal = itemsTotal + shippingCost;
 
   const handleBillingChange = (e) =>
     setBilling({ ...billing, [e.target.name]: e.target.value });
@@ -98,7 +149,8 @@ const Checkout = () => {
         },
         body: JSON.stringify({
           items: checkoutItems,
-          totalAmount,
+          totalAmount: finalTotal, 
+          shippingCost: shippingCost, 
           billingAddress: billing,
           shippingAddress: finalShipping,
         }),
@@ -506,9 +558,19 @@ const Checkout = () => {
               </span>
             </div>
 
-            <div className="total-row">
+            <div className="total-row" style={{ fontSize: '0.9rem', marginBottom: '5px' }}>
+              <span>Sous-total HT</span>
+              <span>{itemsTotal.toFixed(2)} €</span>
+            </div>
+
+            <div className="total-row" style={{ fontSize: '0.9rem', marginBottom: '15px' }}>
+              <span>Livraison</span>
+              <span>{shippingCost === 0 ? "Gratuit" : `${shippingCost.toFixed(2)} €`}</span>
+            </div>
+
+            <div className="total-row" style={{ fontSize: '1.2rem', fontWeight: 'bold', borderTop: '2px solid #333', paddingTop: '10px' }}>
               <span>Total HT</span>
-              <span>{totalAmount.toFixed(2)} €</span>
+              <span>{finalTotal.toFixed(2)} €</span>
             </div>
 
             <button
