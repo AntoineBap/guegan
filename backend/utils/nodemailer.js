@@ -9,7 +9,7 @@ apiKey.apiKey = process.env.BREVO_API_KEY;
 const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
 
 const iban = process.env.BANK_IBAN || 'IBAN non configuré';
-const bic = process.env.BANK_BIC || 'BIC non configur';
+const bic = process.env.BANK_BIC || 'BIC non configuré';
 
 // Adresse d'expédition
 const SENDER = { email: 'antoinebaptista030604@gmail.com', name: 'Guegan Shop' };
