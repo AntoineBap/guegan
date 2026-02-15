@@ -117,9 +117,6 @@ exports.sendStatusUpdateEmail = async (order, user, status) => {
             <p>${message}</p>
             <p><strong>Commande :</strong> #${order.orderNumber}</p>
             <br/>
-            <div style="text-align: center; margin-top: 20px;">
-                <a href="${frontendUrl}/my-orders" style="background-color: #111; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Suivre ma commande</a>
-            </div>
         </div>
     `;
 

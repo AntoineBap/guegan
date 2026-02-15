@@ -2,7 +2,7 @@ import React, { useEffect, useState, useContext } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
 import { useLocation, useNavigate } from 'react-router-dom'; // Import useLocation
 import Header from '../components/Header';
-import '../styles/clientOrders.scss'; 
+import '../styles/clientOrders.scss';
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
@@ -14,6 +14,8 @@ const ClientOrders = () => {
     
     const location = useLocation();
     const navigate = useNavigate();
+    const bic = import.meta.env.VITE_BANK_BIC || 'BIC non configuré';
+    const iban = import.meta.env.VITE_BANK_IBAN || 'IBAN non configuré';
 
     // 1. Détection du retour de commande pour afficher la modale
     useEffect(() => {
@@ -44,6 +46,7 @@ const ClientOrders = () => {
             default: return { label: status, color: 'gray' };
         }
     };
+
 
     // --- RENDU DE LA VUE DÉTAILLÉE ---
     if (selectedOrder) {
@@ -79,8 +82,8 @@ const ClientOrders = () => {
                                 <p><strong>Méthode :</strong> Virement Bancaire</p>
                                 <div style={{ marginTop: '15px', padding: '10px', background: '#f9f9f9', borderRadius: '5px', fontSize:'0.9rem' }}>
                                     <strong>Coordonnées bancaires :</strong><br/>
-                                    IBAN : FR76 1234 5678 9012 3456 7890 123<br/>
-                                    BIC : AGRIFRPP<br/>
+                                    IBAN : {iban}<br/>
+                                    BIC : {bic}<br/>
                                     <br/>
                                     <em>Merci d'indiquer la référence <strong>#{selectedOrder.orderNumber}</strong> dans le libellé du virement.</em>
                                 </div>
