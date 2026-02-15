@@ -10,6 +10,8 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
 
   const inputsRef = useRef({});
   const [alerts, setAlerts] = useState({});
+  // Nouvel état pour gérer le scroll automatique vers une nouvelle cuve
+  const [scrollToSinkId, setScrollToSinkId] = useState(null);
 
   const DRAINER_WIDTH_MM = 350;
   const MIN_GAP_BETWEEN_SINKS = 40;
@@ -99,6 +101,21 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
       });
     }
   };
+
+  // --- EFFET DE SCROLL AUTOMATIQUE LORS DE L'AJOUT D'UNE CUVE ---
+  useEffect(() => {
+    if (scrollToSinkId) {
+      const refKey = `sink-section-${scrollToSinkId}`;
+      // On attend que le DOM soit mis à jour
+      if (inputsRef.current[refKey]) {
+        inputsRef.current[refKey].scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        setScrollToSinkId(null); // Reset une fois le scroll déclenché
+      }
+    }
+  }, [config.sinks, scrollToSinkId]);
 
   useEffect(() => {
     if (!config.aprons || !config.apronFront) {
@@ -563,8 +580,9 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
   }, [minPlanLength, minPlanDepth]); // <--- DÉPENDANCES RÉDUITES AU STRICT MINIMUM STRUCTUREL
 
   const addNewSink = (side) => {
+    const newId = Date.now(); // Génération de l'ID avant le setConfig
     const newSink = {
-      id: Date.now(),
+      id: newId,
       type: "Cuve Labo 400x400x300",
       hasTapHole: false,
       tapHolePosition: "Centre",
@@ -573,13 +591,18 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
       drainerPosition: "right",
       offset: MIN_GAP_BETWEEN_SINKS,
     };
+
     setConfig((prev) => {
       let newSinks = [...prev.sinks];
       if (side === "left") newSinks = [newSink, ...newSinks];
       else newSinks = [...newSinks, newSink];
       return { ...prev, sinks: newSinks };
     });
+
+    // Définir la cible du scroll
+    setScrollToSinkId(newId);
   };
+
   const removeSink = (id) => {
     setConfig((prev) => {
       const newSinks = prev.sinks.filter((s) => s.id !== id);
@@ -758,6 +781,8 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
         return (
           <div
             key={sink.id}
+            // AJOUT DE LA REF SUR LA SECTION
+            ref={(el) => (inputsRef.current[`sink-section-${sink.id}`] = el)}
             className="form-group section-box"
             style={{
               borderLeft: isAnchor ? "4px solid #d4af37" : "4px solid #ccc",

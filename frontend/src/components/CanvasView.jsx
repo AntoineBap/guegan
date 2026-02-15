@@ -16,9 +16,11 @@ const CanvasView = ({ canvasContent }) => {
             {canvasContent}
           </Stage>
           <OrbitControls
+            makeDefault
+            enablePan={false}
             enableZoom={true}
             minPolarAngle={0}
-            maxPolarAngle={Math.PI}
+            maxPolarAngle={Math.PI / 2}
           />
         </Suspense>
       </Canvas>

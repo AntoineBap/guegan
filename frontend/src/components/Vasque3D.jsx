@@ -143,7 +143,13 @@ const Vasque3D = ({ config }) => {
 
   // --- SUITE DU RENDU ---
   const maxBasinDepth = calculatedSinks.reduce((max, s) => s.valid && s.depth > max ? s.depth : max, 0);
-  const elevationY = maxBasinDepth > 0 ? (maxBasinDepth - 0.4) + 0.02 : 0;
+  
+  // CORRECTIF : Calcul de l'élévation pour éviter de traverser le sol
+  // On calcule le point le plus bas (Top - Profondeur - EpaisseurFond)
+  // Et on remonte le tout pour que ce point soit à Y > 0
+  const elevationY = maxBasinDepth > 0 
+    ? (maxBasinDepth + wallThickness - 0.4) + 0.05 
+    : 0;
 
   const drawTeethedHole = (holePath, sink) => {
       const w = sink.width;
@@ -237,7 +243,7 @@ const Vasque3D = ({ config }) => {
     const shapeBase = new THREE.Shape();
     drawBaseRect(shapeBase);
     calculatedSinks.forEach(s => {
-        if(s.valid) drawOneHole(shapeBase, s.x, -s.z, s.width, s.height, 0.15);
+        if(s.valid) drawOneHole(shapeBase, s.x, -s.z, s.width, s.height, 0.28);
     });
     const geomBase = new THREE.ExtrudeGeometry(shapeBase, { ...extrudeSettings, depth: baseThickness });
     geomBase.rotateX(-Math.PI / 2);
@@ -246,7 +252,7 @@ const Vasque3D = ({ config }) => {
     drawBaseRect(shapeTop);
     calculatedSinks.forEach(s => {
         if(s.valid) {
-            drawOneHole(shapeTop, s.x, -s.z, s.width, s.height, 0.15);
+            drawOneHole(shapeTop, s.x, -s.z, s.width, s.height, 0.28);
             if(s.hasDrainer) {
                 const isLeft = s.drainerPosition === "left";
                 const SAFETY_GAP = 0.001; 
@@ -324,19 +330,34 @@ const Vasque3D = ({ config }) => {
   const SingleSinkGeometry = ({ s }) => {
       if(!s.valid) return null;
       
-      const ROUND_RADIUS = 0.4; // Rayon de l'arrondi du fond
-      const FLOOR_THICKNESS = 0.12; // Epaisseur du fond
-      const SHORTEN_BOTTOM = ROUND_RADIUS + 0.01; // On remonte les murs de la valeur du rayon + un peu pour être au dessus du fond
+      const ROUND_RADIUS = 0.4; // Rayon de l'arrondi (extérieur)
+      const FLOOR_THICKNESS = 0.12; 
+      
+      // Ajustement : Les murs doivent descendre jusqu'au début de la courbe intérieure.
+      // La courbe intérieure a un rayon de (ROUND_RADIUS - WALL_THICKNESS).
+      // Donc la hauteur de la partie droite du mur doit être réduite de cette valeur.
+      const SHORTEN_BOTTOM = ROUND_RADIUS - wallThickness; // 0.28
 
       const { outerWallGeom, innerSkinGeom, tubesGeometry, cornerGeometry } = useMemo(() => {
-        const SHRINK_OFFSET = 0.1; 
+        // Changement : On met le SHRINK à 0 pour que le mur aille jusqu'en haut (0.4)
+        const SHRINK_OFFSET = 0.0; 
         const THIN_SKIN = 0.00000000001;
 
-        // 1. Murs Verticaux (Raccourcis)
+        // 1. Murs Verticaux
         const outerShape = new THREE.Shape();
         const wOut = s.width + wallThickness * 2;
         const hOut = s.height + wallThickness * 2;
-        outerShape.moveTo(-wOut/2, -hOut/2); outerShape.lineTo(-wOut/2, hOut/2); outerShape.lineTo(wOut/2, hOut/2); outerShape.lineTo(wOut/2, -hOut/2); outerShape.lineTo(-wOut/2, -hOut/2);
+        const rOut = 0.4;
+
+        outerShape.moveTo(-wOut/2 + rOut, -hOut/2);
+        outerShape.lineTo(wOut/2 - rOut, -hOut/2);
+        outerShape.absarc(wOut/2 - rOut, -hOut/2 + rOut, rOut, -Math.PI/2, 0, false);
+        outerShape.lineTo(wOut/2, hOut/2 - rOut);
+        outerShape.absarc(wOut/2 - rOut, hOut/2 - rOut, rOut, 0, Math.PI/2, false);
+        outerShape.lineTo(-wOut/2 + rOut, hOut/2);
+        outerShape.absarc(-wOut/2 + rOut, hOut/2 - rOut, rOut, Math.PI/2, Math.PI, false);
+        outerShape.lineTo(-wOut/2, -hOut/2 + rOut);
+        outerShape.absarc(-wOut/2 + rOut, -hOut/2 + rOut, rOut, Math.PI, -Math.PI/2, false);
         
         const holeOut = new THREE.Path();
         drawTeethedHole(holeOut, s);
@@ -345,7 +366,7 @@ const Vasque3D = ({ config }) => {
         const geomOut = new THREE.ExtrudeGeometry(outerShape, { depth: s.depth - SHRINK_OFFSET - SHORTEN_BOTTOM, bevelEnabled: false, curveSegments: 64 });
         geomOut.rotateX(-Math.PI/2);
 
-        // 2. Peau Intérieure (Raccourcie)
+        // 2. Peau Intérieure
         const innerShape = new THREE.Shape();
         const r = 0.28;
         const hw = s.width; const hh = s.height;
@@ -364,7 +385,7 @@ const Vasque3D = ({ config }) => {
         holeIn.lineTo(-hwIn/2+rIn, -hhIn/2); holeIn.absarc(-hwIn/2+rIn, -hhIn/2+rIn, rIn, -Math.PI/2, -Math.PI, true);
         innerShape.holes.push(holeIn);
 
-        const geomIn = new THREE.ExtrudeGeometry(innerShape, { depth: s.depth - SHORTEN_BOTTOM, bevelEnabled: false, curveSegments: 64 });
+        const geomIn = new THREE.ExtrudeGeometry(innerShape, { depth: s.depth - SHRINK_OFFSET - SHORTEN_BOTTOM, bevelEnabled: false, curveSegments: 64 });
         geomIn.rotateX(-Math.PI/2);
 
         // 3. Géométrie des Quarts de Tubes
@@ -386,24 +407,22 @@ const Vasque3D = ({ config }) => {
         const sideDepth = cZ * 2;
         const fbDepth = cX * 2;
 
-        // Extrusion Longueur (Gauche/Droite)
         const tubeGeomSide = new THREE.ExtrudeGeometry(tubeShape, { depth: sideDepth, bevelEnabled: false, curveSegments: 32 });
-        // Centrage de l'axe Z pour que l'origine soit au milieu du tube
         tubeGeomSide.translate(0, 0, -sideDepth / 2);
 
-        // Extrusion Largeur (Devant/Derrière)
         const tubeGeomFrontBack = new THREE.ExtrudeGeometry(tubeShape, { depth: fbDepth, bevelEnabled: false, curveSegments: 32 });
-        // Centrage de l'axe Z (qui deviendra X après rotation)
         tubeGeomFrontBack.translate(0, 0, -fbDepth / 2);
         
-        // 4. Géométrie des Coins (Lathe 1/8 Sphère creuse)
         const tubePoints = tubeShape.getPoints(10);
         const cornerGeom = new THREE.LatheGeometry(tubePoints, 32, 0, Math.PI/2);
 
         return { outerWallGeom: geomOut, innerSkinGeom: geomIn, tubesGeometry: { side: tubeGeomSide, frontBack: tubeGeomFrontBack }, cornerGeometry: cornerGeom };
       }, [s.width, s.height, s.depth, s.type, s.hasDrainer, s.drainerPosition, wallThickness]);
 
-      const floorY = 0.4 - s.depth;
+      // NIVEAUX (Y)
+      // floorInternalY = Surface où l'eau touche le fond.
+      const floorInternalY = 0.4 - s.depth;
+      
       const materialProps = { 
           color: config.color === "white"?"#fff":"#111", 
           roughness:0.9, 
@@ -417,89 +436,78 @@ const Vasque3D = ({ config }) => {
       const tubeCenterX = (s.width/2 + wallThickness) - ROUND_RADIUS;
       const tubeCenterZ = (s.height/2 + wallThickness) - ROUND_RADIUS;
       
-      // REHAUSSEMENT : Au-dessus de l'épaisseur du sol (0.02 / 2 = 0.01)
-      const tubeCenterY = floorY + 0.01; 
-
-      // Rotation de base pour orienter le coin (Lathe)
-      const baseCornerRot = [-Math.PI / 2, 0, Math.PI / 2];
+      // Le tube a un rayon interne (R - thickness). C'est ce rayon interne qui doit toucher le sol.
+      // Donc le centre du tube est à floorInternalY + (R - thickness).
+      const tubeCenterY = floorInternalY + (ROUND_RADIUS - wallThickness);
 
       return (
           <group position={[s.x, 0, s.z]}>
-              {/* Murs Verticaux */}
-              <mesh position={[0, floorY + SHORTEN_BOTTOM, 0]} geometry={outerWallGeom}>
+              {/* Murs Verticaux - Ils commencent pile au dessus de la courbe interne */}
+              <mesh position={[0, tubeCenterY, 0]} geometry={outerWallGeom}>
                   <meshStandardMaterial {...materialProps} />
               </mesh>
-              <mesh position={[0, 0.4 - s.depth + SHORTEN_BOTTOM, 0]} geometry={innerSkinGeom}>
+              <mesh position={[0, tubeCenterY, 0]} geometry={innerSkinGeom}>
                   <meshStandardMaterial {...materialProps} />
               </mesh>
 
-              {/* Fond Plat (Réduit pour s'insérer entre les arrondis) */}
-              <mesh position={[0, floorY + 0.07, 0]}>
+              {/* Fond Plat */}
+              <mesh position={[0, floorInternalY - FLOOR_THICKNESS/2, 0]}>
                   <boxGeometry args={[s.width - 2*(ROUND_RADIUS-wallThickness), FLOOR_THICKNESS, s.height - 2*(ROUND_RADIUS-wallThickness)]} />
                   <meshStandardMaterial color={config.color === "white"?"#ccc":"#000"} roughness={0.9} side={THREE.DoubleSide} />
               </mesh>
               
               {/* --- 4 QUARTS DE TUBES --- */}
-
-              {/* 1. Tube Droite (+X) - Centré sur Z=0 */}
               <mesh 
                   geometry={tubesGeometry.side} 
-                  position={[tubeCenterX, tubeCenterY + 0.4, 0]} 
+                  position={[tubeCenterX, tubeCenterY, 0]} 
                   rotation={[0, 0, -Math.PI/2]} 
               >
                   <meshStandardMaterial {...materialProps} />
               </mesh>
 
-              {/* 2. Tube Gauche (-X) - Centré sur Z=0 */}
               <mesh 
                   geometry={tubesGeometry.side} 
-                  position={[-tubeCenterX, tubeCenterY + 0.4, 0]} 
+                  position={[-tubeCenterX, tubeCenterY, 0]} 
                   rotation={[0, Math.PI, -Math.PI/2]} 
               >
                   <meshStandardMaterial {...materialProps} />
               </mesh>
 
-               {/* 3. Tube Arrière (-Z) - Centré sur X=0 */}
               <mesh 
                   geometry={tubesGeometry.frontBack} 
-                  position={[0, tubeCenterY + 0.4, -tubeCenterZ]} 
+                  position={[0, tubeCenterY, -tubeCenterZ]} 
                   rotation={[0, -Math.PI/2, Math.PI]} 
               >
                   <meshStandardMaterial {...materialProps} />
               </mesh>
 
-              {/* 4. Tube Avant (+Z) - Centré sur X=0 */}
               <mesh 
                   geometry={tubesGeometry.frontBack} 
-                  position={[0, tubeCenterY + 0.4, tubeCenterZ]} 
+                  position={[0, tubeCenterY, tubeCenterZ]} 
                   rotation={[0, Math.PI/2, Math.PI]} 
               >
                   <meshStandardMaterial {...materialProps} />
               </mesh>
 
               {/* --- 4 COINS --- */}
-              {/* Avant-Droit (+X, +Z) */}
-              <mesh geometry={cornerGeometry} position={[tubeCenterX, tubeCenterY + 0.4, tubeCenterZ]} rotation={[Math.PI/2, Math.PI/2, Math.PI/2]}>
+              <mesh geometry={cornerGeometry} position={[tubeCenterX, tubeCenterY, tubeCenterZ]} rotation={[Math.PI/2, Math.PI/2, Math.PI/2]}>
                   <meshStandardMaterial {...materialProps} />
               </mesh>
               
-              {/* Arrière-Droit (+X, -Z) */}
-              <mesh geometry={cornerGeometry} position={[tubeCenterX, tubeCenterY + 0.4 , -tubeCenterZ]} rotation={[-Math.PI/2, Math.PI, Math.PI/2]}>
+              <mesh geometry={cornerGeometry} position={[tubeCenterX, tubeCenterY , -tubeCenterZ]} rotation={[-Math.PI/2, Math.PI, Math.PI/2]}>
                   <meshStandardMaterial {...materialProps} />
               </mesh>
 
-              {/* Arrière-Gauche (-X, -Z) */}
-              <mesh geometry={cornerGeometry} position={[-tubeCenterX, tubeCenterY+ 0.4, -tubeCenterZ]} rotation={[Math.PI/2, 0, Math.PI]}>
+              <mesh geometry={cornerGeometry} position={[-tubeCenterX, tubeCenterY, -tubeCenterZ]} rotation={[Math.PI/2, 0, Math.PI]}>
                   <meshStandardMaterial {...materialProps} />
               </mesh>
 
-              {/* Avant-Gauche (-X, +Z) */}
-              <mesh geometry={cornerGeometry} position={[-tubeCenterX, tubeCenterY + 0.4, tubeCenterZ]} rotation={[Math.PI/2, 0, Math.PI/2]}>
+              <mesh geometry={cornerGeometry} position={[-tubeCenterX, tubeCenterY, tubeCenterZ]} rotation={[Math.PI/2, 0, Math.PI/2]}>
                   <meshStandardMaterial {...materialProps} />
               </mesh>
 
               {/* Bonde */}
-              <mesh position={[0, floorY + 0.001, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+              <mesh position={[0, floorInternalY + 0.001, 0]} rotation={[-Math.PI / 2, 0, 0]}>
                   <circleGeometry args={[0.175, 64]} />
                   <meshBasicMaterial color="#000000" side={THREE.DoubleSide} />
               </mesh>

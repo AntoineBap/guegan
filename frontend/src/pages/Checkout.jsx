@@ -2,7 +2,7 @@ import React, { useState, useContext, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom"; 
 import { useCart } from "../contexts/CartContext";
 import { AuthContext } from "../contexts/AuthContext";
-import { SettingsContext } from "../contexts/SettingsContext"; // 👈 Import du contexte settings
+import { SettingsContext } from "../contexts/SettingsContext";
 import "../styles/checkout.scss";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -10,7 +10,7 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 const Checkout = () => {
   const { checkoutItems, clearCart } = useCart();
   const { user, token, isAuthenticated } = useContext(AuthContext);
-  const { settings } = useContext(SettingsContext); // 👈 Récupération des settings
+  const { settings } = useContext(SettingsContext);
   const navigate = useNavigate();
 
   const [useSameAddress, setUseSameAddress] = useState(true);
@@ -19,6 +19,9 @@ const Checkout = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [expandedItemIndex, setExpandedItemIndex] = useState(null);
+  
+  // Nouvel état pour la modale de succès
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const [billing, setBilling] = useState({
     firstName: "",
@@ -39,7 +42,6 @@ const Checkout = () => {
     country: "France",
   });
 
-  // Récupération du délai (Lead Time) depuis les settings, ou 15 par défaut
   const leadTime = settings?.constraints?.leadTime || 15;
 
   useEffect(() => {
@@ -57,10 +59,11 @@ const Checkout = () => {
   }, [user]);
 
   useEffect(() => {
-    if (!checkoutItems || checkoutItems.length === 0) {
-      navigate("/");
+    // On ne redirige pas si la modale de succès est ouverte, même si le panier est vide (car on vient de le vider)
+    if ((!checkoutItems || checkoutItems.length === 0) && !showSuccessModal) {
+      navigate("/my-orders");
     }
-  }, [checkoutItems, navigate]);
+  }, [checkoutItems, navigate, showSuccessModal]);
 
   const totalAmount = checkoutItems.reduce(
     (acc, item) => acc + item.unitPrice * item.quantity,
@@ -108,7 +111,8 @@ const Checkout = () => {
 
       if (response.ok) {
         clearCart();
-        navigate(`/order-confirmation/${data.orderId}`);
+        // AU LIEU DE NAVIGUER, ON OUVRE LA MODALE
+        setShowSuccessModal(true);
       } else {
         console.error("Erreur Backend :", data);
         const errorMsg = data.message || data.error || JSON.stringify(data);
@@ -121,7 +125,8 @@ const Checkout = () => {
     setIsSubmitting(false);
   };
 
-  if (checkoutItems.length === 0) return null;
+  // On modifie la condition de retour anticipé pour permettre l'affichage de la modale même si le panier est vide
+  if (checkoutItems.length === 0 && !showSuccessModal) return null;
 
   return (
     <div className="checkout-page">
@@ -458,7 +463,6 @@ const Checkout = () => {
               ))}
             </div>
 
-            {/* --- NOUVELLE SECTION DÉLAI DE LIVRAISON --- */}
             <div
               style={{
                 display: "flex",
@@ -510,11 +514,50 @@ const Checkout = () => {
               disabled={isSubmitting || !acceptedTerms || !acceptedCGV}
               style={{ marginTop: "20px" }}
             >
-              {isSubmitting ? "Validation..." : "Confirmer et Payer"}
+              {isSubmitting ? "Validation..." : "Valider la commande"}
             </button>
           </div>
         </div>
       </div>
+
+      {/* --- MODALE DE SUCCÈS --- */}
+      {showSuccessModal && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '500px', textAlign: 'center', height: 'auto', padding: '40px' }}>
+            <h2 style={{ color: '#27ae60', margin: '0 0 20px 0' }}>Félicitations !</h2>
+            <p style={{ fontSize: '1.2rem', color: '#555', marginBottom: '30px' }}>
+              Votre commande est validée avec succès.
+              Veuillez consulter votre <br>boîte mail</br> pour obtenir les informations de virement
+            </p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <button 
+                onClick={() => navigate('/my-orders')}
+                className="validate-btn"
+                style={{ width: '100%' }}
+              >
+                Voir mes commandes
+              </button>
+              
+              <button 
+                onClick={() => navigate('/configurator')}
+                style={{
+                  padding: '15px',
+                  background: 'transparent',
+                  border: '1px solid #333',
+                  borderRadius: '5px',
+                  color: '#333',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  width: '100%'
+                }}
+              >
+                Retourner au configurateur
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

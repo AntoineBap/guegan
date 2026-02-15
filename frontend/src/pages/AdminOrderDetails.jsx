@@ -34,7 +34,7 @@ const AdminOrderDetails = () => {
     }, [id, token]);
 
     const handleOpen3D = (item) => {
-        navigate('/', { state: { loadConfig: item } });
+        navigate('/configurator', { state: { loadConfig: item } });
     };
 
     if (loading) return <div className="loading">Chargement...</div>;
