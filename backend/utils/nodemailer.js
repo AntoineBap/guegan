@@ -11,7 +11,7 @@ const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
 const iban = process.env.BANK_IBAN || 'IBAN non configuré';
 const bic = process.env.BANK_BIC || 'BIC non configuré';
 
-// Adresse d'expédition
+// Adresse d'expédition // MODIFIER ICI LE MAIL QUAND MAIL CREE 
 const SENDER = { email: 'antoinebaptista030604@gmail.com', name: 'Guegan Shop' };
 
 // --- 1. EMAIL DE VALIDATION ---
@@ -19,7 +19,6 @@ exports.sendVerificationEmail = async (email, token) => {
     if (!email) return;
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const link = `${frontendUrl}/verify/${token}`;
-    console.log("Lien de vérification généré :", link);
     
     await apiInstance.sendTransacEmail({
         sender: SENDER,

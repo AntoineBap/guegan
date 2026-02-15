@@ -36,7 +36,7 @@ const Home = () => {
         if (currentMedia.type === 'video' && videoRef.current) {
             const video = videoRef.current;
             video.currentTime = 0; // Rembobiner au début
-            video.play().catch(e => console.log("Autoplay prevent:", e));
+            video.play().catch(e => console.log(e));
             
             // On passe à la suite seulement quand la vidéo est finie
             // Note : Assurez-vous de NE PAS mettre l'attribut 'loop' sur la balise video HTML

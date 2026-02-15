@@ -18,14 +18,11 @@ app.use(cors({
 
 app.use(express.json());
 
-// --- 2. CONNEXION MONGODB ---
-console.log("Tentative de connexion avec l'URI :", process.env.MONGO_URI ? "Trouvée (Masquée)" : "Non trouvée (Undefined) !");
+
 
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ Connexion à MongoDB réussie !"))
   .catch((error) => {
-    console.log("❌ Connexion à MongoDB échouée !");
     console.error(error);
   });
 

@@ -21,8 +21,6 @@ exports.getDashboardStats = async (req, res) => {
 // --- 2. RÉCUPÉRER LES COMMANDES PAR STATUT ---
 exports.getOrdersByStatus = async (req, res) => {
     try {
-        // DEBUG : On affiche ce que le controller reçoit
-        console.log("🔍 Requête reçue pour le statut (params):", req.params);
         
         const { status } = req.params;
 
@@ -34,8 +32,6 @@ exports.getOrdersByStatus = async (req, res) => {
         const orders = await Order.find({ status: status })
             .populate('userId', 'email phone companyName firstName lastName') 
             .sort({ createdAt: -1 });
-
-        console.log(`📦 ${orders.length} commandes trouvées pour le statut '${status}'`);
 
         res.status(200).json(orders);
     } catch (error) {
@@ -49,8 +45,6 @@ exports.updateOrderStatus = async (req, res) => {
     try {
         const { id } = req.params;
         const { status } = req.body;
-
-        console.log(`🔄 Mise à jour commande ${id} vers ${status}`);
 
         // 1. Mise à jour de la commande
         const order = await Order.findByIdAndUpdate(
@@ -71,7 +65,6 @@ exports.updateOrderStatus = async (req, res) => {
             if (user) {
                 try {
                     await sendStatusUpdateEmail(order, user, status);
-                    console.log("📧 Email de statut envoyé avec succès.");
                 } catch (emailError) {
                     console.error("⚠️ Erreur envoi email (mais statut mis à jour):", emailError.message);
                 }
