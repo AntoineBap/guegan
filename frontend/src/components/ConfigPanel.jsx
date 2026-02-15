@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useContext, useState, useRef } from "react";
 import ConfigResume from "./ConfigResume";
 import { AuthContext } from "../contexts/AuthContext";
 import { SettingsContext } from "../contexts/SettingsContext";
-import "../styles/style.scss";
+import "../styles/style.scss"; // ou configurator.scss selon votre structure
 
 const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
   const { isAuthenticated } = useContext(AuthContext);
@@ -10,7 +10,6 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
 
   const inputsRef = useRef({});
   const [alerts, setAlerts] = useState({});
-  // Nouvel état pour gérer le scroll automatique vers une nouvelle cuve
   const [scrollToSinkId, setScrollToSinkId] = useState(null);
 
   const DRAINER_WIDTH_MM = 350;
@@ -64,13 +63,19 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
     }
   };
 
+  // --- NOUVELLE FONCTION POUR BLOQUER LE SCROLL SUR INPUT ---
+  const handleWheel = (e) => {
+    // Enlève le focus de l'input quand on scroll, ce qui empêche la modification de la valeur
+    // et permet à la page de scroller normalement.
+    e.target.blur();
+  };
+
   const notifyCorrection = (fieldName, newValue) => {
     setAlerts((prev) => ({
       ...prev,
       [fieldName]: `Ancienne Valeur impossible, ajustée à ${newValue}`,
     }));
 
-    // Scroll automatique
     setTimeout(() => {
       if (inputsRef.current[fieldName]) {
         inputsRef.current[fieldName].scrollIntoView({
@@ -102,17 +107,15 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
     }
   };
 
-  // --- EFFET DE SCROLL AUTOMATIQUE LORS DE L'AJOUT D'UNE CUVE ---
   useEffect(() => {
     if (scrollToSinkId) {
       const refKey = `sink-section-${scrollToSinkId}`;
-      // On attend que le DOM soit mis à jour
       if (inputsRef.current[refKey]) {
         inputsRef.current[refKey].scrollIntoView({
           behavior: "smooth",
           block: "center",
         });
-        setScrollToSinkId(null); // Reset une fois le scroll déclenché
+        setScrollToSinkId(null);
       }
     }
   }, [config.sinks, scrollToSinkId]);
@@ -377,7 +380,6 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
     const minVal = min ? parseFloat(min) : 0;
     const maxVal = max ? parseFloat(max) : Infinity;
 
-    // 1. Correction de la valeur du champ lui-même (Length, Width...)
     if (isNaN(val) || value === "") {
       val = minVal;
       notifyCorrection(name, val);
@@ -391,20 +393,16 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
       }
     }
 
-    // Création d'une config temporaire pour vérifier les conséquences
     const updatedConfig = { ...config, [name]: val };
     let finalConfig = { ...updatedConfig };
     let hasChanges = false;
 
-    // 2. Si on vient de modifier la Largeur (Length), on doit vérifier si cela "écrase" une cuve
-    // Cette logique remplace ce qui était fait automatiquement par le useEffect
     if (name === "length") {
       const anchorIndex = finalConfig.sinks.findIndex(
         (s) => s.id === finalConfig.anchorId,
       );
       if (anchorIndex !== -1) {
         const anchorSink = finalConfig.sinks[anchorIndex];
-        // On ne corrige que si la cuve est ancrée à gauche ou à droite
         if (
           anchorSink.type !== "Aucune cuve" &&
           (anchorSink.position === "left" || anchorSink.position === "right")
@@ -416,7 +414,6 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
           let maxOffset = 0;
           let minOffset = 0;
 
-          // Recalcul des limites basé sur la NOUVELLE longueur (val)
           if (anchorSink.position === "left") {
             minOffset = MARGIN_PLAN_EDGE + (leftWidth - halfW);
             maxOffset = Math.min(
@@ -424,7 +421,6 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
               val / 2 - halfW,
             );
           } else {
-            // right
             minOffset = MARGIN_PLAN_EDGE + (rightWidth - halfW);
             maxOffset = Math.min(
               val - MARGIN_PLAN_EDGE - leftWidth - halfW,
@@ -438,7 +434,6 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
           const targetMax = Math.floor(maxOffset);
           const targetMin = Math.ceil(minOffset);
 
-          // Si le décalage actuel est hors limites, on corrige
           if (!isNaN(currentOffset) && anchorSink.offset !== "") {
             if (currentOffset > targetMax) {
               finalConfig.sinks = finalConfig.sinks.map((s, idx) =>
@@ -458,13 +453,10 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
       }
     }
 
-    // Mise à jour finale
     setConfig(finalConfig);
   };
 
   const updateSink = (id, field, value) => {
-    const refKey = field === "offset" ? `sink-offset-${id}` : `sink-tap-${id}`;
-
     setConfig((prev) => ({
       ...prev,
       sinks: prev.sinks.map((s) =>
@@ -551,22 +543,16 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
     }
   };
 
-  // --- GESTION CENTRALISÉE DES CORRECTIONS AUTOMATIQUES (STRUCTURELLES) ---
-  // IMPORTANT : config.length et config.width ONT ÉTÉ RETIRÉS des dépendances
-  // Cela permet de taper librement dans les champs sans que ce useEffect ne se déclenche
-  // La validation de ces champs se fait désormais dans handleBlur
   useEffect(() => {
     let changed = false;
     let newConfig = { ...config };
 
-    // 1. Correction Largeur (Length) - Uniquement si MIN augmente (ajout cuve)
     if (newConfig.length !== "" && newConfig.length < minPlanLength) {
       notifyCorrection("length", minPlanLength);
       newConfig.length = minPlanLength;
       changed = true;
     }
 
-    // 2. Correction Profondeur (Width) - Uniquement si MIN augmente
     if (newConfig.width !== "" && newConfig.width < minPlanDepth) {
       notifyCorrection("width", minPlanDepth);
       newConfig.width = minPlanDepth;
@@ -577,10 +563,10 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
       setConfig(newConfig);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [minPlanLength, minPlanDepth]); // <--- DÉPENDANCES RÉDUITES AU STRICT MINIMUM STRUCTUREL
+  }, [minPlanLength, minPlanDepth]);
 
   const addNewSink = (side) => {
-    const newId = Date.now(); // Génération de l'ID avant le setConfig
+    const newId = Date.now();
     const newSink = {
       id: newId,
       type: "Cuve Labo 400x400x300",
@@ -599,7 +585,6 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
       return { ...prev, sinks: newSinks };
     });
 
-    // Définir la cible du scroll
     setScrollToSinkId(newId);
   };
 
@@ -666,6 +651,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
               onFocus={() => clearAlert("length")}
               onBlur={handleBlur}
               onKeyDown={blockInvalidChar}
+              onWheel={handleWheel} // BLOQUE LE SCROLL
               min={minPlanLength}
               max={maxPlanLength}
               step="10"
@@ -689,6 +675,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
               onFocus={() => clearAlert("width")}
               onBlur={handleBlur}
               onKeyDown={blockInvalidChar}
+              onWheel={handleWheel} // BLOQUE LE SCROLL
               min={minPlanDepth}
               max={maxPlanDepth}
               step="10"
@@ -781,7 +768,6 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
         return (
           <div
             key={sink.id}
-            // AJOUT DE LA REF SUR LA SECTION
             ref={(el) => (inputsRef.current[`sink-section-${sink.id}`] = el)}
             className="form-group section-box"
             style={{
@@ -968,6 +954,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                               updateSink(sink.id, "offset", val);
                             }}
                             onKeyDown={blockInvalidChar}
+                            onWheel={handleWheel} // BLOQUE LE SCROLL
                             min={Math.ceil(minOffset)}
                             max={Math.floor(maxOffset)}
                             step="10"
@@ -1055,6 +1042,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                             updateSink(sink.id, "offset", val);
                           }}
                           onKeyDown={blockInvalidChar}
+                          onWheel={handleWheel} // BLOQUE LE SCROLL
                           min={minOffset}
                           max={Math.floor(maxOffset)}
                           step="10"
@@ -1170,6 +1158,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                               updateSink(sink.id, "tapHoleOffset", val);
                             }}
                             onKeyDown={blockInvalidChar}
+                            onWheel={handleWheel} // BLOQUE LE SCROLL
                             min="0"
                             max={maxTapOffset}
                             step="1"
@@ -1338,6 +1327,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                 onFocus={() => clearAlert("rimHeigh")}
                 onBlur={handleBlur}
                 onKeyDown={blockInvalidChar}
+                onWheel={handleWheel} // BLOQUE LE SCROLL
                 min="100"
                 max="550"
               />
@@ -1438,6 +1428,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
               onFocus={() => clearAlert("apronHeight")}
               onBlur={handleBlur}
               onKeyDown={blockInvalidChar}
+              onWheel={handleWheel} // BLOQUE LE SCROLL
               min="40"
               max="200"
             />

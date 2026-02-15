@@ -8,59 +8,121 @@ $white: #ffffff;
 $text: #2c2c2c;
 $border-color: #e0e0e0;
 
-// --- LAYOUT CONFIGURATOR (FIXÉ) ---
+// --- LAYOUT GLOBAL ---
 .layout {
   display: flex;
   flex-direction: column;
-  
-  // On fixe le layout par dessus le body pour annuler le scroll global
-  position: fixed; 
+  position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
-  height: 100dvh; 
-  z-index: 10; // Au dessus du flux normal
-  overflow: hidden; 
+  height: 100dvh;
+  overflow: hidden;
   background-color: $white;
 }
 
+// --- MAIN CONTENT ---
+// Desktop : Flex Row (Gauche: Scroll, Droite: Fixe)
+// Mobile : Column (Haut: 3D Fixe, Bas: Scroll)
 .main-content {
   display: flex;
-  flex: 1; 
   width: 100%;
   height: 100%;
-  overflow: hidden; 
+  overflow: hidden;
   position: relative;
 
   @media (max-width: 1024px) {
-    flex-direction: column;
-    overflow: hidden; 
+    flex-direction: column; // Espace pour le header fixe
   }
 }
 
-// --- COLONNE GAUCHE (PANNEAU SCROLLABLE) ---
-.config-panel {
+// --- ZONE 3D ---
+.visualizer-area {
+  // Desktop : Colonne de droite (50%)
   flex: 0 0 50%;
   max-width: 50%;
   height: 100%;
-  background-color: $white;
-  border-right: 1px solid $border-color;
+  background-color: #eef0f2;
+  border-left: 1px solid $border-color;
+  position: relative;
+  order: 2; // A droite sur desktop
   
-  // Scroll interne activé
-  overflow-y: auto; 
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain; // Isole le scroll
-  
-  padding: 3rem 4rem;
-  padding-bottom: 100px;
+  // Modification Layout Desktop pour afficher le carousel en bas
+  display: flex;
+  flex-direction: column;
 
-  &::-webkit-scrollbar {
-    width: 6px;
+  .canvas-wrapper {
+    width: 100%;
+    // Prend tout l'espace disponible moins la hauteur du carousel
+    flex: 1; 
+    min-height: 0; // Important pour flexbox scroll
+    
+    > div,
+    canvas {
+      width: 100% !important;
+      height: 100% !important;
+      outline: none;
+    }
   }
-  &::-webkit-scrollbar-thumb {
-    background: #ccc;
-    border-radius: 4px;
+
+  .desktop-carousel-wrapper {
+      width: 100%;
+      background: $white;
+      border-top: 1px solid $border-color;
+      // Affiché par défaut sur PC
+      display: block; 
   }
+
+  // Mobile : Fixé en haut
+  @media (max-width: 1024px) {
+    flex: none;
+    max-width: 100%;
+    width: 100%;
+    height: 30vh; // Hauteur fixe pour la 3D
+    order: 1; // En premier
+    border-left: none;
+    border-bottom: 1px solid $border-color;
+    z-index: 10; // Au dessus du scroll si besoin
+    display: block; // On repasse en block standard pour mobile
+
+    .canvas-wrapper {
+        height: 100%; // Prend toute la hauteur des 30vh
+    }
+
+    .desktop-carousel-wrapper {
+        display: none; // Caché sur mobile
+    }
+  }
+}
+
+// --- ZONE SCROLLABLE (CONFIG + CAROUSEL) ---
+.scrollable-area {
+  // Desktop : Colonne de gauche (50%)
+  flex: 0 0 50%;
+  max-width: 50%;
+  height: 100%;
+  overflow-y: auto; // Scroll indépendant
+  -webkit-overflow-scrolling: touch;
+  order: 1; // A gauche sur desktop
+  display: flex;
+  flex-direction: column; // Config puis Carousel
+
+  // Mobile : Prend le reste de la hauteur
+  @media (max-width: 1024px) {
+    flex: 1; // Prend tout l'espace sous la 3D
+    max-width: 100%;
+    width: 100%;
+    order: 2; // En deuxième
+    background: white;
+    // C'est ICI que le scroll se fait sur mobile
+    overflow-y: auto;
+  }
+}
+
+// --- CONFIG PANEL ---
+.config-panel {
+  padding: 3rem 4rem;
+  background-color: $white;
 
   h1 {
     font-size: 2.2rem;
@@ -69,156 +131,360 @@ $border-color: #e0e0e0;
   }
 
   @media (max-width: 1024px) {
-    flex: 1; 
-    max-width: 100%;
-    width: 100%;
-    height: auto;
-    border-right: none;
     padding: 2rem 1.5rem;
-    padding-bottom: max(100px, env(safe-area-inset-bottom));
-  }
-}
-
-// --- COLONNE DROITE (VISUALISEUR FIXE) ---
-.visualizer-container {
-  flex: 0 0 50%; 
-  max-width: 50%;
-  height: 100%; 
-  background-color: #eef0f2;
-  position: relative;
-  overflow: hidden;
-  border-left: 1px solid $border-color;
-
-  display: flex;
-  flex-direction: column;
-
-  .canvas-wrapper {
-    flex: 1; 
-    position: relative;
-    width: 100%;
-    min-height: 0; 
-    
-    > div, canvas {
-      width: 100% !important;
-      height: 100% !important;
-      display: block;
-      outline: none;
-    }
-  }
-
-  .carousel-wrapper {
-    flex: 0 0 auto; 
-    background: $white;
-    border-top: 1px solid $border-color;
-    padding: 0;
-    z-index: 10;
-  }
-
-  @media (max-width: 1024px) {
-    flex: none;
-    max-width: 100%;
-    width: 100%;
-    height: 45vh; 
-    min-height: 300px;
-    border-top: 1px solid $border-color;
-    border-left: none;
-    order: -1; 
-    z-index: 20;
-
-    .canvas-wrapper {
-      height: 100%;
-    }
+    border-right: none;
   }
 }
 
 // --- CAROUSEL ---
+.carousel-area {
+  padding: 0;
+  background: $white;
+  border-top: 1px solid $border-color;
+  // Marge pour ne pas être collé au footer sur mobile
+  padding-bottom: env(safe-area-inset-bottom);
+  
+  &.mobile-only {
+      display: none; // Caché par défaut sur Desktop
+      @media (max-width: 1024px) {
+          display: block; // Affiché sur mobile
+      }
+  }
+}
+
+// --- STYLES EMBLA (CAROUSEL) ---
 .embla {
   max-width: 100%;
   margin: auto;
   position: relative;
-  --slide-spacing: 0rem; 
+  --slide-spacing: 0rem;
   --slide-size: 100%;
-
-  .embla__viewport { overflow: hidden; position: relative; }
-  .embla__container { display: flex; touch-action: pan-y pinch-zoom; margin-left: calc(var(--slide-spacing) * -1); }
-  .embla__slide { transform: translate3d(0, 0, 0); flex: 0 0 var(--slide-size); min-width: 0; padding-left: var(--slide-spacing); }
-
+  .embla__viewport {
+    overflow: hidden;
+    position: relative;
+  }
+  .embla__container {
+    display: flex;
+    touch-action: pan-y pinch-zoom;
+    margin-left: calc(var(--slide-spacing) * -1);
+  }
+  .embla__slide {
+    transform: translate3d(0, 0, 0);
+    flex: 0 0 var(--slide-size);
+    min-width: 0;
+    padding-left: var(--slide-spacing);
+  }
   .embla__slide__inner {
     position: relative;
     overflow: hidden;
-    background-color: $black; 
+    background-color: $black;
     aspect-ratio: 2.4 / 1;
     width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
   }
-
   .embla__buttons {
-    position: absolute; top: 50%; transform: translateY(-50%); width: 100%; display: flex; justify-content: space-between; padding: 0 10px; pointer-events: none; 
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 10px;
+    pointer-events: none;
   }
-
   .embla__button {
-    pointer-events: auto; appearance: none; background-color: rgba($white, 0.7); border: none; padding: 0; margin: 0; width: 2.5rem; height: 2.5rem; border-radius: 50%; color: $black; display: flex; align-items: center; justify-content: center; transition: all 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.2); cursor: pointer;
-    &:hover:not(:disabled) { background-color: $white; color: $gold; transform: scale(1.1); }
-    &:disabled { opacity: 0.3; cursor: not-allowed; }
-    .embla__button__svg { width: 50%; height: 50%; }
+    pointer-events: auto;
+    appearance: none;
+    background-color: rgba($white, 0.7);
+    border: none;
+    padding: 0;
+    margin: 0;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    color: $black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    &:hover:not(:disabled) {
+      background-color: $white;
+      color: $gold;
+      transform: scale(1.1);
+    }
+    &:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+    .embla__button__svg {
+      width: 50%;
+      height: 50%;
+    }
   }
-
-  .embla__controls { position: absolute; bottom: 10px; left: 0; right: 0; display: flex; justify-content: center; pointer-events: none; }
-  .embla__dots { display: flex; gap: 0.5rem; background: rgba($black, 0.3); padding: 5px 10px; border-radius: 20px; pointer-events: auto; }
+  .embla__controls {
+    position: absolute;
+    bottom: 10px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+  }
+  .embla__dots {
+    display: flex;
+    gap: 0.5rem;
+    background: rgba($black, 0.3);
+    padding: 5px 10px;
+    border-radius: 20px;
+    pointer-events: auto;
+  }
   .embla__dot {
-    appearance: none; background-color: transparent; border: 0; padding: 0; width: 10px; height: 10px; display: flex; align-items: center; justify-content: center; border-radius: 50%; cursor: pointer;
-    &:after { content: ''; width: 8px; height: 8px; border-radius: 50%; background-color: rgba($white, 0.5); transition: all 0.3s; }
-    &.embla__dot--selected:after { background-color: $white; transform: scale(1.3); }
+    appearance: none;
+    background-color: transparent;
+    border: 0;
+    padding: 0;
+    width: 10px;
+    height: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    cursor: pointer;
+    &:after {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: rgba($white, 0.5);
+      transition: all 0.3s;
+    }
+    &.embla__dot--selected:after {
+      background-color: $white;
+      transform: scale(1.3);
+    }
   }
 }
 
-// --- FORMULAIRES ---
+// --- UI FORM (Gardés du fichier précédent) ---
 .form-group {
   margin-bottom: 0.5rem;
-  label { display: block; margin-bottom: 0.8rem; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; color: $black; }
+  label {
+    display: block;
+    margin-bottom: 0.8rem;
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: $black;
+  }
   &.section-box {
-    background: $white; border: 1px solid $border-color; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
-    .section-title { font-size: 1.1rem; text-transform: none; letter-spacing: 0; margin-bottom: 1.2rem; border-bottom: 1px solid $grey-light; padding-bottom: 0.5rem; }
+    background: $white;
+    border: 1px solid $border-color;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
+    .section-title {
+      font-size: 1.1rem;
+      text-transform: none;
+      letter-spacing: 0;
+      margin-bottom: 1.2rem;
+      border-bottom: 1px solid $grey-light;
+      padding-bottom: 0.5rem;
+    }
   }
 }
-
 .inputs-row {
-  display: flex; gap: 20px; flex-wrap: wrap;
-  > * { flex: 1; min-width: 140px; }
-  span { font-size: 0.8rem; color: #666; display: block; margin-bottom: 5px; }
-}
-
-.corian-color button, .drilling-options button, .sink-options-list button {
-  flex: 1; padding: 12px 10px; border: 1px solid $gold; border-radius: 6px; background: $gold-light; color: $black; cursor: pointer; transition: all 0.2s ease; font-family: "Lato"; font-weight: 500; font-size: 0.95rem; min-height: 44px;
-  &:hover:not(:disabled) { background: rgba($gold, 0.2); }
-  &.active, &.active-small { background: $black; color: $white; border-color: $black; font-weight: 600; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); }
-  &:disabled { opacity: 0.5; cursor: not-allowed; background: #eee; border-color: #ddd; color: #999; }
-}
-
-.corian-color, .drilling-options, .sink-options-list { display: flex; gap: 10px; flex-wrap: wrap; }
-.sink-options-list { display: grid; grid-template-columns: 1fr 1fr; @media (max-width: 480px) { grid-template-columns: 1fr; } }
-
-.checkbox-group {
-  background: $white; border: 1px solid $border-color; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02); display: flex; flex-direction: column; align-items: flex-start; gap: 1rem;
-  label { margin: 0; display: flex; align-items: center; cursor: pointer; text-transform: none; font-weight: 400; font-size: 1rem; }
-  input[type="checkbox"] {
-    appearance: none; -webkit-appearance: none; width: 24px; height: 24px; border: 1px solid $black; border-radius: 4px; margin-right: 15px; display: grid; place-content: center; transition: all 0.2s ease; background-color: transparent; margin-bottom: 0;
-    &::before { content: ""; width: 14px; height: 14px; transform: scale(0); transition: 120ms transform ease-in-out; box-shadow: inset 1em 1em $gold; transform-origin: center; clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%); }
-    &:checked { background-color: $black; border-color: $black; &::before { transform: scale(1); } }
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  > * {
+    flex: 1;
+    min-width: 140px;
+  }
+  span {
+    font-size: 0.8rem;
+    color: #666;
+    display: block;
+    margin-bottom: 5px;
   }
 }
-
-.actions {
-  display: flex; gap: 1rem; margin-top: 1rem;
-  .btn-secondary { width: 100%; padding: 15px; background: transparent; border: 1px solid $black; border-radius: 6px; color: $black; font-weight: 600; cursor: pointer; transition: 0.3s; min-height: 44px; &:hover { background: $grey-light; } }
+.corian-color button,
+.drilling-options button,
+.sink-options-list button {
+  flex: 1;
+  padding: 12px 10px;
+  border: 1px solid $gold;
+  border-radius: 6px;
+  background: $gold-light;
+  color: $black;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: "Lato";
+  font-weight: 500;
+  font-size: 0.95rem;
+  min-height: 44px;
+  &:hover:not(:disabled) {
+    background: rgba($gold, 0.2);
+  }
+  &.active,
+  &.active-small {
+    background: $black;
+    color: $white;
+    border-color: $black;
+    font-weight: 600;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #eee;
+    border-color: #ddd;
+    color: #999;
+  }
 }
-
-.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px; }
+.corian-color,
+.drilling-options,
+.sink-options-list {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.sink-options-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
+}
+.checkbox-group {
+  background: $white;
+  border: 1px solid $border-color;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+  label {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    text-transform: none;
+    font-weight: 400;
+    font-size: 1rem;
+  }
+  input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 24px;
+    height: 24px;
+    border: 1px solid $black;
+    border-radius: 4px;
+    margin-right: 15px;
+    display: grid;
+    place-content: center;
+    transition: all 0.2s ease;
+    background-color: transparent;
+    margin-bottom: 0;
+    &::before {
+      content: "";
+      width: 14px;
+      height: 14px;
+      transform: scale(0);
+      transition: 120ms transform ease-in-out;
+      box-shadow: inset 1em 1em $gold;
+      transform-origin: center;
+      clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+    }
+    &:checked {
+      background-color: $black;
+      border-color: $black;
+      &::before {
+        transform: scale(1);
+      }
+    }
+  }
+}
+.actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+  .btn-secondary {
+    width: 100%;
+    padding: 15px;
+    background: transparent;
+    border: 1px solid $black;
+    border-radius: 6px;
+    color: $black;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.3s;
+    min-height: 44px;
+    &:hover {
+      background: $grey-light;
+    }
+  }
+}
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
 .modal-content {
-  background: white; width: 90vw; max-width: 500px; height: auto; max-height: 90vh; overflow-y: auto; position: relative; display: flex; flex-direction: column; padding: 2rem; border-radius: 12px;
-  .close-btn { position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 2rem; cursor: pointer; padding: 10px; width: auto; &:hover { background: none; color: $gold; } }
-  .canvas-container { flex: 1; background: $grey-light; margin: 1rem 0; border-radius: 8px; overflow: hidden; min-height: 200px; }
+  background: white;
+  width: 90vw;
+  max-width: 500px;
+  height: auto;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 2rem;
+  border-radius: 12px;
+  .close-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    padding: 10px;
+    width: auto;
+    &:hover {
+      background: none;
+      color: $gold;
+    }
+  }
+  .canvas-container {
+    flex: 1;
+    background: $grey-light;
+    margin: 1rem 0;
+    border-radius: 8px;
+    overflow: hidden;
+    min-height: 200px;
+  }
 }

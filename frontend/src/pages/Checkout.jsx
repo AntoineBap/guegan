@@ -20,7 +20,6 @@ const Checkout = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [expandedItemIndex, setExpandedItemIndex] = useState(null);
   
-  // Nouvel état pour la modale de succès
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const [billing, setBilling] = useState({
@@ -44,6 +43,11 @@ const Checkout = () => {
 
   const leadTime = settings?.constraints?.leadTime || 15;
 
+  // --- SCROLL TO TOP AU CHARGEMENT DE LA PAGE ---
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   useEffect(() => {
     if (user) {
       setBilling((prev) => ({
@@ -57,9 +61,6 @@ const Checkout = () => {
       }));
     }
   }, [user]);
-
-  // SUPPRESSION DU USEEFFECT DE REDIRECTION AUTOMATIQUE ICI
-  // pour éviter que le vidage du panier ne redirige avant l'affichage de la modale.
 
   const totalAmount = checkoutItems.reduce(
     (acc, item) => acc + item.unitPrice * item.quantity,
@@ -106,8 +107,6 @@ const Checkout = () => {
       const data = await response.json();
 
       if (response.ok) {
-        // ORDRE IMPORTANT : On active la modale AVANT de vider le panier
-        // pour éviter que le composant ne pense que le panier est vide sans succès.
         setShowSuccessModal(true);
         clearCart(); 
       } else {
@@ -122,7 +121,6 @@ const Checkout = () => {
     setIsSubmitting(false);
   };
 
-  // Affichage alternatif si le panier est vide ET qu'on n'est pas en succès
   if (checkoutItems.length === 0 && !showSuccessModal) {
     return (
         <div className="checkout-page" style={{ textAlign: 'center', paddingTop: '100px' }}>

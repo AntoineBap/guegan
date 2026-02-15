@@ -1,10 +1,7 @@
-// src/styles/checkout.scss
-
 .checkout-page {
     height: 100vh;
     width: 100%;
-    overflow-y: auto; /* Active le scroll vertical */
-    
+    overflow-y: auto; 
     padding: 40px;
     background-color: #f4f6f8;
     font-family: system-ui, sans-serif;
@@ -19,7 +16,10 @@
         margin: 0 auto;
         padding-bottom: 50px;
         
-        @media (max-width: 900px) { flex-direction: column-reverse; }
+        @media (max-width: 900px) { 
+            /* CHANGE : Adresse en haut, Résumé en bas */
+            flex-direction: column; 
+        }
 
         .form-column { flex: 1.3; } 
         .summary-column { flex: 1; }
@@ -42,13 +42,12 @@
         }
     }
 
-    /* Grille du formulaire mise à jour */
+    /* Grille du formulaire */
     .form-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 20px; /* Espace entre les colonnes/lignes */
+        gap: 20px;
 
-        /* Groupe Label + Input */
         .field-group {
             display: flex;
             flex-direction: column;
@@ -75,10 +74,7 @@
                 }
             }
 
-            /* Champ prenant toute la largeur */
-            &.full-width { 
-                grid-column: span 2; 
-            }
+            &.full-width { grid-column: span 2; }
         }
     }
 
@@ -112,10 +108,7 @@
             cursor: pointer;
             font-size: 0.9rem;
             align-items: flex-start;
-            
-            input {
-                margin-top: 3px;
-            }
+            input { margin-top: 3px; }
         }
     }
 

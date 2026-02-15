@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import "../styles/configurator.scss";
+import "../styles/configurator.scss"; 
 import ConfigPanel from "../components/ConfigPanel";
 import Visualizer from "../components/Visualizer";
 import Modal3D from "../components/Modal3D";
@@ -23,7 +23,6 @@ const INITIAL_CONFIG = {
   anchorId: null
 };
 
-// 👇 MODIFICATION : On utilise des images réelles pour le slider
 const SLIDES = [
     "https://images.pexels.com/photos/1080721/pexels-photo-1080721.jpeg?auto=compress&cs=tinysrgb&w=800",
     "https://images.pexels.com/photos/2724748/pexels-photo-2724748.jpeg?auto=compress&cs=tinysrgb&w=800",
@@ -31,7 +30,6 @@ const SLIDES = [
     "https://images.pexels.com/photos/1358900/pexels-photo-1358900.jpeg?auto=compress&cs=tinysrgb&w=800"
 ];
 
-// 👇 MODIFICATION : Loop true pour tourner en rond
 const CAROUSEL_OPTIONS = { loop: true };
 
 const Configurator = () => {
@@ -44,8 +42,11 @@ const Configurator = () => {
   const location = useLocation();
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
     if (location.state && location.state.loadConfig) {
-        console.log("📥 Chargement configuration Admin:", location.state.loadConfig);
         setConfig(location.state.loadConfig);
         setConfigKey((prev) => prev + 1);
         window.history.replaceState({}, document.title);
@@ -58,7 +59,7 @@ const Configurator = () => {
   };
 
   const handleLoadFromCart = (cartItem) => {
-      if(window.confirm("Voulez-vous charger cette configuration dans l'éditeur ? (La configuration actuelle non sauvegardée sera perdue)")) {
+      if(window.confirm("Voulez-vous charger cette configuration dans l'éditeur ?")) {
           const { id, unitPrice, totalPrice, quantity, ...configData } = cartItem;
           setConfig(configData);
           setConfigKey(prev => prev + 1);
@@ -81,25 +82,31 @@ const Configurator = () => {
       )}
 
       <main className="main-content">
-        <ConfigPanel
-          key={configKey} 
-          config={config}
-          setConfig={setConfig}
-          setShowModal={setShowModal}
-          onReset={handleReset} 
-        />
-
-        <div className="visualizer-container">
-           {/* Partie Haute : 3D */}
+        
+        <div className="visualizer-area">
            <div className="canvas-wrapper">
               <Visualizer config={config} />
            </div>
-
-           {/* Partie Basse : Carousel */}
-           <div className="carousel-wrapper">
+           
+           <div className="desktop-carousel-wrapper">
               <Carousel slides={SLIDES} options={CAROUSEL_OPTIONS} />
            </div>
         </div>
+
+        <div className="scrollable-area">
+            <ConfigPanel
+              key={configKey} 
+              config={config}
+              setConfig={setConfig}
+              setShowModal={setShowModal}
+              onReset={handleReset} 
+            />
+            
+            <div className="carousel-area mobile-only">
+                <Carousel slides={SLIDES} options={CAROUSEL_OPTIONS} />
+            </div>
+        </div>
+
       </main>
       
       <Modal3D config={config} showModal={showModal} setShowModal={setShowModal} />

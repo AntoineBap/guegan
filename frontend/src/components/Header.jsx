@@ -94,11 +94,13 @@ const Header = () => {
         {isAdmin && (
             isInternalAdminPage ? (
                 <button className="config-btn" onClick={() => navigate('/configurator')}>
-                    🛠️ Configurateur
+                    <span className="icon">🛠️</span>
+                    <span className="text">Configurateur</span>
                 </button>
             ) : (
                 <button className="admin-btn" onClick={() => navigate('/admin')}>
-                    ⚙️ Admin
+                    <span className="icon">⚙️</span>
+                    <span className="text">Admin</span>
                 </button>
             )
         )}
