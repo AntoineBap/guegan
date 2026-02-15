@@ -298,14 +298,8 @@ const ConfigResume = ({ config, onReset, sinkSpecs, settings }) => {
     addToCart(finalItem);
 
     if (onReset) {
-      if (
-        window.confirm(
-          "Produit ajouté ! Voulez-vous commencer une nouvelle configuration ?",
-        )
-      ) {
-        onReset();
-        setQuantity(1);
-      }
+      onReset();
+      setQuantity(1);
     }
   };
 

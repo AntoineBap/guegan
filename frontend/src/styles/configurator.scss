@@ -26,7 +26,6 @@ $border-color: #e0e0e0;
     height: auto;       
     overflow: visible;  
     min-height: 100vh;
-    // On retire tout padding parasite qui pourrait décaler le calcul du sticky
     padding-top: 0; 
   }
 }
@@ -90,10 +89,7 @@ $border-color: #e0e0e0;
     border-bottom: 1px solid $border-color;
     display: block;
     
-    // --- FIXE ICI ---
     position: sticky; 
-    // On met le top à la hauteur du header pour qu'il ne se cache pas derrière
-    // Si votre header fait 70px de haut, mettez 70px. 
     top: 70px; 
     z-index: 10; 
     background-color: #eef0f2;
@@ -149,7 +145,6 @@ $border-color: #e0e0e0;
   @media (max-width: 1024px) {
     padding: 2rem 1.5rem;
     border-right: none;
-    // On retire le padding top si le visualizer sticky s'en occupe déjà
     padding-top: 1.5rem; 
   }
 }
@@ -336,6 +331,8 @@ $border-color: #e0e0e0;
     margin-bottom: 5px;
   }
 }
+
+// --- STYLES DES BOUTONS DE SELECTION ---
 .corian-color button,
 .drilling-options button,
 .sink-options-list button {
@@ -351,9 +348,13 @@ $border-color: #e0e0e0;
   font-weight: 500;
   font-size: 0.95rem;
   min-height: 44px;
+
+  // Hover si PAS désactivé
   &:hover:not(:disabled) {
     background: rgba($gold, 0.2);
   }
+
+  // --- BOUTON ACTIF (Sélectionné) ---
   &.active,
   &.active-small {
     background: $black;
@@ -361,8 +362,21 @@ $border-color: #e0e0e0;
     border-color: $black;
     font-weight: 600;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+
+    // Si un bouton est ACTIF mais DISABLED (ex: Retombée Avant Obligatoire)
+    // On force le style ACTIF (Noir) au lieu du gris
+    &:disabled {
+        opacity: 1; 
+        background: $black;
+        color: $white;
+        border-color: $black;
+        cursor: not-allowed; // Montre qu'on ne peut pas changer, mais le style reste "sélectionné"
+    }
   }
-  &:disabled {
+
+  // --- BOUTON DÉSACTIVÉ CLASSIQUE (Non sélectionné) ---
+  // S'applique uniquement si le bouton n'est PAS actif
+  &:disabled:not(.active):not(.active-small) {
     opacity: 0.5;
     cursor: not-allowed;
     background: #eee;
@@ -370,6 +384,7 @@ $border-color: #e0e0e0;
     color: #999;
   }
 }
+
 .corian-color,
 .drilling-options,
 .sink-options-list {

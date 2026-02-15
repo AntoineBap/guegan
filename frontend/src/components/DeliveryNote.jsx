@@ -60,10 +60,10 @@ const DeliveryNote = ({ order }) => {
 
             <View style={styles.clientBlock}>
                 <Text style={styles.bold}>Destinataire :</Text>
-                <Text>{order.billingAddress?.company || order.userId?.companyName || "Société"}</Text>
-                <Text>{order.billingAddress?.firstName} {order.billingAddress?.lastName}</Text>
-                <Text>{order.billingAddress?.address}</Text>
-                <Text>{order.billingAddress?.zipCode} {order.billingAddress?.city}</Text>
+                <Text>{order.shippingAddress?.company || order.billingAddress?.company ||  "Société"}</Text>
+                <Text>{order.shippingAddress?.firstName || order.billingAddress?.firstName} {order.shippingAddress?.lastName || order.billingAddress?.lastName}</Text>
+                <Text>{order.shippingAddress?.address || order.billingAddress?.address}</Text>
+                <Text>{order.shippingAddress?.zipCode || order.billingAddress?.zipCode} {order.shippingAddress?.city || order.billingAddress?.city}</Text>
                 <Text>Tél : {order.userId?.phone}</Text>
                 <Text>Email : {order.userId?.email}</Text>
             </View>

@@ -101,11 +101,7 @@ const Vasque3D = ({ config }) => {
         const prev = calculatedItems[i-1];
         const curr = items[i];
         
-        let extraGap = 0;
-        if (prev.hasDrainer && prev.drainerPosition === 'right') extraGap += DRAINER_LEN;
-        if (curr.hasDrainer && curr.drainerPosition === 'left') extraGap += DRAINER_LEN;
-
-        const dist = (prev.width / 2) + curr.offsetVal + extraGap + (curr.width / 2);
+        const dist = (prev.width / 2) + curr.offsetVal + (curr.width / 2);
         const x = prev.x + dist;
         
         calculatedItems[i] = { 
@@ -123,11 +119,7 @@ const Vasque3D = ({ config }) => {
         
         const gapVal = curr.offsetVal;
 
-        let extraGap = 0;
-        if (curr.hasDrainer && curr.drainerPosition === 'right') extraGap += DRAINER_LEN;
-        if (next.hasDrainer && next.drainerPosition === 'left') extraGap += DRAINER_LEN;
-
-        const dist = (next.width / 2) + gapVal + extraGap + (curr.width / 2);
+        const dist = (next.width / 2) + gapVal + (curr.width / 2);
         const x = next.x - dist;
 
         calculatedItems[i] = { 
@@ -144,9 +136,6 @@ const Vasque3D = ({ config }) => {
   // --- SUITE DU RENDU ---
   const maxBasinDepth = calculatedSinks.reduce((max, s) => s.valid && s.depth > max ? s.depth : max, 0);
   
-  // CORRECTIF : Calcul de l'élévation pour éviter de traverser le sol
-  // On calcule le point le plus bas (Top - Profondeur - EpaisseurFond)
-  // Et on remonte le tout pour que ce point soit à Y > 0
   const elevationY = maxBasinDepth > 0 
     ? (maxBasinDepth + wallThickness - 0.4) + 0.05 
     : 0;
@@ -342,6 +331,9 @@ const Vasque3D = ({ config }) => {
         // Changement : On met le SHRINK à 0 pour que le mur aille jusqu'en haut (0.4)
         const SHRINK_OFFSET = 0.0; 
         const THIN_SKIN = 0.00000000001;
+        
+        // MODIF : On baisse le haut du mur de 0.1
+        const WALL_TOP_DROP = 0.1;
 
         // 1. Murs Verticaux
         const outerShape = new THREE.Shape();
@@ -363,7 +355,8 @@ const Vasque3D = ({ config }) => {
         drawTeethedHole(holeOut, s);
         outerShape.holes.push(holeOut);
 
-        const geomOut = new THREE.ExtrudeGeometry(outerShape, { depth: s.depth - SHRINK_OFFSET - SHORTEN_BOTTOM, bevelEnabled: false, curveSegments: 64 });
+        // Application du WALL_TOP_DROP sur la profondeur d'extrusion
+        const geomOut = new THREE.ExtrudeGeometry(outerShape, { depth: s.depth - SHRINK_OFFSET - SHORTEN_BOTTOM - WALL_TOP_DROP, bevelEnabled: false, curveSegments: 64 });
         geomOut.rotateX(-Math.PI/2);
 
         // 2. Peau Intérieure
@@ -373,6 +366,8 @@ const Vasque3D = ({ config }) => {
         innerShape.moveTo(-hw/2, -hh/2+r); innerShape.lineTo(-hw/2, hh/2-r); innerShape.absarc(-hw/2+r, hh/2-r, r, Math.PI, Math.PI/2, true);
         innerShape.lineTo(hw/2-r, hh/2); innerShape.absarc(hw/2-r, hh/2-r, r, Math.PI/2, 0, true);
         innerShape.lineTo(hw/2, -hh/2+r); innerShape.absarc(hw/2-r, -hh/2+r, r, 0, -Math.PI / 2, true);
+        
+        // CORRECTION ICI : Utilisation de hw au lieu de hwIn
         innerShape.lineTo(-hw/2+r, -hh/2); innerShape.absarc(-hw/2+r, -hh/2+r, r, -Math.PI/2, -Math.PI, true);
         
         const holeIn = new THREE.Path();
@@ -385,7 +380,8 @@ const Vasque3D = ({ config }) => {
         holeIn.lineTo(-hwIn/2+rIn, -hhIn/2); holeIn.absarc(-hwIn/2+rIn, -hhIn/2+rIn, rIn, -Math.PI/2, -Math.PI, true);
         innerShape.holes.push(holeIn);
 
-        const geomIn = new THREE.ExtrudeGeometry(innerShape, { depth: s.depth - SHRINK_OFFSET - SHORTEN_BOTTOM, bevelEnabled: false, curveSegments: 64 });
+        // Application du WALL_TOP_DROP ici aussi pour cohérence
+        const geomIn = new THREE.ExtrudeGeometry(innerShape, { depth: s.depth - SHRINK_OFFSET - SHORTEN_BOTTOM , bevelEnabled: false, curveSegments: 64 });
         geomIn.rotateX(-Math.PI/2);
 
         // 3. Géométrie des Quarts de Tubes

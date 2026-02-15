@@ -196,12 +196,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
           : positions[i - 1];
       const prevItem = items[i - 1];
       const currItem = items[i];
-      let extraDrainerGap = 0;
-      if (prevItem.hasDrainer && prevItem.drainerPosition === "right")
-        extraDrainerGap += DRAINER_WIDTH_MM;
-      if (currItem.hasDrainer && currItem.drainerPosition === "left")
-        extraDrainerGap += DRAINER_WIDTH_MM;
-
+      
       const safeOffset =
         currItem.offset !== "" &&
         currItem.offset !== null &&
@@ -212,7 +207,6 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
       const dist =
         prevItem.width / 2 +
         structuralGap +
-        extraDrainerGap +
         currItem.width / 2;
       const x = prev.centerX + dist;
       let lb = x - currItem.width / 2;
@@ -234,15 +228,10 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
           ? parseFloat(currItem.offset)
           : MIN_GAP_BETWEEN_SINKS;
       const structuralGap = safeOffset;
-      let extraDrainerGap = 0;
-      if (currItem.hasDrainer && currItem.drainerPosition === "right")
-        extraDrainerGap += DRAINER_WIDTH_MM;
-      if (nextItem.hasDrainer && nextItem.drainerPosition === "left")
-        extraDrainerGap += DRAINER_WIDTH_MM;
+
       const dist =
         currItem.width / 2 +
         structuralGap +
-        extraDrainerGap +
         nextItem.width / 2;
       const x = nextPos.centerX - dist;
       let lb = x - currItem.width / 2;
@@ -282,7 +271,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
       else if (anchorItem.position === "left")
         anchorAbsX = -planHalfL + safeOffset + w / 2;
       else if (anchorItem.position === "right")
-        anchorAbsX = planHalfL - safeOffset - w / 2;
+        anchorAbsX = planHalfL - safeOffset + w / 2;
     }
     const items = positionsRelative.map((pos, idx) => ({
       ...currentSinks[idx],
@@ -506,16 +495,75 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
     const distR = obstacleR - myPos.rightBound;
     const canR = distR >= DRAINER_WIDTH_MM - 10;
 
-    if (canL && canR) updateSink(id, "drainerPosition", "left");
-    else if (canL) updateSink(id, "drainerPosition", "left");
-    else if (canR) updateSink(id, "drainerPosition", "right");
+    let chosenPos = "right";
+
+    if (canL && canR) chosenPos = "left";
+    else if (canL) chosenPos = "left";
+    else if (canR) chosenPos = "right";
     else {
       alert(
         "Pas assez de place (350mm requis) à gauche ou à droite de cette cuve.",
       );
       return;
     }
-    updateSink(id, "hasDrainer", true);
+    
+    // Logique pour ajuster l'offset si l'égouttoir se met dans l'interstice
+    setConfig((prev) => {
+        const anchorIndex = prev.sinks.findIndex(s => s.id === prev.anchorId);
+        let newSinks = prev.sinks.map((s, i) => {
+            if(s.id !== id) return s;
+            return { ...s, hasDrainer: true, drainerPosition: chosenPos };
+        });
+
+        // Vérification si on doit augmenter l'offset
+        if(index > anchorIndex) {
+            // Côté Droit de l'ancre. L'interstice est à gauche de l'élément courant (offset du courant).
+            if(chosenPos === "left") {
+                 // Egouttoir vers l'intérieur
+                 const currentOffset = newSinks[index].offset;
+                 if(currentOffset < MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM) {
+                     newSinks[index] = { ...newSinks[index], offset: MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM };
+                 }
+            }
+        } else if(index < anchorIndex) {
+            // Côté Gauche de l'ancre. L'interstice est à droite de l'élément courant (offset du courant).
+            if(chosenPos === "right") {
+                 // Egouttoir vers l'intérieur
+                 const currentOffset = newSinks[index].offset;
+                 if(currentOffset < MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM) {
+                     newSinks[index] = { ...newSinks[index], offset: MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM };
+                 }
+            }
+        }
+
+        return { ...prev, sinks: newSinks };
+    });
+  };
+  
+  const setDrainerPositionManual = (id, pos, index) => {
+      setConfig((prev) => {
+        const anchorIndex = prev.sinks.findIndex(s => s.id === prev.anchorId);
+        let newSinks = prev.sinks.map((s) => s.id === id ? { ...s, drainerPosition: pos } : s);
+
+         if(index > anchorIndex) {
+            // Côté Droit
+            if(pos === "left") {
+                 const currentOffset = newSinks[index].offset;
+                 if(currentOffset < MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM) {
+                     newSinks[index] = { ...newSinks[index], offset: MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM };
+                 }
+            }
+        } else if(index < anchorIndex) {
+            // Côté Gauche
+            if(pos === "right") {
+                 const currentOffset = newSinks[index].offset;
+                 if(currentOffset < MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM) {
+                     newSinks[index] = { ...newSinks[index], offset: MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM };
+                 }
+            }
+        }
+        return { ...prev, sinks: newSinks };
+      });
   };
 
   const handleSinkTypeSelect = (id, typeName) => {
@@ -627,11 +675,39 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
     return false;
   };
 
+  const handleResetClick = () => {
+    if (window.confirm("Êtes-vous sûr de vouloir annuler la configuration ?")) {
+      onReset();
+    }
+  };
+
   return (
     <div className="config-panel">
       <h1>
         Votre Plan-Vasque <span className="gold-text">Sur Mesure</span>
       </h1>
+
+      <button
+        onClick={handleResetClick}
+        style={{
+          display: "block",
+          marginBottom: "20px",
+          background: "rgba(231, 76, 60, 0.1)",
+          border: "3px solid #e74c3c",
+          color: "#e74c3c",
+          textDecoration: "none",
+          cursor: "pointer",
+          fontWeight: "bold",
+          fontSize: "0.9rem",
+          padding: "10px 10px",
+          borderRadius: "5px",
+          transition: "background 0.3s ease",
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(231, 76, 60, 0.25)")}
+        onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(231, 76, 60, 0.1)")}
+      >
+        Réinitialiser la configuration
+      </button>
 
       <div className="form-group section-box">
         <label className="section-title">Dimensions du Plan</label>
@@ -719,10 +795,24 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
             ? absLimitRight
             : (layout.items[index + 1]?.leftBound ?? absLimitRight);
 
-        const distL = currentPos ? currentPos.leftBound - obstacleL : 0;
+        // CORRECTIF ICI : Calcul de la capacité basé sur la cuve seule
+        // On récupère les bords actuels, mais on retire l'influence de l'égouttoir s'il est actif
+        // pour savoir si on a la place "théorique".
+        let effectiveLeftBound = currentPos ? currentPos.leftBound : 0;
+        let effectiveRightBound = currentPos ? currentPos.rightBound : 0;
+
+        if (currentPos && sink.hasDrainer) {
+            if (sink.drainerPosition === "left") {
+                effectiveLeftBound += DRAINER_WIDTH_MM; // On simule le bord sans égouttoir
+            } else if (sink.drainerPosition === "right") {
+                effectiveRightBound -= DRAINER_WIDTH_MM; // On simule le bord sans égouttoir
+            }
+        }
+
+        const distL = effectiveLeftBound - obstacleL;
         const canL = distL >= DRAINER_WIDTH_MM - 10;
 
-        const distR = currentPos ? obstacleR - currentPos.rightBound : 0;
+        const distR = obstacleR - effectiveRightBound;
         const canR = distR >= DRAINER_WIDTH_MM - 10;
 
         if (isAnchor) {
@@ -754,11 +844,31 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
           if (maxOffset < minOffset) maxOffset = minOffset;
         } else {
           minOffset = MIN_GAP_BETWEEN_SINKS;
+          
+          // Logique dynamique du minOffset selon présence égouttoir dans l'interstice
+          const anchorIndex = currentSinks.findIndex(s => s.id === config.anchorId);
+          if (index > anchorIndex) {
+              // Je suis à droite de l'ancre (ou précédent). Mon voisin de gauche est index-1.
+              // Si mon voisin a un égouttoir à droite OU j'ai un égouttoir à gauche => 40 + 350
+              const prevSink = currentSinks[index - 1];
+              const me = currentSinks[index];
+              if ((prevSink.hasDrainer && prevSink.drainerPosition === 'right') || 
+                  (me.hasDrainer && me.drainerPosition === 'left')) {
+                  minOffset = MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM;
+              }
+          } else if (index < anchorIndex) {
+              // Je suis à gauche de l'ancre. Mon voisin de droite est index+1.
+              // Si mon voisin a un égouttoir à gauche OU j'ai un égouttoir à droite => 40 + 350
+              const nextSink = currentSinks[index + 1];
+              const me = currentSinks[index];
+              if ((nextSink.hasDrainer && nextSink.drainerPosition === 'left') || 
+                  (me.hasDrainer && me.drainerPosition === 'right')) {
+                  minOffset = MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM;
+              }
+          }
+
           const globalSlackRight = absLimitRight - layout.groupMaxX;
           const globalSlackLeft = layout.groupMinX - absLimitLeft;
-          const anchorIndex = currentSinks.findIndex(
-            (s) => s.id === config.anchorId,
-          );
           if (index > anchorIndex)
             maxOffset = currentSinkOffset + globalSlackRight;
           else maxOffset = currentSinkOffset + globalSlackLeft;
@@ -1220,11 +1330,11 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                           sink.drainerPosition === "left" ? "active-small" : ""
                         }
                         onClick={() =>
-                          updateSink(sink.id, "drainerPosition", "left")
+                          setDrainerPositionManual(sink.id, "left", index)
                         }
-                        disabled={!canL}
+                        disabled={!canL && sink.drainerPosition !== "left"}
                         style={
-                          !canL ? { opacity: 0.5, cursor: "not-allowed" } : {}
+                          (!canL && sink.drainerPosition !== "left") ? { opacity: 0.5, cursor: "not-allowed" } : {}
                         }
                       >
                         À Gauche
@@ -1234,11 +1344,11 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                           sink.drainerPosition === "right" ? "active-small" : ""
                         }
                         onClick={() =>
-                          updateSink(sink.id, "drainerPosition", "right")
+                          setDrainerPositionManual(sink.id, "right", index)
                         }
-                        disabled={!canR}
+                        disabled={!canR && sink.drainerPosition !== "right"}
                         style={
-                          !canR ? { opacity: 0.5, cursor: "not-allowed" } : {}
+                          (!canR && sink.drainerPosition !== "right") ? { opacity: 0.5, cursor: "not-allowed" } : {}
                         }
                       >
                         À Droite

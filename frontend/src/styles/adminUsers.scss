@@ -22,10 +22,13 @@
             border: 1px solid #ccc;
             padding: 8px 15px;
             border-radius: 4px;
+            margin-bottom: 5px;
             cursor: pointer;
             &:hover { background-color: #e0e0e0; }
         }
-
+        h1{
+            margin-bottom: 5px;
+        }
         .export-btn {
             background-color: #217346; // Couleur Excel
             color: white;
@@ -33,6 +36,7 @@
             padding: 10px 20px;
             border-radius: 6px;
             font-weight: 600;
+            margin-bottom: 5px;
             cursor: pointer;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             transition: all 0.2s;
@@ -41,6 +45,9 @@
                 background-color: #1e6b41;
                 transform: translateY(-2px);
             }
+        }
+        @media (max-width: 600px) {
+            flex-direction: column;
         }
     }
 

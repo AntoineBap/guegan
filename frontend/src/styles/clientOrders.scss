@@ -133,5 +133,15 @@
     .orders-list {
       grid-template-columns: 1fr; /* Une seule colonne sur mobile */
     }
+    .order-header{
+      flex-direction: column;
+
+      .order-ref{
+        padding-bottom: 5px;
+      }
+      .order-date{
+        padding-bottom: 5px;
+      }
+    }
   }
 }

@@ -19,6 +19,10 @@
       color: #555;
       &:hover { background: #e0e0e0; }
     }
+
+    @media (max-width: 600px) {
+      flex-direction: column;
+    }
   }
 
   .loading, .empty-state {
@@ -42,8 +46,6 @@
     padding: 20px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     border-left: 5px solid #ccc;
-    
-    // Couleur dynamique via React, mais style de base ici
     display: flex;
     flex-direction: column;
     gap: 15px;
@@ -58,8 +60,9 @@
       .order-id { font-weight: bold; display: block; font-size: 1.1rem; }
       .order-date { color: #888; font-size: 0.9rem; }
       .amount { font-weight: bold; font-size: 1.2rem; margin-top: 5px; }
-    }
 
+    }
+    
     .client-info {
       font-size: 0.9rem;
       color: #555;
@@ -85,4 +88,5 @@
       &:hover { opacity: 0.9; }
     }
   }
+
 }
