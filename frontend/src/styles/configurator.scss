@@ -13,7 +13,6 @@ $border-color: #e0e0e0;
   display: flex;
   flex-direction: column;
   
-  // Desktop : On garde le comportement "App" fixe
   position: fixed;
   top: 0;
   left: 0;
@@ -22,43 +21,40 @@ $border-color: #e0e0e0;
   overflow: hidden;
   background-color: $white;
 
-  // --- MOBILE : On libère le layout pour que le body scrolle ---
-  // C'est ce qui permet de cacher la barre d'adresse du navigateur
   @media (max-width: 1024px) {
-    position: relative; // Plus de fixed
-    height: auto;       // Hauteur automatique selon le contenu
-    overflow: visible;  // On laisse dépasser le contenu
+    position: relative; 
+    height: auto;       
+    overflow: visible;  
     min-height: 100vh;
+    // On retire tout padding parasite qui pourrait décaler le calcul du sticky
+    padding-top: 0; 
   }
 }
 
 // --- MAIN CONTENT ---
-// Desktop : Flex Row (Gauche: Scroll, Droite: Fixe)
-// Mobile : Column (Haut: 3D Fixe, Bas: Scroll)
 .main-content {
   display: flex;
   width: 100%;
   height: 100%;
-  overflow: hidden; // Desktop: contient le scroll
+  overflow: hidden; 
   position: relative;
 
   @media (max-width: 1024px) {
     flex-direction: column;
-    height: auto;      // Mobile: s'adapte au contenu
-    overflow: visible; // Mobile: le scroll est géré par le body
+    height: auto;      
+    overflow: visible; 
   }
 }
 
 // --- ZONE 3D ---
 .visualizer-area {
-  // Desktop : Colonne de droite (50%)
   flex: 0 0 50%;
   max-width: 50%;
   height: 100%;
   background-color: #eef0f2;
   border-left: 1px solid $border-color;
   position: relative;
-  order: 2; // A droite sur desktop
+  order: 2; 
   
   display: flex;
   flex-direction: column;
@@ -88,20 +84,24 @@ $border-color: #e0e0e0;
     flex: none;
     max-width: 100%;
     width: 100%;
-    height: 35vh; // Un peu plus grand pour bien voir
+    height: 20vh; 
     order: 1;
     border-left: none;
     border-bottom: 1px solid $border-color;
     display: block;
     
-    // --- STICKY MOBILE ---
-    // La 3D reste collée en haut (sous le header) quand on scrolle
+    // --- FIXE ICI ---
     position: sticky; 
-    top: 0; 
+    // On met le top à la hauteur du header pour qu'il ne se cache pas derrière
+    // Si votre header fait 70px de haut, mettez 70px. 
+    top: 70px; 
     z-index: 10; 
+    background-color: #eef0f2;
 
     .canvas-wrapper {
         height: 100%;
+        width: 100%;
+        overflow: hidden;
     }
 
     .desktop-carousel-wrapper {
@@ -112,26 +112,24 @@ $border-color: #e0e0e0;
 
 // --- ZONE SCROLLABLE (CONFIG + CAROUSEL) ---
 .scrollable-area {
-  // Desktop : Colonne de gauche (50%)
   flex: 0 0 50%;
   max-width: 50%;
   height: 100%;
-  overflow-y: auto; // Scroll indépendant sur Desktop
+  overflow-y: auto; 
   -webkit-overflow-scrolling: touch;
   order: 1; 
   display: flex;
   flex-direction: column;
 
-  // Mobile : Prend le reste de la hauteur
   @media (max-width: 1024px) {
-    flex: none; // Ne force pas l'extension, suit le flux
+    flex: none; 
     max-width: 100%;
     width: 100%;
     order: 2;
     background: white;
+    position: relative;
+    z-index: 5;
     
-    // IMPORTANT : On désactive le scroll interne sur mobile
-    // pour laisser le Layout (et donc le body) scroller.
     height: auto;
     overflow-y: visible;
   }
@@ -151,6 +149,8 @@ $border-color: #e0e0e0;
   @media (max-width: 1024px) {
     padding: 2rem 1.5rem;
     border-right: none;
+    // On retire le padding top si le visualizer sticky s'en occupe déjà
+    padding-top: 1.5rem; 
   }
 }
 
