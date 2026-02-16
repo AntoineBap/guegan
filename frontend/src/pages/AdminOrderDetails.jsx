@@ -70,6 +70,12 @@ const AdminOrderDetails = () => {
                 {order.billingAddress.company || "Particulier"}
               </p>
               <p>
+                <strong>Numéro SIRET :</strong> {order.userId?.siret || "N/A"}
+              </p>
+              <p>
+                <strong>Numéro de TVA :</strong> {order.userId?.tvaNumber || "N/A"}
+              </p>
+              <p>
                 <strong>Nom :</strong> {order.billingAddress.firstName}{" "}
                 {order.billingAddress.lastName}
               </p>
@@ -97,7 +103,7 @@ const AdminOrderDetails = () => {
               <h3>🚚 Livraison</h3>
               <p>{order.shippingAddress.address}</p>
               <p>
-                {order.shippingAddress.zipCode} {order.shippingAddress.city}
+                {order.shippingAddress.zip} {order.shippingAddress.city}
               </p>
               <p>{order.shippingAddress.country}</p>
             </div>
