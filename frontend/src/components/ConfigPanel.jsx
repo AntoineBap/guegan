@@ -57,9 +57,15 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
     return "(+ **€)";
   };
 
-  const blockInvalidChar = (e) => {
+  // --- MODIFICATION ICI : GESTION CLAVIER (Entrée + Caractères invalides) ---
+  const handleInputKeyDown = (e) => {
+    // 1. Bloquer les caractères non numériques
     if (["e", "E", "+", "-"].includes(e.key)) {
       e.preventDefault();
+    }
+    // 2. Si touche Entrée, on retire le focus (ferme le clavier mobile)
+    if (e.key === "Enter") {
+      e.target.blur();
     }
   };
 
@@ -738,8 +744,8 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
               onChange={handleGlobalChange}
               onFocus={() => clearAlert("length")}
               onBlur={handleBlur}
-              onKeyDown={blockInvalidChar}
-              onWheel={handleWheel} // BLOQUE LE SCROLL
+              onKeyDown={handleInputKeyDown} // <-- ICI
+              onWheel={handleWheel}
               min={minPlanLength}
               max={maxPlanLength}
               step="10"
@@ -762,8 +768,8 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
               onChange={handleGlobalChange}
               onFocus={() => clearAlert("width")}
               onBlur={handleBlur}
-              onKeyDown={blockInvalidChar}
-              onWheel={handleWheel} // BLOQUE LE SCROLL
+              onKeyDown={handleInputKeyDown} // <-- ICI
+              onWheel={handleWheel}
               min={minPlanDepth}
               max={maxPlanDepth}
               step="10"
@@ -807,17 +813,14 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
             ? absLimitRight
             : (layout.items[index + 1]?.leftBound ?? absLimitRight);
 
-        // CORRECTIF ICI : Calcul de la capacité basé sur la cuve seule
-        // On récupère les bords actuels, mais on retire l'influence de l'égouttoir s'il est actif
-        // pour savoir si on a la place "théorique".
         let effectiveLeftBound = currentPos ? currentPos.leftBound : 0;
         let effectiveRightBound = currentPos ? currentPos.rightBound : 0;
 
         if (currentPos && sink.hasDrainer) {
           if (sink.drainerPosition === "left") {
-            effectiveLeftBound += DRAINER_WIDTH_MM; // On simule le bord sans égouttoir
+            effectiveLeftBound += DRAINER_WIDTH_MM;
           } else if (sink.drainerPosition === "right") {
-            effectiveRightBound -= DRAINER_WIDTH_MM; // On simule le bord sans égouttoir
+            effectiveRightBound -= DRAINER_WIDTH_MM;
           }
         }
 
@@ -857,13 +860,10 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
         } else {
           minOffset = MIN_GAP_BETWEEN_SINKS;
 
-          // Logique dynamique du minOffset selon présence égouttoir dans l'interstice
           const anchorIndex = currentSinks.findIndex(
             (s) => s.id === config.anchorId,
           );
           if (index > anchorIndex) {
-            // Je suis à droite de l'ancre (ou précédent). Mon voisin de gauche est index-1.
-            // Si mon voisin a un égouttoir à droite OU j'ai un égouttoir à gauche => 40 + 350
             const prevSink = currentSinks[index - 1];
             const me = currentSinks[index];
             if (
@@ -873,8 +873,6 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
               minOffset = MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM;
             }
           } else if (index < anchorIndex) {
-            // Je suis à gauche de l'ancre. Mon voisin de droite est index+1.
-            // Si mon voisin a un égouttoir à gauche OU j'ai un égouttoir à droite => 40 + 350
             const nextSink = currentSinks[index + 1];
             const me = currentSinks[index];
             if (
@@ -1081,8 +1079,8 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                               }
                               updateSink(sink.id, "offset", val);
                             }}
-                            onKeyDown={blockInvalidChar}
-                            onWheel={handleWheel} // BLOQUE LE SCROLL
+                            onKeyDown={handleInputKeyDown} // <-- ICI
+                            onWheel={handleWheel}
                             min={Math.ceil(minOffset)}
                             max={Math.floor(maxOffset)}
                             step="10"
@@ -1169,8 +1167,8 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                             }
                             updateSink(sink.id, "offset", val);
                           }}
-                          onKeyDown={blockInvalidChar}
-                          onWheel={handleWheel} // BLOQUE LE SCROLL
+                          onKeyDown={handleInputKeyDown} // <-- ICI
+                          onWheel={handleWheel}
                           min={minOffset}
                           max={Math.floor(maxOffset)}
                           step="10"
@@ -1285,8 +1283,8 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                               }
                               updateSink(sink.id, "tapHoleOffset", val);
                             }}
-                            onKeyDown={blockInvalidChar}
-                            onWheel={handleWheel} // BLOQUE LE SCROLL
+                            onKeyDown={handleInputKeyDown} // <-- ICI
+                            onWheel={handleWheel}
                             min="0"
                             max={maxTapOffset}
                             step="1"
@@ -1458,7 +1456,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                 onChange={handleGlobalChange}
                 onFocus={() => clearAlert("rimHeigh")}
                 onBlur={handleBlur}
-                onKeyDown={blockInvalidChar}
+                onKeyDown={handleInputKeyDown} // <-- ICI
                 onWheel={handleWheel} // BLOQUE LE SCROLL
                 min="100"
                 max="550"
@@ -1559,7 +1557,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
               onChange={handleGlobalChange}
               onFocus={() => clearAlert("apronHeight")}
               onBlur={handleBlur}
-              onKeyDown={blockInvalidChar}
+              onKeyDown={handleInputKeyDown} // <-- ICI
               onWheel={handleWheel} // BLOQUE LE SCROLL
               min="40"
               max="200"

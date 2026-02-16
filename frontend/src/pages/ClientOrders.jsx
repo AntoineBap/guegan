@@ -64,7 +64,10 @@ const ClientOrders = () => {
                             </span>
                         </div>
                         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                            <span className={`status-badge ${selectedOrder.status}`}>
+                            <span 
+                                className={`status-badge ${selectedOrder.status}`}
+                                style={{ backgroundColor: statusInfo.color, color: 'white' }}
+                            >
                                 {statusInfo.label}
                             </span>
                             <button className="back-btn" onClick={() => navigate('/configurator')}>
@@ -182,7 +185,7 @@ const ClientOrders = () => {
                                     <div className="order-header">
                                         <span className="order-ref">#{order.orderNumber}</span>
                                         <span className="order-date">{new Date(order.createdAt).toLocaleDateString()}</span>
-                                        <span className="status-badge" style={{backgroundColor: statusInfo.color}}>
+                                        <span className="status-badge" style={{backgroundColor: statusInfo.color, color: 'white'}}>
                                             {statusInfo.label}
                                         </span>
                                     </div>

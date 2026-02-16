@@ -305,7 +305,7 @@ const Cart = ({ updateItem, removeItem, closeCart, onLoadConfig }) => {
             }
             onClick={handleCheckoutClick}
           >
-            Passer au paiement
+            Valider la commande 
           </button>
         </div>
       </div>
