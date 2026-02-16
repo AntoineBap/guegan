@@ -84,7 +84,7 @@ const Home = () => {
       </div>
 
       <nav className="home-nav">
-        <div className="logo">GUEGAN</div>
+        <div className="logo">GUEGAN <span className="subtitle">Shop</span></div>
       </nav>
 
       <header className="hero-section">

@@ -79,6 +79,14 @@ $border-color: #e0e0e0;
     padding: 30px 50px;
     padding-top: max(30px, env(safe-area-inset-top)); // Respecte l'encoche
 
+    .subtitle {
+      font-size: 1.1rem;
+      color: #888;
+      font-weight: 400;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
     .logo {
       font-family: "Manrope", serif;
       font-size: 1.8rem;
