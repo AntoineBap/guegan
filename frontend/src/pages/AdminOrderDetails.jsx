@@ -80,6 +80,18 @@ const AdminOrderDetails = () => {
               <p>
                 <strong>Tel :</strong> {order.userId?.phone || "N/A"}
               </p>
+              <p>
+                <strong>Adresse :</strong> {order.billingAddress.address || "N/A"}
+              </p>
+              <p>
+                <strong>Ville :</strong> {order.billingAddress.city || "N/A"}
+              </p>
+              <p>
+                <strong>Code Postal :</strong> {order.billingAddress.zip || "N/A"}
+              </p>
+              <p>
+                <strong>Pays :</strong> {order.billingAddress.country || "N/A"}
+              </p>
             </div>
             <div className="info-card">
               <h3>🚚 Livraison</h3>
