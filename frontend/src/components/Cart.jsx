@@ -103,7 +103,10 @@ const Cart = ({ updateItem, removeItem, closeCart, onLoadConfig }) => {
                     <h3>Plan Vasque</h3>
                     <p className="details">
                       Dim: {item.length}x{item.width}mm •{" "}
-                      {item.sinks ? item.sinks.length : 0} Cuve(s)
+                      {item.sinks 
+                        ? item.sinks.filter(s => s.type !== "Aucune cuve").length 
+                        : 0
+                      } Cuve(s)
                     </p>
 
                     <div className="item-actions-row">
@@ -144,7 +147,7 @@ const Cart = ({ updateItem, removeItem, closeCart, onLoadConfig }) => {
                         }
                       />
                     </div>
-                    {/* 👇 UTILISATION DE renderPrice ICI */}
+
                     <span className="item-total">
                       {renderPrice(item.unitPrice * item.quantity)}
                     </span>
@@ -168,26 +171,44 @@ const Cart = ({ updateItem, removeItem, closeCart, onLoadConfig }) => {
                       </li>
 
                       {item.sinks &&
-                        item.sinks.map((s, idx) => (
-                          <li key={idx} className="sub-group">
-                            <strong>Cuve #{idx + 1} :</strong>{" "}
-                            {s.type ? s.type.replace("Cuve ", "") : "Standard"}
-                            <br />
-                            Position:{" "}
-                            {s.position === "center" ? "Centrée" : s.position}
-                            {s.position !== "center" && ` (${s.offset}mm)`}
-                            <br />
-                            Robinet:{" "}
-                            {s.hasTapHole
-                              ? `Oui (${s.tapHolePosition})`
-                              : "Non"}
-                            <br />
-                            Egouttoir:{" "}
-                            {s.hasDrainer
-                              ? `Oui (${s.drainerPosition})`
-                              : "Non"}
-                          </li>
-                        ))}
+                        item.sinks
+                          .filter((s) => s.type !== "Aucune cuve")
+                          .map((s, idx) => {
+                            const isAnchor = item.anchorId && s.id === item.anchorId;
+
+                            let positionLabel = s.position;
+                            if (s.position === "left") positionLabel = "Gauche";
+                            else if (s.position === "right") positionLabel = "Droite";
+                            else if (s.position === "center") positionLabel = "Centrée";
+
+                            // 3. Traduction de la position de l'égouttoir (si besoin)
+                            let drainerLabel = s.drainerPosition;
+                            if (s.drainerPosition === "left") drainerLabel = "Gauche";
+                            else if (s.drainerPosition === "right") drainerLabel = "Droite";
+
+                            return (
+                              <li key={idx} className="sub-group">
+                                <strong>
+                                  Cuve #{idx + 1}
+                                  {isAnchor && (
+                                    <span style={{ color: "#d4af37", marginLeft: "5px" }}>
+                                      (Ancrée)
+                                    </span>
+                                  )} :
+                                </strong>{" "}
+                                {s.type ? s.type.replace("Cuve ", "") : "Standard"}
+                                <br />
+                                Position: {positionLabel}
+                                {s.position !== "center" && ` (${s.offset}mm)`}
+                                <br />
+                                Robinet:{" "}
+                                {s.hasTapHole ? `Oui (${s.tapHolePosition})` : "Non"}
+                                <br />
+                                Egouttoir:{" "}
+                                {s.hasDrainer ? `Oui (${drainerLabel})` : "Non"}
+                              </li>
+                            );
+                          })}
 
                       {item.rims && (
                         <li>
