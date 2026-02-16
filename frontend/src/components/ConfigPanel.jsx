@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useContext, useState, useRef } from "react";
 import ConfigResume from "./ConfigResume";
 import { AuthContext } from "../contexts/AuthContext";
 import { SettingsContext } from "../contexts/SettingsContext";
-import "../styles/style.scss"; // ou configurator.scss selon votre structure
+import "../styles/configurator.scss"; // ou configurator.scss selon votre structure
 
 const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
   const { isAuthenticated } = useContext(AuthContext);
