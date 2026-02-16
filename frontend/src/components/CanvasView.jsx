@@ -5,11 +5,13 @@ import LogoBackground from "./LogoBackground"; // Assurez-vous que le chemin est
 
 const CanvasView = ({ canvasContent }) => {
   return (
-      <Canvas shadows dpr={[1, 2]} camera={{ position: [4, 4, 4], fov: 50 }}>
+      <Canvas 
+        shadows 
+        dpr={[1, 2]} 
+        camera={{ position: [0, 6, 10], fov: 45 }} 
+      >
 
         <Suspense fallback={null}>
-          {/* Ajout de l'arrière-plan logo */}
-          {/* Ajuster repeatCount selon la taille désirée du quadrillage */}
           <LogoBackground logoPath="/logo.png" repeatCount={5} />
 
           <Stage environment="city" intensity={0.8} adjustCamera={false}>

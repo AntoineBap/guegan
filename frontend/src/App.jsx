@@ -11,6 +11,7 @@ import ClientOrders from "./pages/ClientOrders";
 import ProtectedRoute from './components/ProtectedRoute'; 
 import AdminOrderDetails from './pages/AdminOrderDetails';
 import OrderConfirmation from "./pages/OrderConfirmation";
+import Contact from "./pages/Contact";
 import CGV from './pages/CGV';
 import AdminUsers from './pages/AdminUsers';
 import AdminVariables from './pages/AdminVariables'; // Import de la nouvelle page
@@ -34,6 +35,8 @@ function App() {
                 
                 {/* Route de connexion / inscription */}
                 <Route path="/login" element={<Login />} />
+
+                <Route path="/contact" element={<Contact />} />
 
                 <Route path="/verify/:token" element={<VerifyEmail />} />
                 

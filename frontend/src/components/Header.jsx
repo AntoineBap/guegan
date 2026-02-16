@@ -90,6 +90,12 @@ const Header = () => {
       </div>
 
       <div className="header-actions">
+        {/* --- NOUVEAU BOUTON CONTACT --- */}
+        <button className="contact-btn" onClick={() => navigate('/contact')}>
+            <span className="icon">✉️</span>
+            <span className="text">Contact</span>
+        </button>
+
         {/* LOGIQUE D'ALTERNANCE : Si Admin, on affiche soit le bouton Admin, soit le bouton Configurateur */}
         {isAdmin && (
             isInternalAdminPage ? (

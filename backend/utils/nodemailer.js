@@ -126,3 +126,46 @@ exports.sendStatusUpdateEmail = async (order, user, status) => {
         htmlContent: htmlContent
     });
 };
+
+// --- 4. EMAIL DE CONTACT (NOUVEAU) ---
+exports.sendContactFormEmail = async (data, file) => {
+    // data contient : nom, prenom, email, phone, objet, message
+    
+    const attachments = [];
+    if (file) {
+        attachments.push({
+            name: file.originalname,       // <--- ATTENTION : "name", PAS "filename"
+            content: file.buffer.toString('base64') // <--- Votre correction précédente (Base64)
+        });
+    }
+
+    const htmlContent = `
+        <div style="font-family: Arial, sans-serif; color: #333; padding: 20px; border: 1px solid #eee;">
+            <h2 style="color: #d4af37;">Nouveau message du site web</h2>
+            <p><strong>De :</strong> ${data.prenom} ${data.nom}</p>
+            <p><strong>Email :</strong> ${data.email}</p>
+            <p><strong>Téléphone :</strong> ${data.phone}</p>
+            <hr/>
+            <p><strong>Objet :</strong> ${data.objet}</p>
+            <p><strong>Message :</strong></p>
+            <blockquote style="background: #f9f9f9; padding: 15px; border-left: 5px solid #d4af37;">
+                ${data.message.replace(/\n/g, '<br>')}
+            </blockquote>
+        </div>
+    `;
+
+    try {
+        await apiInstance.sendTransacEmail({
+            sender: SENDER, // Ton adresse d'envoi (no-reply)
+            to: [{ email: 'antoinebaptista@icloud.com' }], // L'adresse de réception
+            replyTo: { email: data.email }, // Pour que tu puisses répondre directement au client
+            subject: `[Contact Site] ${data.objet}`,
+            htmlContent: htmlContent,
+            attachment: attachments.length > 0 ? attachments : undefined
+        });
+        console.log("Email de contact envoyé.");
+    } catch (error) {
+        console.error("Erreur envoi email contact:", error);
+        throw error;
+    }
+};

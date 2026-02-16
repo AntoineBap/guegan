@@ -32,16 +32,18 @@ export const SettingsProvider = ({ children }) => {
     const [settings, setSettings] = useState(defaultSettings);
 
     useEffect(() => {
-        // On change la clé pour récupérer 'global_settings' au lieu de 'sink_prices'
-        fetch(`${apiUrl}/api/admin/settings/global_settings`)
-            .then(res => res.json())
+        // MODIFICATION ICI : On tape sur la route publique '/api/config/global'
+        // Au lieu de '/api/admin/settings/global_settings' qui est verrouillée
+        fetch(`${apiUrl}/api/config/global`)
+            .then(res => {
+                if (!res.ok) throw new Error("Erreur réseau");
+                return res.json();
+            })
             .then(data => {
                 if (data && data.value) {
-                    // On fusionne avec les défauts pour éviter les bugs si des champs manquent
                     setSettings(prev => ({
                         ...prev,
                         ...data.value,
-                        // Assure que les sous-objets existent aussi
                         sinkPrices: { ...prev.sinkPrices, ...(data.value.sinkPrices || {}) },
                         prices: { ...prev.prices, ...(data.value.prices || {}) },
                         linearFormula: { ...prev.linearFormula, ...(data.value.linearFormula || {}) },
