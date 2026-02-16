@@ -11,12 +11,15 @@ $border-color: #e0e0e0;
 .login-page {
   height: 100vh;
   width: 100%;
-  overflow-y: auto; 
+  overflow-y: auto;
   display: flex;
   background-color: #f4f6f8;
-  font-family: system-ui, -apple-system, sans-serif;
-  padding: 40px 20px; 
-  box-sizing: border-box; 
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
+  padding: 40px 20px;
+  box-sizing: border-box;
 
   input::placeholder {
     color: #b0b0b0;
@@ -25,16 +28,16 @@ $border-color: #e0e0e0;
   }
 
   .login-card {
-    margin: auto; 
+    margin: auto;
     background: white;
-    padding: 30px; 
+    padding: 30px;
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     width: 100%;
     max-width: 500px;
     text-align: center;
     animation: slideUp 0.4s ease-out;
-    
+
     .back-btn {
       background: none;
       border: none;
@@ -46,7 +49,7 @@ $border-color: #e0e0e0;
       align-items: center;
       gap: 5px;
       padding: 0;
-      
+
       &:hover {
         color: #111;
         text-decoration: underline;
@@ -81,13 +84,13 @@ $border-color: #e0e0e0;
     form {
       display: flex;
       flex-direction: column;
-      gap: 10px; 
+      gap: 10px;
 
       .form-row {
         display: flex;
         margin-bottom: 0.1rem;
-        gap: 10px; 
-        
+        gap: 10px;
+
         @media (max-width: 480px) {
           flex-direction: column;
           gap: 10px;
@@ -112,7 +115,9 @@ $border-color: #e0e0e0;
         box-sizing: border-box;
         color: #333;
         background-color: #fff;
-        transition: border-color 0.2s, background-color 0.2s;
+        transition:
+          border-color 0.2s,
+          background-color 0.2s;
 
         &:focus {
           border-color: #111;
@@ -125,8 +130,8 @@ $border-color: #e0e0e0;
       }
 
       .form-group {
-        position: relative; 
-        
+        position: relative;
+
         /* --- STYLE CASE À COCHER (STANDARD) --- */
         &.checkbox-group-login {
           background: $white;
@@ -135,13 +140,13 @@ $border-color: #e0e0e0;
           padding: 1.5rem;
           margin-bottom: 1.5rem;
           box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
-          
+
           /* 👇 MODIFICATION ICI : Flex row pour mettre checkbox à gauche */
           display: flex;
-          flex-direction: row; 
+          flex-direction: row;
           align-items: center; /* Aligne verticalement au centre */
           gap: 15px; /* Espace entre la case et le texte */
-          
+
           label {
             margin: 0;
             display: flex;
@@ -149,11 +154,11 @@ $border-color: #e0e0e0;
             cursor: pointer;
             text-transform: none;
             /* 👇 MODIFICATION ICI : Texte en gras */
-            font-weight: 700; 
+            font-weight: 700;
             font-size: 1rem;
             color: #111;
           }
-          
+
           input[type="checkbox"] {
             appearance: none;
             -webkit-appearance: none;
@@ -177,7 +182,14 @@ $border-color: #e0e0e0;
               transition: 120ms transform ease-in-out;
               box-shadow: inset 1em 1em $gold;
               transform-origin: center;
-              clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+              clip-path: polygon(
+                14% 44%,
+                0 65%,
+                50% 100%,
+                100% 16%,
+                80% 0%,
+                43% 62%
+              );
             }
             &:checked {
               background-color: $black;
@@ -193,7 +205,7 @@ $border-color: #e0e0e0;
       label {
         display: block;
         text-align: left;
-        margin-bottom: 4px; 
+        margin-bottom: 4px;
         font-size: 0.85rem;
         font-weight: 700;
         color: #111;
@@ -213,7 +225,7 @@ $border-color: #e0e0e0;
         top: 50%;
         transform: translateY(-40%);
         cursor: pointer;
-        
+
         &:hover svg {
           stroke: #111;
         }
@@ -267,8 +279,12 @@ $border-color: #e0e0e0;
           align-items: center;
           gap: 8px;
 
-          &.valid { color: #2ecc71; }
-          &.invalid { color: #e74c3c; }
+          &.valid {
+            color: #2ecc71;
+          }
+          &.invalid {
+            color: #e74c3c;
+          }
         }
       }
 
@@ -282,7 +298,9 @@ $border-color: #e0e0e0;
         font-size: 1rem;
         font-weight: 600;
         margin-top: 5px;
-        transition: opacity 0.2s, background-color 0.2s;
+        transition:
+          opacity 0.2s,
+          background-color 0.2s;
 
         &:hover {
           background-color: #333;
@@ -315,15 +333,26 @@ $border-color: #e0e0e0;
   }
 
   .validation-screen {
-    h2 { color: #2ecc71; margin-bottom: 20px; }
-    p { color: #555; margin-bottom: 20px; line-height: 1.5; }
-    
+    h2 {
+      color: #2ecc71;
+      margin-bottom: 20px;
+    }
+    p {
+      color: #555;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
     .resend-section {
       margin-top: 30px;
       border-top: 1px solid #eee;
       padding-top: 20px;
 
-      p { font-size: 0.9rem; color: #777; margin-bottom: 10px; }
+      p {
+        font-size: 0.9rem;
+        color: #777;
+        margin-bottom: 10px;
+      }
 
       .resend-btn {
         padding: 10px 20px;
@@ -354,6 +383,12 @@ $border-color: #e0e0e0;
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

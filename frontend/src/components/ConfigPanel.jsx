@@ -196,7 +196,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
           : positions[i - 1];
       const prevItem = items[i - 1];
       const currItem = items[i];
-      
+
       const safeOffset =
         currItem.offset !== "" &&
         currItem.offset !== null &&
@@ -204,10 +204,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
           ? parseFloat(currItem.offset)
           : MIN_GAP_BETWEEN_SINKS;
       const structuralGap = safeOffset;
-      const dist =
-        prevItem.width / 2 +
-        structuralGap +
-        currItem.width / 2;
+      const dist = prevItem.width / 2 + structuralGap + currItem.width / 2;
       const x = prev.centerX + dist;
       let lb = x - currItem.width / 2;
       let rb = x + currItem.width / 2;
@@ -229,10 +226,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
           : MIN_GAP_BETWEEN_SINKS;
       const structuralGap = safeOffset;
 
-      const dist =
-        currItem.width / 2 +
-        structuralGap +
-        nextItem.width / 2;
+      const dist = currItem.width / 2 + structuralGap + nextItem.width / 2;
       const x = nextPos.centerX - dist;
       let lb = x - currItem.width / 2;
       let rb = x + currItem.width / 2;
@@ -506,64 +500,78 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
       );
       return;
     }
-    
+
     // Logique pour ajuster l'offset si l'égouttoir se met dans l'interstice
     setConfig((prev) => {
-        const anchorIndex = prev.sinks.findIndex(s => s.id === prev.anchorId);
-        let newSinks = prev.sinks.map((s, i) => {
-            if(s.id !== id) return s;
-            return { ...s, hasDrainer: true, drainerPosition: chosenPos };
-        });
+      const anchorIndex = prev.sinks.findIndex((s) => s.id === prev.anchorId);
+      let newSinks = prev.sinks.map((s, i) => {
+        if (s.id !== id) return s;
+        return { ...s, hasDrainer: true, drainerPosition: chosenPos };
+      });
 
-        // Vérification si on doit augmenter l'offset
-        if(index > anchorIndex) {
-            // Côté Droit de l'ancre. L'interstice est à gauche de l'élément courant (offset du courant).
-            if(chosenPos === "left") {
-                 // Egouttoir vers l'intérieur
-                 const currentOffset = newSinks[index].offset;
-                 if(currentOffset < MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM) {
-                     newSinks[index] = { ...newSinks[index], offset: MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM };
-                 }
-            }
-        } else if(index < anchorIndex) {
-            // Côté Gauche de l'ancre. L'interstice est à droite de l'élément courant (offset du courant).
-            if(chosenPos === "right") {
-                 // Egouttoir vers l'intérieur
-                 const currentOffset = newSinks[index].offset;
-                 if(currentOffset < MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM) {
-                     newSinks[index] = { ...newSinks[index], offset: MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM };
-                 }
-            }
+      // Vérification si on doit augmenter l'offset
+      if (index > anchorIndex) {
+        // Côté Droit de l'ancre. L'interstice est à gauche de l'élément courant (offset du courant).
+        if (chosenPos === "left") {
+          // Egouttoir vers l'intérieur
+          const currentOffset = newSinks[index].offset;
+          if (currentOffset < MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM) {
+            newSinks[index] = {
+              ...newSinks[index],
+              offset: MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM,
+            };
+          }
         }
+      } else if (index < anchorIndex) {
+        // Côté Gauche de l'ancre. L'interstice est à droite de l'élément courant (offset du courant).
+        if (chosenPos === "right") {
+          // Egouttoir vers l'intérieur
+          const currentOffset = newSinks[index].offset;
+          if (currentOffset < MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM) {
+            newSinks[index] = {
+              ...newSinks[index],
+              offset: MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM,
+            };
+          }
+        }
+      }
 
-        return { ...prev, sinks: newSinks };
+      return { ...prev, sinks: newSinks };
     });
   };
-  
-  const setDrainerPositionManual = (id, pos, index) => {
-      setConfig((prev) => {
-        const anchorIndex = prev.sinks.findIndex(s => s.id === prev.anchorId);
-        let newSinks = prev.sinks.map((s) => s.id === id ? { ...s, drainerPosition: pos } : s);
 
-         if(index > anchorIndex) {
-            // Côté Droit
-            if(pos === "left") {
-                 const currentOffset = newSinks[index].offset;
-                 if(currentOffset < MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM) {
-                     newSinks[index] = { ...newSinks[index], offset: MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM };
-                 }
-            }
-        } else if(index < anchorIndex) {
-            // Côté Gauche
-            if(pos === "right") {
-                 const currentOffset = newSinks[index].offset;
-                 if(currentOffset < MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM) {
-                     newSinks[index] = { ...newSinks[index], offset: MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM };
-                 }
-            }
+  const setDrainerPositionManual = (id, pos, index) => {
+    setConfig((prev) => {
+      const anchorIndex = prev.sinks.findIndex((s) => s.id === prev.anchorId);
+      let newSinks = prev.sinks.map((s) =>
+        s.id === id ? { ...s, drainerPosition: pos } : s,
+      );
+
+      if (index > anchorIndex) {
+        // Côté Droit
+        if (pos === "left") {
+          const currentOffset = newSinks[index].offset;
+          if (currentOffset < MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM) {
+            newSinks[index] = {
+              ...newSinks[index],
+              offset: MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM,
+            };
+          }
         }
-        return { ...prev, sinks: newSinks };
-      });
+      } else if (index < anchorIndex) {
+        // Côté Gauche
+        if (pos === "right") {
+          const currentOffset = newSinks[index].offset;
+          if (currentOffset < MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM) {
+            newSinks[index] = {
+              ...newSinks[index],
+              offset: MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM,
+            };
+          }
+        }
+      }
+      return { ...prev, sinks: newSinks };
+    });
   };
 
   const handleSinkTypeSelect = (id, typeName) => {
@@ -703,8 +711,12 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
           borderRadius: "5px",
           transition: "background 0.3s ease",
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(231, 76, 60, 0.25)")}
-        onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(231, 76, 60, 0.1)")}
+        onMouseEnter={(e) =>
+          (e.currentTarget.style.background = "rgba(231, 76, 60, 0.25)")
+        }
+        onMouseLeave={(e) =>
+          (e.currentTarget.style.background = "rgba(231, 76, 60, 0.1)")
+        }
       >
         Réinitialiser la configuration
       </button>
@@ -802,11 +814,11 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
         let effectiveRightBound = currentPos ? currentPos.rightBound : 0;
 
         if (currentPos && sink.hasDrainer) {
-            if (sink.drainerPosition === "left") {
-                effectiveLeftBound += DRAINER_WIDTH_MM; // On simule le bord sans égouttoir
-            } else if (sink.drainerPosition === "right") {
-                effectiveRightBound -= DRAINER_WIDTH_MM; // On simule le bord sans égouttoir
-            }
+          if (sink.drainerPosition === "left") {
+            effectiveLeftBound += DRAINER_WIDTH_MM; // On simule le bord sans égouttoir
+          } else if (sink.drainerPosition === "right") {
+            effectiveRightBound -= DRAINER_WIDTH_MM; // On simule le bord sans égouttoir
+          }
         }
 
         const distL = effectiveLeftBound - obstacleL;
@@ -844,27 +856,33 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
           if (maxOffset < minOffset) maxOffset = minOffset;
         } else {
           minOffset = MIN_GAP_BETWEEN_SINKS;
-          
+
           // Logique dynamique du minOffset selon présence égouttoir dans l'interstice
-          const anchorIndex = currentSinks.findIndex(s => s.id === config.anchorId);
+          const anchorIndex = currentSinks.findIndex(
+            (s) => s.id === config.anchorId,
+          );
           if (index > anchorIndex) {
-              // Je suis à droite de l'ancre (ou précédent). Mon voisin de gauche est index-1.
-              // Si mon voisin a un égouttoir à droite OU j'ai un égouttoir à gauche => 40 + 350
-              const prevSink = currentSinks[index - 1];
-              const me = currentSinks[index];
-              if ((prevSink.hasDrainer && prevSink.drainerPosition === 'right') || 
-                  (me.hasDrainer && me.drainerPosition === 'left')) {
-                  minOffset = MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM;
-              }
+            // Je suis à droite de l'ancre (ou précédent). Mon voisin de gauche est index-1.
+            // Si mon voisin a un égouttoir à droite OU j'ai un égouttoir à gauche => 40 + 350
+            const prevSink = currentSinks[index - 1];
+            const me = currentSinks[index];
+            if (
+              (prevSink.hasDrainer && prevSink.drainerPosition === "right") ||
+              (me.hasDrainer && me.drainerPosition === "left")
+            ) {
+              minOffset = MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM;
+            }
           } else if (index < anchorIndex) {
-              // Je suis à gauche de l'ancre. Mon voisin de droite est index+1.
-              // Si mon voisin a un égouttoir à gauche OU j'ai un égouttoir à droite => 40 + 350
-              const nextSink = currentSinks[index + 1];
-              const me = currentSinks[index];
-              if ((nextSink.hasDrainer && nextSink.drainerPosition === 'left') || 
-                  (me.hasDrainer && me.drainerPosition === 'right')) {
-                  minOffset = MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM;
-              }
+            // Je suis à gauche de l'ancre. Mon voisin de droite est index+1.
+            // Si mon voisin a un égouttoir à gauche OU j'ai un égouttoir à droite => 40 + 350
+            const nextSink = currentSinks[index + 1];
+            const me = currentSinks[index];
+            if (
+              (nextSink.hasDrainer && nextSink.drainerPosition === "left") ||
+              (me.hasDrainer && me.drainerPosition === "right")
+            ) {
+              minOffset = MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM;
+            }
           }
 
           const globalSlackRight = absLimitRight - layout.groupMaxX;
@@ -1334,7 +1352,9 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                         }
                         disabled={!canL && sink.drainerPosition !== "left"}
                         style={
-                          (!canL && sink.drainerPosition !== "left") ? { opacity: 0.5, cursor: "not-allowed" } : {}
+                          !canL && sink.drainerPosition !== "left"
+                            ? { opacity: 0.5, cursor: "not-allowed" }
+                            : {}
                         }
                       >
                         À Gauche
@@ -1348,7 +1368,9 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                         }
                         disabled={!canR && sink.drainerPosition !== "right"}
                         style={
-                          (!canR && sink.drainerPosition !== "right") ? { opacity: 0.5, cursor: "not-allowed" } : {}
+                          !canR && sink.drainerPosition !== "right"
+                            ? { opacity: 0.5, cursor: "not-allowed" }
+                            : {}
                         }
                       >
                         À Droite

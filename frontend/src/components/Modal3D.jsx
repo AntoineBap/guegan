@@ -1,8 +1,8 @@
-import { AnimatePresence, motion } from 'framer-motion';
-import Vasque3D from './Vasque3D';
+import { AnimatePresence, motion } from "framer-motion";
+import Vasque3D from "./Vasque3D";
 import CanvasView from "./CanvasView";
 
-const Modal3D = ({config, showModal, setShowModal}) => {
+const Modal3D = ({ config, showModal, setShowModal }) => {
   return (
     <AnimatePresence>
       {showModal && (
@@ -18,14 +18,13 @@ const Modal3D = ({config, showModal, setShowModal}) => {
             </button>
             <h2>Validation Technique</h2>
             <div className="canvas-container">
-              <CanvasView canvasContent={<Vasque3D config={config} />}/> 
+              <CanvasView canvasContent={<Vasque3D config={config} />} />
             </div>
             <div className="modal-footer">
               <p>
                 Vérifiez que les perçages et dimensions correspondent à votre
                 besoin.
               </p>
-              
             </div>
           </div>
         </motion.div>

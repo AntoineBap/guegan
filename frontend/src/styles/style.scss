@@ -8,9 +8,9 @@ $grey-light: #f4f4f6;
 $white: #ffffff;
 $text: #2c2c2c;
 $border-color: #e0e0e0;
-$error: #e74c3c; 
+$error: #e74c3c;
 
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap");
 
 * {
   box-sizing: border-box;
@@ -20,12 +20,12 @@ $error: #e74c3c;
 // --- BASE (CORRECTION SCROLL MOLETTE) ---
 html {
   // On autorise le scroll sur html pour que la molette fonctionne nativement
-  overflow-y: auto; 
+  overflow-y: auto;
   overflow-x: hidden;
-  
+
   // On garde ceci pour empêcher l'effet élastique sur Mac/iOS
-  overscroll-behavior: none; 
-  
+  overscroll-behavior: none;
+
   height: 100%;
   background-color: $white;
 }
@@ -35,16 +35,16 @@ body {
   padding: 0;
   width: 100%;
   min-height: 100%;
-  
+
   font-family: "Manrope", sans-serif;
   background-color: $white;
   color: $text;
-  
+
   // On laisse le scroll visible par défaut (géré par html)
-  overflow: visible; 
-  
+  overflow: visible;
+
   -webkit-font-smoothing: antialiased;
-  
+
   // Safe areas
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
@@ -75,10 +75,10 @@ textarea {
   background: #f9f9f9;
   color: $black;
   font-family: inherit;
-  font-size: 16px; 
+  font-size: 16px;
   margin-bottom: 0.5rem;
   transition: 0.3s;
-  appearance: none; 
+  appearance: none;
 
   &:focus {
     outline: none;
@@ -88,27 +88,33 @@ textarea {
   }
 
   &.has-alert {
-    border: 2px solid $error !important; 
-    background-color: rgba($error, 0.05); 
-    color: $error; 
+    border: 2px solid $error !important;
+    background-color: rgba($error, 0.05);
+    color: $error;
 
     &:focus {
-        border-color: $error !important;
-        box-shadow: 0 0 0 3px rgba($error, 0.2);
+      border-color: $error !important;
+      box-shadow: 0 0 0 3px rgba($error, 0.2);
     }
   }
 }
 
 .alert-message {
-    color: $error;
-    font-size: 0.85rem;
-    font-weight: 700;
-    margin-top: 2px;
-    margin-bottom: 10px;
-    animation: fadeIn 0.3s ease-in-out;
+  color: $error;
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-top: 2px;
+  margin-bottom: 10px;
+  animation: fadeIn 0.3s ease-in-out;
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-3px); }
-    to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

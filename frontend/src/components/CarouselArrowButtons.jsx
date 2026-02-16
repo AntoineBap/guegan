@@ -1,41 +1,41 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from "react";
 
 export const usePrevNextButtons = (emblaApi) => {
-  const [prevBtnDisabled, setPrevBtnDisabled] = useState(true)
-  const [nextBtnDisabled, setNextBtnDisabled] = useState(true)
+  const [prevBtnDisabled, setPrevBtnDisabled] = useState(true);
+  const [nextBtnDisabled, setNextBtnDisabled] = useState(true);
 
   const onPrevButtonClick = useCallback(() => {
-    if (!emblaApi) return
-    emblaApi.scrollPrev()
-  }, [emblaApi])
+    if (!emblaApi) return;
+    emblaApi.scrollPrev();
+  }, [emblaApi]);
 
   const onNextButtonClick = useCallback(() => {
-    if (!emblaApi) return
-    emblaApi.scrollNext()
-  }, [emblaApi])
+    if (!emblaApi) return;
+    emblaApi.scrollNext();
+  }, [emblaApi]);
 
   const onSelect = useCallback((emblaApi) => {
-    setPrevBtnDisabled(!emblaApi.canScrollPrev())
-    setNextBtnDisabled(!emblaApi.canScrollNext())
-  }, [])
+    setPrevBtnDisabled(!emblaApi.canScrollPrev());
+    setNextBtnDisabled(!emblaApi.canScrollNext());
+  }, []);
 
   useEffect(() => {
-    if (!emblaApi) return
+    if (!emblaApi) return;
 
-    onSelect(emblaApi)
-    emblaApi.on('reInit', onSelect).on('select', onSelect)
-  }, [emblaApi, onSelect])
+    onSelect(emblaApi);
+    emblaApi.on("reInit", onSelect).on("select", onSelect);
+  }, [emblaApi, onSelect]);
 
   return {
     prevBtnDisabled,
     nextBtnDisabled,
     onPrevButtonClick,
-    onNextButtonClick
-  }
-}
+    onNextButtonClick,
+  };
+};
 
 export const PrevButton = (props) => {
-  const { children, ...restProps } = props
+  const { children, ...restProps } = props;
 
   return (
     <button
@@ -51,11 +51,11 @@ export const PrevButton = (props) => {
       </svg>
       {children}
     </button>
-  )
-}
+  );
+};
 
 export const NextButton = (props) => {
-  const { children, ...restProps } = props
+  const { children, ...restProps } = props;
 
   return (
     <button
@@ -71,5 +71,5 @@ export const NextButton = (props) => {
       </svg>
       {children}
     </button>
-  )
-}
+  );
+};

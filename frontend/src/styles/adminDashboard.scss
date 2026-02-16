@@ -4,7 +4,10 @@
   min-height: 100vh;
   padding: 40px;
   background-color: #f4f6f8;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
 
   .admin-header {
     display: flex;
@@ -14,13 +17,13 @@
     background: white;
     padding: 20px 30px;
     border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 
     h1 {
       margin: 0;
       color: #111;
       font-size: 1.5rem;
-      
+
       .gold {
         color: #d4af37;
         font-style: italic;
@@ -55,7 +58,7 @@
     background: white;
     padding: 25px;
     border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
     border: 1px solid #e0e0e0;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -68,12 +71,12 @@
 
     &:hover {
       transform: translateY(-4px);
-      box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
     }
 
     /* Indicateur de couleur sur le côté gauche */
     &::before {
-      content: '';
+      content: "";
       position: absolute;
       left: 0;
       top: 0;
@@ -82,11 +85,21 @@
     }
 
     /* Variantes de couleurs */
-    &.type-warning::before { background-color: #f39c12; } // Orange (Attente)
-    &.type-success::before { background-color: #27ae60; } // Vert (Payé)
-    &.type-info::before { background-color: #2980b9; }    // Bleu (Expédié)
-    &.type-users::before { background-color: #8e44ad; }   // Violet (Clients)
-    &.type-settings::before { background-color: #7f8c8d; } // Gris (Variables)
+    &.type-warning::before {
+      background-color: #f39c12;
+    } // Orange (Attente)
+    &.type-success::before {
+      background-color: #27ae60;
+    } // Vert (Payé)
+    &.type-info::before {
+      background-color: #2980b9;
+    } // Bleu (Expédié)
+    &.type-users::before {
+      background-color: #8e44ad;
+    } // Violet (Clients)
+    &.type-settings::before {
+      background-color: #7f8c8d;
+    } // Gris (Variables)
 
     .card-icon {
       font-size: 2rem;

@@ -2,21 +2,23 @@ import React, { useContext, useState, useEffect } from 'react';
 import { SettingsContext } from '../contexts/SettingsContext';
 import { AuthContext } from '../contexts/AuthContext';
 import Header from '../components/Header';
+import { useNavigate } from 'react-router-dom';
+import '../styles/adminVariables.scss'; // <--- NOUVEL IMPORT CSS
 
 const AdminVariables = () => {
     const { settings, setSettings, saveSettings } = useContext(SettingsContext);
     const { token } = useContext(AuthContext);
     const [localSettings, setLocalSettings] = useState(null);
+    const navigate = useNavigate();
 
     // Initialisation
     useEffect(() => {
         if (settings) {
-            // Copie profonde pour éviter de muter le state directement
             setLocalSettings(JSON.parse(JSON.stringify(settings)));
         }
     }, [settings]);
 
-    // Helpers pour mettre à jour les objets imbriqués
+    // Helpers
     const updateSinkPrice = (name, val) => {
         setLocalSettings(prev => ({
             ...prev,
@@ -65,7 +67,13 @@ const AdminVariables = () => {
     return (
         <div className="admin-variables-page">
             <Header />
-            <div style={{ padding: '40px', maxWidth: '1200px', margin: '0 auto' }}>
+            <div className="content-wrapper"> {/* Ajout d'une classe wrapper pour le CSS */}
+                
+                {/* --- LE BOUTON EXACTEMENT COMME DANS ADMINUSERS --- */}
+                <button className="back-btn" onClick={() => navigate('/admin')}>
+                    ← Retour Dashboard
+                </button>
+
                 <h2 style={{ marginBottom: '30px' }}>Configuration Globale</h2>
                 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '20px' }}>
@@ -176,7 +184,7 @@ const AdminVariables = () => {
     );
 };
 
-// Styles simples
+// Styles inline conservés pour le layout interne
 const cardStyle = { background: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' };
 const titleStyle = { marginTop: 0, borderBottom: '2px solid #eee', paddingBottom: '10px', marginBottom: '15px' };
 const rowStyle = { marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' };

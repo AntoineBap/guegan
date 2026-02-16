@@ -1,0 +1,23 @@
+.admin-variables-page {
+  background-color: #f8f9fa;
+  min-height: 100vh;
+
+  .content-wrapper {
+    padding: 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* Style du bouton Retour identique à AdminUsers */
+  .back-btn {
+    background: none;
+    border: 1px solid #ccc;
+    padding: 8px 15px;
+    border-radius: 4px;
+    margin-bottom: 5px;
+    cursor: pointer;
+    &:hover {
+      background-color: #e0e0e0;
+    }
+  }
+}

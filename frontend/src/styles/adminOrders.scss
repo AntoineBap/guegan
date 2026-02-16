@@ -17,7 +17,9 @@
       cursor: pointer;
       font-weight: bold;
       color: #555;
-      &:hover { background: #e0e0e0; }
+      &:hover {
+        background: #e0e0e0;
+      }
     }
 
     @media (max-width: 600px) {
@@ -25,14 +27,15 @@
     }
   }
 
-  .loading, .empty-state {
+  .loading,
+  .empty-state {
     text-align: center;
     padding: 50px;
     font-size: 1.2rem;
     color: #777;
     background: white;
     border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
   }
 
   .orders-list {
@@ -44,35 +47,55 @@
     background: white;
     border-radius: 8px;
     padding: 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     border-left: 5px solid #ccc;
     display: flex;
     flex-direction: column;
     gap: 15px;
 
     @media (min-width: 768px) {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr auto;
-        align-items: start;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr auto;
+      align-items: start;
     }
 
     .order-header {
-      .order-id { font-weight: bold; display: block; font-size: 1.1rem; }
-      .order-date { color: #888; font-size: 0.9rem; }
-      .amount { font-weight: bold; font-size: 1.2rem; margin-top: 5px; }
-
+      .order-id {
+        font-weight: bold;
+        display: block;
+        font-size: 1.1rem;
+      }
+      .order-date {
+        color: #888;
+        font-size: 0.9rem;
+      }
+      .amount {
+        font-weight: bold;
+        font-size: 1.2rem;
+        margin-top: 5px;
+      }
     }
-    
+
     .client-info {
       font-size: 0.9rem;
       color: #555;
-      p { margin: 2px 0; }
+      p {
+        margin: 2px 0;
+      }
     }
 
     .products-summary {
       font-size: 0.9rem;
-      h4 { margin: 0 0 5px 0; font-size: 0.9rem; color: #333; }
-      ul { padding-left: 20px; margin: 0; color: #666; }
+      h4 {
+        margin: 0 0 5px 0;
+        font-size: 0.9rem;
+        color: #333;
+      }
+      ul {
+        padding-left: 20px;
+        margin: 0;
+        color: #666;
+      }
     }
 
     .action-btn {
@@ -84,9 +107,10 @@
       font-weight: bold;
       cursor: pointer;
       transition: opacity 0.2s;
-      
-      &:hover { opacity: 0.9; }
+
+      &:hover {
+        opacity: 0.9;
+      }
     }
   }
-
 }

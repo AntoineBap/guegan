@@ -1,11 +1,11 @@
-import React, { useEffect } from 'react';
-import { useThree } from '@react-three/fiber';
-import { useTexture } from '@react-three/drei';
-import * as THREE from 'three';
+import React, { useEffect } from "react";
+import { useThree } from "@react-three/fiber";
+import { useTexture } from "@react-three/drei";
+import * as THREE from "three";
 
 const LogoBackground = ({ logoPath, repeatCount = 10 }) => {
   const { scene, size } = useThree();
-  
+
   // Charge la texture
   const texture = useTexture(logoPath);
 
@@ -23,7 +23,7 @@ const LogoBackground = ({ logoPath, repeatCount = 10 }) => {
       // X = repeatCount * ratio (pour couvrir la largeur sans étirer)
       // Y = repeatCount
       texture.repeat.set(repeatCount * screenRatio, repeatCount);
-      
+
       // 4. Réglages de qualité pour éviter que ce soit flou ou scintillant
       texture.minFilter = THREE.LinearMipMapLinearFilter;
       texture.magFilter = THREE.LinearFilter;

@@ -66,7 +66,7 @@ const ConfigResume = ({ config, onReset, sinkSpecs, settings }) => {
     if (sinks.length === 0) return [];
     if (!sinkSpecs) return [];
 
-    const anchorIndex = sinks.findIndex(s => s.id === config.anchorId);
+    const anchorIndex = sinks.findIndex((s) => s.id === config.anchorId);
 
     return sinks
       .map((sink, index) => {
@@ -75,7 +75,7 @@ const ConfigResume = ({ config, onReset, sinkSpecs, settings }) => {
         const isAnchor = sink.id === config.anchorId;
         const spec = sinkSpecs[sink.type] || { price: 0, l: 0, w: 0, d: 0 };
         const basePrice = spec.price;
-        
+
         const tapPrice =
           sink.hasTapHole && sink.tapHolePosition !== "none"
             ? TAP_HOLE_PRICE
@@ -107,11 +107,11 @@ const ConfigResume = ({ config, onReset, sinkSpecs, settings }) => {
 
         let gapLabel = "Écart";
         if (!isAnchor) {
-            if (index < anchorIndex) {
-                gapLabel = "Écart à Droite avec la Cuve suivante";
-            } else {
-                gapLabel = "Écart à Gauche avec la Cuve précédente";
-            }
+          if (index < anchorIndex) {
+            gapLabel = "Écart à Droite avec la Cuve suivante";
+          } else {
+            gapLabel = "Écart à Gauche avec la Cuve précédente";
+          }
         }
 
         return {
@@ -127,8 +127,8 @@ const ConfigResume = ({ config, onReset, sinkSpecs, settings }) => {
           drainerPrice,
           totalForCalc: basePrice + tapPrice + drainerPrice,
           surfaceM2,
-          title,     
-          gapLabel   
+          title,
+          gapLabel,
         };
       })
       .filter(Boolean);
@@ -138,13 +138,18 @@ const ConfigResume = ({ config, onReset, sinkSpecs, settings }) => {
   // type = 'rims' ou 'aprons'
   const getLinearPartPrice = (heightMm, lengthMm, type) => {
     // Récupération des paramètres de la formule dans les settings
-    const formula = settings?.linearFormula?.[type] || { a: 53.6, b: 17.6, c: 86.4 };
-    
+    const formula = settings?.linearFormula?.[type] || {
+      a: 53.6,
+      b: 17.6,
+      c: 86.4,
+    };
+
     if (!heightMm || heightMm <= formula.b) return 0;
-    
+
     // Formule: A * ln(h - B) - C
-    const pricePerMeter = formula.a * Math.log(heightMm - formula.b) - formula.c;
-    
+    const pricePerMeter =
+      formula.a * Math.log(heightMm - formula.b) - formula.c;
+
     return Math.round(Math.max(0, pricePerMeter) * (lengthMm / 1000));
   };
 
@@ -157,17 +162,17 @@ const ConfigResume = ({ config, onReset, sinkSpecs, settings }) => {
 
     // On utilise le type 'rims' pour la formule
     if (config.rimLeft) {
-      totalPrice += getLinearPartPrice(height, config.width, 'rims');
+      totalPrice += getLinearPartPrice(height, config.width, "rims");
       totalLengthMm += config.width;
       sides.push("Gauche");
     }
     if (config.rimBack) {
-      totalPrice += getLinearPartPrice(height, config.length, 'rims');
+      totalPrice += getLinearPartPrice(height, config.length, "rims");
       totalLengthMm += config.length;
       sides.push("Arrière");
     }
     if (config.rimRight) {
-      totalPrice += getLinearPartPrice(height, config.width, 'rims');
+      totalPrice += getLinearPartPrice(height, config.width, "rims");
       totalLengthMm += config.width;
       sides.push("Droite");
     }
@@ -187,7 +192,7 @@ const ConfigResume = ({ config, onReset, sinkSpecs, settings }) => {
     config.rimBack,
     config.width,
     config.length,
-    settings // Dépendance ajoutée pour recalculer si formule change
+    settings, // Dépendance ajoutée pour recalculer si formule change
   ]);
 
   const apronsDetails = useMemo(() => {
@@ -200,22 +205,26 @@ const ConfigResume = ({ config, onReset, sinkSpecs, settings }) => {
 
     // On utilise le type 'aprons' pour la formule
     if (config.apronFront) {
-      totalPrice += getLinearPartPrice(frontEffectiveHeight, config.length, 'aprons');
+      totalPrice += getLinearPartPrice(
+        frontEffectiveHeight,
+        config.length,
+        "aprons",
+      );
       totalLengthMm += config.length;
       sides.push("Avant");
     }
     if (config.apronLeft) {
-      totalPrice += getLinearPartPrice(rawHeight, config.width, 'aprons');
+      totalPrice += getLinearPartPrice(rawHeight, config.width, "aprons");
       totalLengthMm += config.width;
       sides.push("Gauche");
     }
     if (config.apronBack) {
-      totalPrice += getLinearPartPrice(rawHeight, config.length, 'aprons');
+      totalPrice += getLinearPartPrice(rawHeight, config.length, "aprons");
       totalLengthMm += config.length;
       sides.push("Arrière");
     }
     if (config.apronRight) {
-      totalPrice += getLinearPartPrice(rawHeight, config.width, 'aprons');
+      totalPrice += getLinearPartPrice(rawHeight, config.width, "aprons");
       totalLengthMm += config.width;
       sides.push("Droite");
     }
@@ -236,14 +245,12 @@ const ConfigResume = ({ config, onReset, sinkSpecs, settings }) => {
     config.apronBack,
     config.width,
     config.length,
-    settings
+    settings,
   ]);
 
   const waterDripDetails = useMemo(() => {
     if (!config.splashback) return null;
-    const price = Math.round(
-      (config.length / 1000) * WATER_DRIP_PRICE,
-    );
+    const price = Math.round((config.length / 1000) * WATER_DRIP_PRICE);
     return { price, length: config.length };
   }, [config.splashback, config.length, WATER_DRIP_PRICE]);
 
@@ -323,20 +330,20 @@ const ConfigResume = ({ config, onReset, sinkSpecs, settings }) => {
         {sinksDetails.map((sink) => (
           <div key={sink.index} className="summary-section">
             <h3>{sink.title}</h3>
-            
+
             <SummaryLine
               label="Modèle"
               value={sink.modelName}
               price={sink.basePrice}
               isAuthenticated={isAuthenticated}
             />
-            
+
             {sink.isAnchor && (
-                <SummaryLine
+              <SummaryLine
                 label="Position"
                 value={sink.positionLabel}
                 isAuthenticated={isAuthenticated}
-                />
+              />
             )}
 
             {sink.isAnchor && sink.position !== "center" && (
@@ -346,7 +353,7 @@ const ConfigResume = ({ config, onReset, sinkSpecs, settings }) => {
                 isAuthenticated={isAuthenticated}
               />
             )}
-            
+
             {!sink.isAnchor && (
               <SummaryLine
                 label={sink.gapLabel}
@@ -356,12 +363,12 @@ const ConfigResume = ({ config, onReset, sinkSpecs, settings }) => {
             )}
 
             {sink.hasTapHole && (
-                <SummaryLine
+              <SummaryLine
                 label="Perçage Robinetterie"
                 value={sink.tapLabel}
                 price={sink.tapPrice > 0 ? sink.tapPrice : null}
                 isAuthenticated={isAuthenticated}
-                />
+              />
             )}
 
             {sink.hasTapHole &&

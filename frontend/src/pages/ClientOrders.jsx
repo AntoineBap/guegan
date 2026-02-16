@@ -158,7 +158,12 @@ const ClientOrders = () => {
     return (
         <div style={{ backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
             <Header />
+
+            
             <div className="client-orders-container">
+                <button className="back-btn" onClick={() => navigate('/configurator')}>
+                    ← Retour au configurateur
+                </button>
                 <h1>Mes Commandes</h1>
                 
                 {orders.length === 0 ? (

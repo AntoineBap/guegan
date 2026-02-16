@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom"; 
+import { useNavigate, Link } from "react-router-dom";
 import { useCart } from "../contexts/CartContext";
 import { AuthContext } from "../contexts/AuthContext";
 import { SettingsContext } from "../contexts/SettingsContext";
@@ -8,7 +8,7 @@ import "../styles/checkout.scss";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 // Coordonnées de l'origine : 1 Rue de l'Industrie, 93000 Bobigny
-const ORIGIN_LAT = 48.9118; 
+const ORIGIN_LAT = 48.9118;
 const ORIGIN_LON = 2.4397;
 
 const Checkout = () => {
@@ -18,12 +18,12 @@ const Checkout = () => {
   const navigate = useNavigate();
 
   const [useSameAddress, setUseSameAddress] = useState(true);
-  const [acceptedTerms, setAcceptedTerms] = useState(false); 
-  const [acceptedCGV, setAcceptedCGV] = useState(false); 
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedCGV, setAcceptedCGV] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [expandedItemIndex, setExpandedItemIndex] = useState(null);
-  
+
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [shippingCost, setShippingCost] = useState(0);
 
@@ -68,7 +68,7 @@ const Checkout = () => {
   }, [user]);
 
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371; 
+    const R = 6371;
     const dLat = (lat2 - lat1) * (Math.PI / 180);
     const dLon = (lon2 - lon1) * (Math.PI / 180);
     const a =
@@ -87,14 +87,21 @@ const Checkout = () => {
     if (targetAddress.zip && targetAddress.city) {
       const timer = setTimeout(() => {
         const query = `${targetAddress.address} ${targetAddress.zip} ${targetAddress.city}`;
-        
-        fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query)}&limit=1`)
+
+        fetch(
+          `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query)}&limit=1`,
+        )
           .then((res) => res.json())
           .then((data) => {
             if (data.features && data.features.length > 0) {
               const [lon, lat] = data.features[0].geometry.coordinates;
-              const distance = calculateDistance(ORIGIN_LAT, ORIGIN_LON, lat, lon);
-              
+              const distance = calculateDistance(
+                ORIGIN_LAT,
+                ORIGIN_LON,
+                lat,
+                lon,
+              );
+
               let price = 0;
               if (distance <= 250) price = 0;
               else if (distance <= 400) price = 1;
@@ -105,11 +112,19 @@ const Checkout = () => {
             }
           })
           .catch((err) => console.error("Erreur calcul distance", err));
-      }, 500); 
+      }, 500);
 
       return () => clearTimeout(timer);
     }
-  }, [billing.address, billing.zip, billing.city, shipping.address, shipping.zip, shipping.city, useSameAddress]);
+  }, [
+    billing.address,
+    billing.zip,
+    billing.city,
+    shipping.address,
+    shipping.zip,
+    shipping.city,
+    useSameAddress,
+  ]);
 
   const itemsTotal = checkoutItems.reduce(
     (acc, item) => acc + item.unitPrice * item.quantity,
@@ -149,8 +164,8 @@ const Checkout = () => {
         },
         body: JSON.stringify({
           items: checkoutItems,
-          totalAmount: finalTotal, 
-          shippingCost: shippingCost, 
+          totalAmount: finalTotal,
+          shippingCost: shippingCost,
           billingAddress: billing,
           shippingAddress: finalShipping,
         }),
@@ -160,7 +175,7 @@ const Checkout = () => {
 
       if (response.ok) {
         setShowSuccessModal(true);
-        clearCart(); 
+        clearCart();
       } else {
         console.error("Erreur Backend :", data);
         const errorMsg = data.message || data.error || JSON.stringify(data);
@@ -175,12 +190,19 @@ const Checkout = () => {
 
   if (checkoutItems.length === 0 && !showSuccessModal) {
     return (
-        <div className="checkout-page" style={{ textAlign: 'center', paddingTop: '100px' }}>
-            <h1>Votre panier est vide</h1>
-            <button className="validate-btn" style={{ maxWidth: '300px' }} onClick={() => navigate('/configurator')}>
-                Retourner au configurateur
-            </button>
-        </div>
+      <div
+        className="checkout-page"
+        style={{ textAlign: "center", paddingTop: "100px" }}
+      >
+        <h1>Votre panier est vide</h1>
+        <button
+          className="validate-btn"
+          style={{ maxWidth: "300px" }}
+          onClick={() => navigate("/configurator")}
+        >
+          Retourner au configurateur
+        </button>
+      </div>
     );
   }
 
@@ -558,17 +580,35 @@ const Checkout = () => {
               </span>
             </div>
 
-            <div className="total-row" style={{ fontSize: '0.9rem', marginBottom: '5px' }}>
+            <div
+              className="total-row"
+              style={{ fontSize: "0.9rem", marginBottom: "5px" }}
+            >
               <span>Sous-total HT</span>
               <span>{itemsTotal.toFixed(2)} €</span>
             </div>
 
-            <div className="total-row" style={{ fontSize: '0.9rem', marginBottom: '15px' }}>
+            <div
+              className="total-row"
+              style={{ fontSize: "0.9rem", marginBottom: "15px" }}
+            >
               <span>Livraison</span>
-              <span>{shippingCost === 0 ? "Gratuit" : `${shippingCost.toFixed(2)} €`}</span>
+              <span>
+                {shippingCost === 0
+                  ? "Gratuit"
+                  : `${shippingCost.toFixed(2)} €`}
+              </span>
             </div>
 
-            <div className="total-row" style={{ fontSize: '1.2rem', fontWeight: 'bold', borderTop: '2px solid #333', paddingTop: '10px' }}>
+            <div
+              className="total-row"
+              style={{
+                fontSize: "1.2rem",
+                fontWeight: "bold",
+                borderTop: "2px solid #333",
+                paddingTop: "10px",
+              }}
+            >
               <span>Total HT</span>
               <span>{finalTotal.toFixed(2)} €</span>
             </div>
@@ -589,34 +629,55 @@ const Checkout = () => {
       {/* --- MODALE DE SUCCÈS --- */}
       {showSuccessModal && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '500px', textAlign: 'center', height: 'auto', padding: '40px' }}>
-            <div style={{ fontSize: '4rem', marginBottom: '15px' }}>🎉</div>
-            <h2 style={{ color: '#27ae60', margin: '0 0 20px 0' }}>Félicitations !</h2>
-            <p style={{ fontSize: '1.2rem', color: '#555', marginBottom: '30px', lineHeight: '1.5' }}>
-              Votre commande est validée avec succès.<br/>
-              Veuillez consulter votre <strong>boîte mail</strong> pour obtenir les informations de virement.
+          <div
+            className="modal-content"
+            style={{
+              maxWidth: "500px",
+              textAlign: "center",
+              height: "auto",
+              padding: "40px",
+            }}
+          >
+            <div style={{ fontSize: "4rem", marginBottom: "15px" }}>🎉</div>
+            <h2 style={{ color: "#27ae60", margin: "0 0 20px 0" }}>
+              Félicitations !
+            </h2>
+            <p
+              style={{
+                fontSize: "1.2rem",
+                color: "#555",
+                marginBottom: "30px",
+                lineHeight: "1.5",
+              }}
+            >
+              Votre commande est validée avec succès.
+              <br />
+              Veuillez consulter votre <strong>boîte mail</strong> pour obtenir
+              les informations de virement.
             </p>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-              <button 
-                onClick={() => navigate('/my-orders')}
+
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "15px" }}
+            >
+              <button
+                onClick={() => navigate("/my-orders")}
                 className="validate-btn"
-                style={{ width: '100%' }}
+                style={{ width: "100%" }}
               >
                 Voir mes commandes
               </button>
-              
-              <button 
-                onClick={() => navigate('/configurator')}
+
+              <button
+                onClick={() => navigate("/configurator")}
                 style={{
-                  padding: '15px',
-                  background: 'transparent',
-                  border: '1px solid #333',
-                  borderRadius: '5px',
-                  color: '#333',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  width: '100%'
+                  padding: "15px",
+                  background: "transparent",
+                  border: "1px solid #333",
+                  borderRadius: "5px",
+                  color: "#333",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                  width: "100%",
                 }}
               >
                 Retourner au configurateur

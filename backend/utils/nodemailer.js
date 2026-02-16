@@ -1,46 +1,50 @@
-const SibApiV3Sdk = require('sib-api-v3-sdk');
-require('dotenv').config();
-
+const SibApiV3Sdk = require("sib-api-v3-sdk");
+require("dotenv").config();
 
 // Configuration du client API pour BREVO
 const defaultClient = SibApiV3Sdk.ApiClient.instance;
-const apiKey = defaultClient.authentications['api-key'];
+const apiKey = defaultClient.authentications["api-key"];
 apiKey.apiKey = process.env.BREVO_API_KEY;
 const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
 
-const iban = process.env.BANK_IBAN || 'IBAN non configuré';
-const bic = process.env.BANK_BIC || 'BIC non configuré';
+const iban = process.env.BANK_IBAN || "IBAN non configuré";
+const bic = process.env.BANK_BIC || "BIC non configuré";
 
-// Adresse d'expédition // MODIFIER ICI LE MAIL QUAND MAIL CREE 
-const SENDER = { email: 'antoinebaptista030604@gmail.com', name: 'Guegan Shop' };
+// Adresse d'expédition // MODIFIER ICI LE MAIL QUAND MAIL CREE
+const SENDER = {
+  email: "antoinebaptista030604@gmail.com",
+  name: "Guegan Shop",
+};
 
 // --- 1. EMAIL DE VALIDATION ---
 exports.sendVerificationEmail = async (email, token) => {
-    if (!email) return;
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    const link = `${frontendUrl}/verify/${token}`;
-    
-    await apiInstance.sendTransacEmail({
-        sender: SENDER,
-        to: [{ email: email }],
-        subject: "Vérification de votre compte pro",
-        htmlContent: `
+  if (!email) return;
+  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+  const link = `${frontendUrl}/verify/${token}`;
+
+  await apiInstance.sendTransacEmail({
+    sender: SENDER,
+    to: [{ email: email }],
+    subject: "Vérification de votre compte pro",
+    htmlContent: `
             <div style="font-family: Manrope, sans-serif; padding: 20px; color: #333;">
                 <h1 style="color: #d4af37;">Bienvenue chez Guegan Shop</h1>
                 <p>Veuillez cliquer sur le lien ci-dessous pour activer votre compte professionnel :</p>
                 <a href="${link}" style="background: #111; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Activer mon compte</a>
             </div>
-        `
-    });
+        `,
+  });
 };
 
 // --- 2. EMAIL DE CONFIRMATION COMMANDE ---
 exports.sendOrderConfirmationEmail = async (order, user) => {
-    if (!user || !user.email) return; 
-    
-    const total = order.totalAmount.toFixed(2);
-    
-    const itemsHtml = order.items.map(item => `
+  if (!user || !user.email) return;
+
+  const total = order.totalAmount.toFixed(2);
+
+  const itemsHtml = order.items
+    .map(
+      (item) => `
         <tr>
             <td style="padding: 10px; border-bottom: 1px solid #eee;">
                 <strong>Plan Vasque Sur-Mesure</strong><br/>
@@ -49,9 +53,11 @@ exports.sendOrderConfirmationEmail = async (order, user) => {
             <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.quantity}</td>
             <td style="padding: 10px; border-bottom: 1px solid #eee;">${(item.unitPrice * item.quantity).toFixed(2)} €</td>
         </tr>
-    `).join('');
+    `,
+    )
+    .join("");
 
-    const htmlContent = `
+  const htmlContent = `
         <div style="font-family: Manrope, sans-serif; color: #333; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px;">
             <h1 style="color: #27ae60; text-align: center;">Commande Confirmée !</h1>
             <p>Bonjour ${user.firstName},</p>
@@ -79,37 +85,37 @@ exports.sendOrderConfirmationEmail = async (order, user) => {
         </div>
     `;
 
-    await apiInstance.sendTransacEmail({
-        sender: SENDER,
-        to: [{ email: user.email }],
-        subject: `Confirmation de commande #${order.orderNumber}`,
-        htmlContent: htmlContent
-    });
+  await apiInstance.sendTransacEmail({
+    sender: SENDER,
+    to: [{ email: user.email }],
+    subject: `Confirmation de commande #${order.orderNumber}`,
+    htmlContent: htmlContent,
+  });
 };
 
 // --- 3. EMAIL STATUT ---
 exports.sendStatusUpdateEmail = async (order, user, status) => {
-    if (!user || !user.email) return;
+  if (!user || !user.email) return;
 
-    let subject = "";
-    let message = "";
-    let color = "#333";
+  let subject = "";
+  let message = "";
+  let color = "#333";
 
-    if (status === 'paid') {
-        subject = "Paiement reçu - Fabrication lancée";
-        message = "Bonne nouvelle ! Nous avons bien reçu votre virement.";
-        color = "#27ae60"; 
-    } else if (status === 'shipped') {
-        subject = "Votre commande est expédiée";
-        message = "Votre commande est terminée et a été remise au transporteur.";
-        color = "#2980b9"; 
-    } else {
-        return; 
-    }
+  if (status === "paid") {
+    subject = "Paiement reçu - Fabrication lancée";
+    message = "Bonne nouvelle ! Nous avons bien reçu votre virement.";
+    color = "#27ae60";
+  } else if (status === "shipped") {
+    subject = "Votre commande est expédiée";
+    message = "Votre commande est terminée et a été remise au transporteur.";
+    color = "#2980b9";
+  } else {
+    return;
+  }
 
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
 
-    const htmlContent = `
+  const htmlContent = `
         <div style="font-family: Manrope, sans-serif; color: #333; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee;">
             <h2 style="color: ${color};">${subject}</h2>
             <p>Bonjour ${user.firstName},</p>
@@ -119,27 +125,27 @@ exports.sendStatusUpdateEmail = async (order, user, status) => {
         </div>
     `;
 
-    await apiInstance.sendTransacEmail({
-        sender: SENDER,
-        to: [{ email: user.email }],
-        subject: `Mise à jour : ${subject}`,
-        htmlContent: htmlContent
-    });
+  await apiInstance.sendTransacEmail({
+    sender: SENDER,
+    to: [{ email: user.email }],
+    subject: `Mise à jour : ${subject}`,
+    htmlContent: htmlContent,
+  });
 };
 
 // --- 4. EMAIL DE CONTACT (NOUVEAU) ---
 exports.sendContactFormEmail = async (data, file) => {
-    // data contient : nom, prenom, email, phone, objet, message
-    
-    const attachments = [];
-    if (file) {
-        attachments.push({
-            name: file.originalname,       // <--- ATTENTION : "name", PAS "filename"
-            content: file.buffer.toString('base64') // <--- Votre correction précédente (Base64)
-        });
-    }
+  // data contient : nom, prenom, email, phone, objet, message
 
-    const htmlContent = `
+  const attachments = [];
+  if (file) {
+    attachments.push({
+      name: file.originalname, // <--- ATTENTION : "name", PAS "filename"
+      content: file.buffer.toString("base64"), // <--- Votre correction précédente (Base64)
+    });
+  }
+
+  const htmlContent = `
         <div style="font-family: Manrope, sans-serif; color: #333; padding: 20px; border: 1px solid #eee;">
             <h2 style="color: #d4af37;">Nouveau message de GueganShop</h2>
             <p><strong>De :</strong> ${data.prenom} ${data.nom}</p>
@@ -149,23 +155,23 @@ exports.sendContactFormEmail = async (data, file) => {
             <p><strong>Objet :</strong> ${data.objet}</p>
             <p><strong>Message :</strong></p>
             <blockquote style="background: #f9f9f9; padding: 15px; border-left: 5px solid #d4af37;">
-                ${data.message.replace(/\n/g, '<br>')}
+                ${data.message.replace(/\n/g, "<br>")}
             </blockquote>
         </div>
     `;
 
-    try {
-        await apiInstance.sendTransacEmail({
-            sender: SENDER, // Ton adresse d'envoi (no-reply)
-            to: [{ email: 'antoinebaptista@icloud.com' }], // L'adresse de réception
-            replyTo: { email: data.email }, // Pour que tu puisses répondre directement au client
-            subject: `[Contact Site Shop] ${data.objet}`,
-            htmlContent: htmlContent,
-            attachment: attachments.length > 0 ? attachments : undefined
-        });
-        console.log("Email de contact envoyé.");
-    } catch (error) {
-        console.error("Erreur envoi email contact:", error);
-        throw error;
-    }
+  try {
+    await apiInstance.sendTransacEmail({
+      sender: SENDER, // Ton adresse d'envoi (no-reply)
+      to: [{ email: "antoinebaptista@icloud.com" }], // L'adresse de réception
+      replyTo: { email: data.email }, // Pour que tu puisses répondre directement au client
+      subject: `[Contact Site Shop] ${data.objet}`,
+      htmlContent: htmlContent,
+      attachment: attachments.length > 0 ? attachments : undefined,
+    });
+    console.log("Email de contact envoyé.");
+  } catch (error) {
+    console.error("Erreur envoi email contact:", error);
+    throw error;
+  }
 };

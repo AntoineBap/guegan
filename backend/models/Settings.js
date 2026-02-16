@@ -1,8 +1,8 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const settingsSchema = mongoose.Schema({
-    key: { type: String, required: true, unique: true },
-    value: { type: mongoose.Schema.Types.Mixed, required: true }
+  key: { type: String, required: true, unique: true },
+  value: { type: mongoose.Schema.Types.Mixed, required: true },
 });
 
-module.exports = mongoose.model('Settings', settingsSchema);
+module.exports = mongoose.model("Settings", settingsSchema);

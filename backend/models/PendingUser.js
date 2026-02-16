@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
-const uniqueValidator = require('mongoose-unique-validator');
+const mongoose = require("mongoose");
+const uniqueValidator = require("mongoose-unique-validator");
 
 const pendingUserSchema = mongoose.Schema({
   email: { type: String, required: true, unique: true },
@@ -20,9 +20,9 @@ const pendingUserSchema = mongoose.Schema({
   tvaNumber: { type: String, required: true },
   validationToken: { type: String, required: true },
   cart: { type: Array, default: [] },
-  createdAt: { type: Date, default: Date.now, expires: 300 } 
+  createdAt: { type: Date, default: Date.now, expires: 300 },
 });
 
 pendingUserSchema.plugin(uniqueValidator);
 
-module.exports = mongoose.model('PendingUser', pendingUserSchema);
+module.exports = mongoose.model("PendingUser", pendingUserSchema);
