@@ -86,22 +86,19 @@ const Home = () => {
 
             <nav className="home-nav">
                 <div className="logo">GUEGAN</div>
-                <div className="nav-links">
-                    <button className="nav-btn" onClick={() => navigate('/login')}>Espace Pro / Connexion</button>
-                </div>
             </nav>
 
             <header className="hero-section">
                 <div className="hero-content">
                     <h1>Créez votre Plan-Vasque <br /><span className="gold-text">Sur Mesure</span></h1>
-                    <p>Configurez, visualisez en 3D et commandez vos plans en résine minérale directement en ligne.</p>
+                    <p>Configurez, visualisez en 3D et commandez vos plans-vasques en résine Solid Surface® directement en ligne.</p>
                     
                     <div className="cta-buttons">
                         <button className="primary-btn" onClick={() => navigate('/configurator')}>
                             Commencer une configuration →
                         </button>
                         <button className="secondary-btn" onClick={() => navigate('/login')}>
-                            J'ai déjà un compte
+                            Se connecter
                         </button>
                     </div>
                 </div>
