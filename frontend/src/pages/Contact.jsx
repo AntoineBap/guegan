@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import '../styles/contact.scss'; // Assure-toi de créer ce fichier SCSS
+import { useNavigate } from 'react-router-dom';
+import '../styles/contact.scss'; // Correction ici : 'c' minuscule
 
 const Contact = () => {
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         nom: '',
         prenom: '',
@@ -45,10 +47,10 @@ const Contact = () => {
         }
 
         try {
-            // Remplace par ton URL d'API correcte
+            // Assure-toi que l'URL correspond bien à ton backend
             const response = await fetch('http://localhost:3000/api/contact', {
                 method: 'POST',
-                body: data // Pas de Content-Type header, fetch le met tout seul avec FormData
+                body: data // Fetch gère automatiquement le Content-Type pour FormData
             });
 
             if (response.ok) {
@@ -69,6 +71,12 @@ const Contact = () => {
             <div className="contact-container">
                 {/* --- COLONNE GAUCHE : FORMULAIRE --- */}
                 <div className="contact-form-section">
+                    
+                    {/* BOUTON RETOUR */}
+                    <button className="back-btn" onClick={() => navigate('/configurator')}>
+                        ← Retour au configurateur
+                    </button>
+
                     <h1>Contactez-nous</h1>
                     <p>Une question sur nos plans vasques ou une demande spécifique ? Écrivez-nous.</p>
                     

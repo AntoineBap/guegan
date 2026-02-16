@@ -9,14 +9,14 @@ $white: #ffffff;
 $text: #2c2c2c;
 $border-color: #e0e0e0;
 
-@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lato:wght@300;400;700&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap');
 
 // --- BASE HOME PAGE ---
 .home-page {
     height: 100%;
     height: 100dvh; // Prend toute la hauteur viewport dynamique
     width: 100%;
-    font-family: "Lato", sans-serif;
+    font-family: "Manrope", sans-serif;
     position: relative;
     overflow: hidden; 
     background-color: $black; 
@@ -76,7 +76,7 @@ $border-color: #e0e0e0;
         padding-top: max(30px, env(safe-area-inset-top)); // Respecte l'encoche
         
         .logo {
-            font-family: "Playfair Display", serif;
+            font-family: "Manrope", serif;
             font-size: 1.8rem;
             font-weight: bold;
             color: $white;
@@ -96,7 +96,7 @@ $border-color: #e0e0e0;
             cursor: pointer;
             color: $white;
             font-weight: 500;
-            font-family: "Lato", sans-serif;
+            font-family: "Manrope", sans-serif;
             backdrop-filter: blur(5px);
             transition: all 0.3s;
             
@@ -128,7 +128,7 @@ $border-color: #e0e0e0;
             margin-top: 60px; // Compensation visuelle pour la nav
 
             h1 {
-                font-family: "Playfair Display", serif;
+                font-family: "Manrope", serif;
                 font-size: 4.5rem;
                 line-height: 1.1;
                 margin-bottom: 25px;
@@ -166,7 +166,7 @@ $border-color: #e0e0e0;
                     transition: all 0.3s ease;
                     text-transform: uppercase;
                     letter-spacing: 1px;
-                    font-family: "Lato", sans-serif;
+                    font-family: "Manrope", sans-serif;
                     -webkit-appearance: none; // Supprime le style bouton iOS par défaut
                 }
 

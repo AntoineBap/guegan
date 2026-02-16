@@ -25,7 +25,7 @@ exports.sendVerificationEmail = async (email, token) => {
         to: [{ email: email }],
         subject: "Vérification de votre compte pro",
         htmlContent: `
-            <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+            <div style="font-family: Manrope, sans-serif; padding: 20px; color: #333;">
                 <h1 style="color: #d4af37;">Bienvenue chez Guegan Shop</h1>
                 <p>Veuillez cliquer sur le lien ci-dessous pour activer votre compte professionnel :</p>
                 <a href="${link}" style="background: #111; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Activer mon compte</a>
@@ -52,7 +52,7 @@ exports.sendOrderConfirmationEmail = async (order, user) => {
     `).join('');
 
     const htmlContent = `
-        <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px;">
+        <div style="font-family: Manrope, sans-serif; color: #333; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px;">
             <h1 style="color: #27ae60; text-align: center;">Commande Confirmée !</h1>
             <p>Bonjour ${user.firstName},</p>
             <p>Nous avons bien reçu votre commande <strong>#${order.orderNumber}</strong>.</p>
@@ -110,7 +110,7 @@ exports.sendStatusUpdateEmail = async (order, user, status) => {
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 
     const htmlContent = `
-        <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee;">
+        <div style="font-family: Manrope, sans-serif; color: #333; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee;">
             <h2 style="color: ${color};">${subject}</h2>
             <p>Bonjour ${user.firstName},</p>
             <p>${message}</p>
@@ -140,8 +140,8 @@ exports.sendContactFormEmail = async (data, file) => {
     }
 
     const htmlContent = `
-        <div style="font-family: Arial, sans-serif; color: #333; padding: 20px; border: 1px solid #eee;">
-            <h2 style="color: #d4af37;">Nouveau message du site web</h2>
+        <div style="font-family: Manrope, sans-serif; color: #333; padding: 20px; border: 1px solid #eee;">
+            <h2 style="color: #d4af37;">Nouveau message de GueganShop</h2>
             <p><strong>De :</strong> ${data.prenom} ${data.nom}</p>
             <p><strong>Email :</strong> ${data.email}</p>
             <p><strong>Téléphone :</strong> ${data.phone}</p>
@@ -159,7 +159,7 @@ exports.sendContactFormEmail = async (data, file) => {
             sender: SENDER, // Ton adresse d'envoi (no-reply)
             to: [{ email: 'antoinebaptista@icloud.com' }], // L'adresse de réception
             replyTo: { email: data.email }, // Pour que tu puisses répondre directement au client
-            subject: `[Contact Site] ${data.objet}`,
+            subject: `[Contact Site Shop] ${data.objet}`,
             htmlContent: htmlContent,
             attachment: attachments.length > 0 ? attachments : undefined
         });

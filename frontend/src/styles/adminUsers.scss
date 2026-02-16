@@ -1,7 +1,7 @@
 .admin-users-page {
     background-color: #f4f6f8;
     min-height: 100vh;
-    font-family: 'Segoe UI', sans-serif;
+    font-family: 'Manrope', sans-serif;
 
     .content-wrapper {
         padding: 30px;
@@ -99,7 +99,7 @@
 
                     &.cart-cell {
                         white-space: pre-wrap; // Important pour afficher les sauts de ligne du panier
-                        font-family: monospace;
+                        font-family: Manrope;
                         font-size: 0.85rem;
                         color: #555;
                         background-color: #fafafa;
