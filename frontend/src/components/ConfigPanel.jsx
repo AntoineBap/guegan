@@ -58,22 +58,16 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
     return "(+ **€)";
   };
 
-  // --- MODIFICATION ICI : GESTION CLAVIER (Entrée + Caractères invalides) ---
   const handleInputKeyDown = (e) => {
-    // 1. Bloquer les caractères non numériques
     if (["e", "E", "+", "-"].includes(e.key)) {
       e.preventDefault();
     }
-    // 2. Si touche Entrée, on retire le focus (ferme le clavier mobile)
     if (e.key === "Enter") {
       e.target.blur();
     }
   };
 
-  // --- NOUVELLE FONCTION POUR BLOQUER LE SCROLL SUR INPUT ---
   const handleWheel = (e) => {
-    // Enlève le focus de l'input quand on scroll, ce qui empêche la modification de la valeur
-    // et permet à la page de scroller normalement.
     e.target.blur();
   };
 
@@ -303,6 +297,43 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
   const canAddSinkLeft = spaceAvailableLeft >= SPACE_REQ_NEW;
   const canAddSinkRight = spaceAvailableRight >= SPACE_REQ_NEW;
 
+  const checkSinkFit = (sinkIndex, candidateType) => {
+    const candidateWidth = SINK_SPECS[candidateType].l;
+    const currentSink = currentSinks[sinkIndex];
+    const currentWidth = SINK_SPECS[currentSink.type].l;
+
+    const growth = candidateWidth - currentWidth;
+
+    if (growth <= 0) return true;
+
+    const anchorIdx = currentSinks.findIndex((s) => s.id === config.anchorId);
+
+    if (sinkIndex === anchorIdx) {
+      const pos = currentSink.position;
+      if (pos === "center") {
+        const newGroupMinX = layout.groupMinX - growth / 2;
+        const newGroupMaxX = layout.groupMaxX + growth / 2;
+        return (
+          newGroupMinX >= absLimitLeft && newGroupMaxX <= absLimitRight
+        );
+      } else if (pos === "left") {
+        const newGroupMaxX = layout.groupMaxX + growth;
+        return newGroupMaxX <= absLimitRight;
+      } else if (pos === "right") {
+        const newGroupMinX = layout.groupMinX - growth;
+        return newGroupMinX >= absLimitLeft;
+      }
+    } else if (sinkIndex < anchorIdx) {
+      const newGroupMinX = layout.groupMinX - growth;
+      return newGroupMinX >= absLimitLeft;
+    } else {
+      const newGroupMaxX = layout.groupMaxX + growth;
+      return newGroupMaxX <= absLimitRight;
+    }
+
+    return true;
+  };
+
   const { minPlanLength, minPlanDepth } = useMemo(() => {
     const mechanicalMinLen = layoutDimensions.totalWidth + MARGIN_PLAN_EDGE * 2;
     const anchorIndex = currentSinks.findIndex((s) => s.id === config.anchorId);
@@ -508,7 +539,6 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
       return;
     }
 
-    // Logique pour ajuster l'offset si l'égouttoir se met dans l'interstice
     setConfig((prev) => {
       const anchorIndex = prev.sinks.findIndex((s) => s.id === prev.anchorId);
       let newSinks = prev.sinks.map((s, i) => {
@@ -516,11 +546,8 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
         return { ...s, hasDrainer: true, drainerPosition: chosenPos };
       });
 
-      // Vérification si on doit augmenter l'offset
       if (index > anchorIndex) {
-        // Côté Droit de l'ancre. L'interstice est à gauche de l'élément courant (offset du courant).
         if (chosenPos === "left") {
-          // Egouttoir vers l'intérieur
           const currentOffset = newSinks[index].offset;
           if (currentOffset < MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM) {
             newSinks[index] = {
@@ -530,9 +557,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
           }
         }
       } else if (index < anchorIndex) {
-        // Côté Gauche de l'ancre. L'interstice est à droite de l'élément courant (offset du courant).
         if (chosenPos === "right") {
-          // Egouttoir vers l'intérieur
           const currentOffset = newSinks[index].offset;
           if (currentOffset < MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM) {
             newSinks[index] = {
@@ -555,7 +580,6 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
       );
 
       if (index > anchorIndex) {
-        // Côté Droit
         if (pos === "left") {
           const currentOffset = newSinks[index].offset;
           if (currentOffset < MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM) {
@@ -566,7 +590,6 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
           }
         }
       } else if (index < anchorIndex) {
-        // Côté Gauche
         if (pos === "right") {
           const currentOffset = newSinks[index].offset;
           if (currentOffset < MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM) {
@@ -593,17 +616,23 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
       }
     }
 
-    updateSink(id, "type", typeName);
-    if (typeName === "Aucune cuve") {
-      setConfig((prev) => ({
-        ...prev,
-        sinks: prev.sinks.map((s) =>
-          s.id === id
-            ? { ...s, type: typeName, hasTapHole: false, hasDrainer: false }
-            : s,
-        ),
-      }));
-    }
+    const isSanitary = typeName.includes("Sanitaire");
+    const isNone = typeName === "Aucune cuve";
+
+    setConfig((prev) => ({
+      ...prev,
+      sinks: prev.sinks.map((s) => {
+        if (s.id === id) {
+          return {
+            ...s,
+            type: typeName,
+            ...(isNone ? { hasTapHole: false, hasDrainer: false } : {}),
+            ...(isSanitary ? { hasDrainer: false } : {}),
+          };
+        }
+        return s;
+      }),
+    }));
   };
 
   useEffect(() => {
@@ -745,7 +774,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
               onChange={handleGlobalChange}
               onFocus={() => clearAlert("length")}
               onBlur={handleBlur}
-              onKeyDown={handleInputKeyDown} // <-- ICI
+              onKeyDown={handleInputKeyDown}
               onWheel={handleWheel}
               min={minPlanLength}
               max={maxPlanLength}
@@ -769,7 +798,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
               onChange={handleGlobalChange}
               onFocus={() => clearAlert("width")}
               onBlur={handleBlur}
-              onKeyDown={handleInputKeyDown} // <-- ICI
+              onKeyDown={handleInputKeyDown}
               onWheel={handleWheel}
               min={minPlanDepth}
               max={maxPlanDepth}
@@ -784,7 +813,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
 
       {currentSinks.length > 1 && (
         <div style={{ textAlign: "center", fontStyle: "italic", color: "#666", marginBottom: "15px", fontSize: "0.9rem" }}>
-          Les cuves sont numérotées de gauche à droite (la cuve#1 est la plus à gauche, etc...)
+          Les cuves sont numérotées de gauche à droite (la cuve #1 est la plus à gauche, etc...)
         </div>
       )}
 
@@ -944,22 +973,36 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
               )}
             </div>
             <div className="sink-options-list">
-              {Object.keys(SINK_SPECS).map((opt) => (
-                <button
-                  key={opt}
-                  className={sink.type === opt ? "active-small" : ""}
-                  onClick={() => handleSinkTypeSelect(sink.id, opt)}
-                  style={
-                    !isAuthenticated && sink.type !== opt
-                      ? { color: "#666" }
-                      : {}
-                  }
-                >
-                  {opt === "Aucune cuve"
-                    ? "Aucune"
-                    : `${opt.replace("Cuve ", "")} ${formatOptionPrice(SINK_SPECS[opt].price)}`}
-                </button>
-              ))}
+              {Object.keys(SINK_SPECS).map((opt) => {
+                const isFit = checkSinkFit(index, opt);
+                const isCurrent = sink.type === opt;
+                const isDisabled = !isFit && !isCurrent;
+
+                return (
+                  <button
+                    key={opt}
+                    className={isCurrent ? "active-small" : ""}
+                    onClick={() => !isDisabled && handleSinkTypeSelect(sink.id, opt)}
+                    disabled={isDisabled}
+                    style={{
+                      ...(isDisabled
+                        ? {
+                            opacity: 0.4,
+                            cursor: "not-allowed",
+                            textDecoration: "line-through",
+                          }
+                        : {}),
+                      ...(!isAuthenticated && !isCurrent && !isDisabled
+                        ? { color: "#666" }
+                        : {}),
+                    }}
+                  >
+                    {opt === "Aucune cuve"
+                      ? "Aucune"
+                      : `${opt.replace("Cuve ", "")} ${formatOptionPrice(SINK_SPECS[opt].price)}`}
+                  </button>
+                );
+              })}
             </div>
 
             {!isNoSink && (
@@ -1086,7 +1129,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                               }
                               updateSink(sink.id, "offset", val);
                             }}
-                            onKeyDown={handleInputKeyDown} // <-- ICI
+                            onKeyDown={handleInputKeyDown}
                             onWheel={handleWheel}
                             min={Math.ceil(minOffset)}
                             max={Math.floor(maxOffset)}
@@ -1174,7 +1217,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                             }
                             updateSink(sink.id, "offset", val);
                           }}
-                          onKeyDown={handleInputKeyDown} // <-- ICI
+                          onKeyDown={handleInputKeyDown}
                           onWheel={handleWheel}
                           min={minOffset}
                           max={Math.floor(maxOffset)}
@@ -1300,7 +1343,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                               }
                               updateSink(sink.id, "tapHoleOffset", val);
                             }}
-                            onKeyDown={handleInputKeyDown} // <-- ICI
+                            onKeyDown={handleInputKeyDown}
                             onWheel={handleWheel}
                             min="0"
                             max={maxTapOffset}
@@ -1320,79 +1363,83 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                   )}
                 </div>
 
-                <div
-                  style={{ margin: "20px 0", borderTop: "1px solid #e0e0e0" }}
-                ></div>
-                <div className="checkbox-group">
-                  <label
-                    style={{
-                      marginBottom: "10px",
-                      fontWeight: "bold",
-                      opacity: !canL && !canR && !sink.hasDrainer ? 0.5 : 1,
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={sink.hasDrainer}
-                      onChange={(e) =>
-                        handleDrainerCheck(sink.id, e.target.checked, index)
-                      }
-                      disabled={!sink.hasDrainer && !canL && !canR}
-                    />
-                    Rainurage Égouttoir{" "}
-                    {formatOptionPrice(settings.prices.drainer)}
-                  </label>
-                  {!canL && !canR && !sink.hasDrainer && (
+                {!sink.type.includes("Sanitaire") && (
+                  <>
                     <div
-                      style={{
-                        fontSize: "0.8rem",
-                        color: "#999",
-                        marginLeft: "25px",
-                      }}
-                    >
-                      Pas assez d'espace (min 350mm) à gauche ou à droite.
-                    </div>
-                  )}
-                  {sink.hasDrainer && (
-                    <div
-                      className="fade-in drilling-options"
-                      style={{ marginTop: "10px", marginLeft: "25px" }}
-                    >
-                      <button
-                        className={
-                          sink.drainerPosition === "left" ? "active-small" : ""
-                        }
-                        onClick={() =>
-                          setDrainerPositionManual(sink.id, "left", index)
-                        }
-                        disabled={!canL && sink.drainerPosition !== "left"}
-                        style={
-                          !canL && sink.drainerPosition !== "left"
-                            ? { opacity: 0.5, cursor: "not-allowed" }
-                            : {}
-                        }
+                      style={{ margin: "20px 0", borderTop: "1px solid #e0e0e0" }}
+                    ></div>
+                    <div className="checkbox-group">
+                      <label
+                        style={{
+                          marginBottom: "10px",
+                          fontWeight: "bold",
+                          opacity: !canL && !canR && !sink.hasDrainer ? 0.5 : 1,
+                        }}
                       >
-                        À Gauche
-                      </button>
-                      <button
-                        className={
-                          sink.drainerPosition === "right" ? "active-small" : ""
-                        }
-                        onClick={() =>
-                          setDrainerPositionManual(sink.id, "right", index)
-                        }
-                        disabled={!canR && sink.drainerPosition !== "right"}
-                        style={
-                          !canR && sink.drainerPosition !== "right"
-                            ? { opacity: 0.5, cursor: "not-allowed" }
-                            : {}
-                        }
-                      >
-                        À Droite
-                      </button>
+                        <input
+                          type="checkbox"
+                          checked={sink.hasDrainer}
+                          onChange={(e) =>
+                            handleDrainerCheck(sink.id, e.target.checked, index)
+                          }
+                          disabled={!sink.hasDrainer && !canL && !canR}
+                        />
+                        Rainurage Égouttoir{" "}
+                        {formatOptionPrice(settings.prices.drainer)}
+                      </label>
+                      {!canL && !canR && !sink.hasDrainer && (
+                        <div
+                          style={{
+                            fontSize: "0.8rem",
+                            color: "#999",
+                            marginLeft: "25px",
+                          }}
+                        >
+                          Pas assez d'espace (min 350mm) à gauche ou à droite.
+                        </div>
+                      )}
+                      {sink.hasDrainer && (
+                        <div
+                          className="fade-in drilling-options"
+                          style={{ marginTop: "10px", marginLeft: "25px" }}
+                        >
+                          <button
+                            className={
+                              sink.drainerPosition === "left" ? "active-small" : ""
+                            }
+                            onClick={() =>
+                              setDrainerPositionManual(sink.id, "left", index)
+                            }
+                            disabled={!canL && sink.drainerPosition !== "left"}
+                            style={
+                              !canL && sink.drainerPosition !== "left"
+                                ? { opacity: 0.5, cursor: "not-allowed" }
+                                : {}
+                            }
+                          >
+                            À Gauche
+                          </button>
+                          <button
+                            className={
+                              sink.drainerPosition === "right" ? "active-small" : ""
+                            }
+                            onClick={() =>
+                              setDrainerPositionManual(sink.id, "right", index)
+                            }
+                            disabled={!canR && sink.drainerPosition !== "right"}
+                            style={
+                              !canR && sink.drainerPosition !== "right"
+                                ? { opacity: 0.5, cursor: "not-allowed" }
+                                : {}
+                            }
+                          >
+                            À Droite
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  </>
+                )}
               </>
             )}
           </div>
@@ -1473,8 +1520,8 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                 onChange={handleGlobalChange}
                 onFocus={() => clearAlert("rimHeigh")}
                 onBlur={handleBlur}
-                onKeyDown={handleInputKeyDown} // <-- ICI
-                onWheel={handleWheel} // BLOQUE LE SCROLL
+                onKeyDown={handleInputKeyDown}
+                onWheel={handleWheel}
                 min="100"
                 max="550"
               />
@@ -1574,8 +1621,8 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
               onChange={handleGlobalChange}
               onFocus={() => clearAlert("apronHeight")}
               onBlur={handleBlur}
-              onKeyDown={handleInputKeyDown} // <-- ICI
-              onWheel={handleWheel} // BLOQUE LE SCROLL
+              onKeyDown={handleInputKeyDown}
+              onWheel={handleWheel}
               min="40"
               max="200"
             />
