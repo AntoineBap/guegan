@@ -21,7 +21,7 @@ const ClientOrders = () => {
     useEffect(() => {
         if (location.state && location.state.orderSuccess) {
             setShowSuccessModal(true);
-            // On nettoie l'état pour que la modale ne réapparaisse pas au refresh
+            // On nettoie l'état pour que la modale ne réapparaisse au refresh
             window.history.replaceState({}, document.title);
         }
     }, [location]);
@@ -51,6 +51,7 @@ const ClientOrders = () => {
     // --- RENDU DE LA VUE DÉTAILLÉE ---
     if (selectedOrder) {
         const statusInfo = getStatusLabel(selectedOrder.status);
+        const totalItemsCount = selectedOrder.items.reduce((total, item) => total + item.quantity, 0);
         
         return (
             <div style={{ backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
@@ -103,7 +104,7 @@ const ClientOrders = () => {
 
                         {/* COLONNE DROITE : ARTICLES */}
                         <div className="items-column">
-                            <h3>Articles ({selectedOrder.items.length})</h3>
+                            <h3>Articles ({totalItemsCount})</h3>
                             {selectedOrder.items.map((item, idx) => (
                                 <div key={idx} className="item-card-detail">
                                     <div className="item-header-row">
@@ -175,6 +176,8 @@ const ClientOrders = () => {
                     <div className="orders-list">
                         {orders.map(order => {
                             const statusInfo = getStatusLabel(order.status);
+                            const totalQuantity = order.items.reduce((total, item) => total + item.quantity, 0);
+
                             return (
                                 <div 
                                     key={order._id} 
@@ -190,7 +193,7 @@ const ClientOrders = () => {
                                         </span>
                                     </div>
                                     <div className="order-body">
-                                        <p>{order.items.length} article(s)</p>
+                                        <p>{totalQuantity} article(s)</p>
                                         <p className="amount">{order.totalAmount.toFixed(2)} €</p>
                                         <span style={{ fontSize: '0.8rem', color: '#666', marginTop:'5px', textDecoration:'underline' }}>Voir le détail & paiement &rarr;</span>
                                     </div>
