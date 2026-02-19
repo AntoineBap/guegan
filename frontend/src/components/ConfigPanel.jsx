@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useContext, useState, useRef } from "react";
+import { Link } from "react-router-dom";
 import ConfigResume from "./ConfigResume";
 import { AuthContext } from "../contexts/AuthContext";
 import { SettingsContext } from "../contexts/SettingsContext";
@@ -781,6 +782,12 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
         </div>
       </div>
 
+      {currentSinks.length > 1 && (
+        <div style={{ textAlign: "center", fontStyle: "italic", color: "#666", marginBottom: "15px", fontSize: "0.9rem" }}>
+          Les cuves sont numérotées de gauche à droite (la cuve#1 est la plus à gauche, etc...)
+        </div>
+      )}
+
       {currentSinks.map((sink, index) => {
         const isAnchor = sink.id === config.anchorId;
         const isNoSink = sink.type === "Aucune cuve";
@@ -1201,9 +1208,19 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                     <input
                       type="checkbox"
                       checked={sink.hasTapHole}
-                      onChange={(e) =>
-                        updateSink(sink.id, "hasTapHole", e.target.checked)
-                      }
+                      onChange={(e) => {
+                        const isChecked = e.target.checked;
+                        if (isChecked && (!sink.tapHolePosition || sink.tapHolePosition === "none")) {
+                          setConfig((prev) => ({
+                            ...prev,
+                            sinks: prev.sinks.map((s) =>
+                              s.id === sink.id ? { ...s, hasTapHole: true, tapHolePosition: "Centre" } : s
+                            ),
+                          }));
+                        } else {
+                          updateSink(sink.id, "hasTapHole", isChecked);
+                        }
+                      }}
                     />{" "}
                     Perçage robinetterie (Ø35mm){" "}
                     {formatOptionPrice(settings.prices.tapHole)}
@@ -1634,6 +1651,10 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
           />{" "}
           Anti-Goutte d'eau
         </label>
+      </div>
+
+      <div style={{ textAlign: "center", margin: "20px 0", fontSize: "0.95rem", color: "#333" }}>
+        Pour toute demande particulière, n’hésitez pas à <Link to="/contact" style={{ color: "#b8860b", fontWeight: "bold", textDecoration: "none" }}>nous contacter</Link>.
       </div>
 
       <div className="actions"></div>
