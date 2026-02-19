@@ -163,7 +163,7 @@ exports.sendContactFormEmail = async (data, file) => {
   try {
     await apiInstance.sendTransacEmail({
       sender: SENDER, // Ton adresse d'envoi (no-reply)
-      to: [{ email: "antoinebaptista@icloud.com" }], // L'adresse de réception
+      to: [{ email: "contact@etsguegan.com" }], // L'adresse de réception
       replyTo: { email: data.email }, // Pour que tu puisses répondre directement au client
       subject: `[Contact Site Shop] ${data.objet}`,
       htmlContent: htmlContent,
