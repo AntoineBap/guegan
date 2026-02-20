@@ -88,9 +88,9 @@ const ConfigResume = ({ config, onReset, sinkSpecs, settings }) => {
 
         let tapLabel = "Aucun";
         if (sink.hasTapHole) {
-          if (sink.tapHolePosition === "center") tapLabel = "Centré";
-          if (sink.tapHolePosition === "left") tapLabel = "Gauche";
-          if (sink.tapHolePosition === "right") tapLabel = "Droite";
+          if (sink.tapHolePosition === "Centre") tapLabel = "Centré";
+          if (sink.tapHolePosition === "Gauche") tapLabel = "Gauche";
+          if (sink.tapHolePosition === "Droite") tapLabel = "Droite";
         }
 
         let drainerLabel = "";

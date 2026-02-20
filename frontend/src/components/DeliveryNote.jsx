@@ -107,11 +107,6 @@ const DeliveryNote = ({ order }) => {
   const dateOptions = { year: "numeric", month: "long", day: "numeric" };
   const today = new Date().toLocaleDateString("fr-FR", dateOptions);
 
-  // CRÉATION DE L'URL ABSOLUE
-  // window.location.origin donne "http://localhost:5173" (ou votre domaine en prod)
-  // On ajoute le nom du fichier qui est dans "public"
-  const logoUrl = window.location.origin + "/logo_guegan.png";
-
   return (
     <Document>
       <Page size="A4" style={styles.page}>

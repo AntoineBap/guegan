@@ -47,6 +47,9 @@ const ClientOrders = () => {
         }
     };
 
+    const handleOpen3D = (item) => {
+        navigate("/configurator", { state: { loadConfig: item } });
+    };
 
     // --- RENDU DE LA VUE DÉTAILLÉE ---
     if (selectedOrder) {
@@ -105,52 +108,116 @@ const ClientOrders = () => {
                         {/* COLONNE DROITE : ARTICLES */}
                         <div className="items-column">
                             <h3>Articles ({totalItemsCount})</h3>
-                            {selectedOrder.items.map((item, idx) => (
-                                <div key={idx} className="item-card-detail">
-                                    <div className="item-header-row">
-                                        <h4>Plan Vasque {item.length}x{item.width}mm</h4>
-                                        <div className="item-actions">
-                                            <span className="qty-badge">x{item.quantity}</span>
-                                            <span style={{fontWeight:'bold'}}>{(item.unitPrice * item.quantity).toFixed(2)} €</span>
-                                        </div>
-                                    </div>
 
-                                    <div className="item-specs">
-                                        <ul>
-                                            {/* Détail Cuves */}
-                                            {item.sinks && item.sinks.length > 0 && item.sinks[0].type !== "Aucune cuve" && (
-                                                <li>
-                                                    <strong>Cuves :</strong>
-                                                    {item.sinks.map((s, i) => (
-                                                        <div key={i} className="sub-spec">
-                                                            #{i+1} : {s.type.replace("Cuve ", "")} - {s.position === 'center' ? 'Centrée' : s.position} 
-                                                            {s.offset && ` (${s.offset}mm)`}
-                                                            {s.hasTapHole && ` - Robinet ${s.tapHolePosition}`}
-                                                        </div>
-                                                    ))}
-                                                </li>
-                                            )}
-                                            
-                                            {/* Détail Dosserets */}
-                                            {item.rims && (
-                                                <li>
-                                                    <strong>Dosserets (H{item.rimHeigh}mm) :</strong> {[item.rimLeft && 'Gauche', item.rimBack && 'Fond', item.rimRight && 'Droite'].filter(Boolean).join(', ')}
-                                                </li>
-                                            )}
-
-                                            {/* Détail Retombées */}
-                                            {item.aprons && (
-                                                <li>
-                                                    <strong>Retombées (H{item.apronHeight}mm) :</strong> {[item.apronFront && 'Avant', item.apronLeft && 'Gauche', item.apronBack && 'Fond', item.apronRight && 'Droite'].filter(Boolean).join(', ')}
-                                                </li>
-                                            )}
-                                            
-                                            {/* Splashback */}
-                                            {item.splashback && <li><strong>Anti-goutte :</strong> Oui</li>}
-                                        </ul>
+                            <div className="items-list">
+                              {selectedOrder.items.map((item, index) => (
+                                <div key={index} className="item-card-detail">
+                                  <div className="item-header-row">
+                                    <h4>
+                                      Plan #{index + 1} - {item.length}x{item.width}mm
+                                    </h4>
+                                    <div className="item-actions">
+                                      <span className="qty-badge">Qté: {item.quantity}</span>
+                                      <button
+                                        className="btn-3d"
+                                        onClick={() => handleOpen3D(item)}
+                                      >
+                                        👁️ Voir en 3D
+                                      </button>
                                     </div>
+                                  </div>
+
+                                  <div className="item-specs">
+                                    <ul>
+                                      {/* CUVES : Masqué si "Aucune cuve" */}
+                                      {item.sinks &&
+                                        item.sinks.length > 0 &&
+                                        item.sinks[0]?.type !== "Aucune cuve" &&
+                                        item.sinks.map((s, idx) => (
+                                          <li
+                                            key={idx}
+                                            className="sub-spec"
+                                            style={{
+                                              borderLeft: "3px solid #ddd",
+                                              paddingLeft: "10px",
+                                            }}
+                                          >
+                                            <strong>Cuve {idx + 1} :</strong>{" "}
+                                            {s.type ? s.type.replace("Cuve ", "") : "Standard"}
+                                            <br />
+                                            Position :{" "}
+                                            {s.position === "left"
+                                              ? "Gauche"
+                                              : s.position === "right"
+                                                ? "Droite"
+                                                : "Centrée"}
+                                            {s.position !== "center" && ` (${s.offset}mm)`}
+                                            <br />
+                                            Robinet :{" "}
+                                            {s.hasTapHole ? (
+                                              <>
+                                                Oui (
+                                                {s.tapHolePosition === "left"
+                                                  ? "Gauche"
+                                                  : s.tapHolePosition === "right"
+                                                    ? "Droite"
+                                                    : "Centré"}
+                                                )
+                                                {s.tapHoleOffset && s.tapHoleOffset !== 0
+                                                  ? ` [Décalage : ${s.tapHoleOffset}mm]`
+                                                  : ""}
+                                              </>
+                                            ) : (
+                                              "Non"
+                                            )}
+                                            <br />
+                                            Egouttoir :{" "}
+                                            {s.hasDrainer
+                                              ? `Oui (${s.drainerPosition === "left" ? "Gauche" : "Droite"})`
+                                              : "Non"}
+                                          </li>
+                                        ))}
+
+                                      {/* DOSSERETS */}
+                                      {item.rims && (
+                                        <li className="sub-spec">
+                                          🧱 <strong>Dosserets (H{item.rimHeigh}mm) :</strong>{" "}
+                                          {[
+                                            item.rimLeft && "Gauche",
+                                            item.rimBack && "Fond",
+                                            item.rimRight && "Droite",
+                                          ]
+                                            .filter(Boolean)
+                                            .join(", ") || "Aucun"}
+                                        </li>
+                                      )}
+
+                                      {/* RETOMBÉES */}
+                                      {item.aprons && (
+                                        <li className="sub-spec">
+                                          <strong>Retombées (H{item.apronHeight}mm) :</strong>{" "}
+                                          {[
+                                            item.apronFront && "Avant",
+                                            item.apronLeft && "Gauche",
+                                            item.apronBack && "Fond",
+                                            item.apronRight && "Droite",
+                                          ]
+                                            .filter(Boolean)
+                                            .join(", ") || "Aucune"}
+                                        </li>
+                                      )}
+
+                                      {/* GOUTTE D'EAU */}
+                                      {item.splashback && (
+                                        <li>
+                                          <strong>Anti-Goutte d'eau :</strong> Oui
+                                        </li>
+                                      )}
+                                    </ul>
+                                  </div>
                                 </div>
-                            ))}
+                              ))}
+                            </div>
                         </div>
                     </div>
                 </div>

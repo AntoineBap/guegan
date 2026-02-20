@@ -112,7 +112,6 @@ const AdminOrderDetails = () => {
           {/* LISTE DES PLANS */}
           <div className="items-column">
             <h3>🛠️ Plans à produire ({order.items.length})</h3>
-
             <div className="items-list">
               {order.items.map((item, index) => (
                 <div key={index} className="item-card-detail">

@@ -12,7 +12,7 @@ const ORIGIN_LAT = 48.9118;
 const ORIGIN_LON = 2.4397;
 
 const Checkout = () => {
-  const { checkoutItems, clearCart } = useCart();
+  const { checkoutItems, clearPurchasedItems } = useCart();
   const { user, token, isAuthenticated } = useContext(AuthContext);
   const { settings } = useContext(SettingsContext);
   const navigate = useNavigate();
@@ -104,9 +104,9 @@ const Checkout = () => {
 
               let price = 0;
               if (distance <= 250) price = 0;
-              else if (distance <= 400) price = 1;
-              else if (distance <= 600) price = 2;
-              else price = 3;
+              else if (distance <= 400) price = 200;
+              else if (distance <= 600) price = 400;
+              else price = -1; 
 
               setShippingCost(price);
             }
@@ -131,7 +131,8 @@ const Checkout = () => {
     0,
   );
 
-  const finalTotal = itemsTotal + shippingCost;
+  const safeShippingCost = shippingCost === -1 ? 0 : shippingCost;
+  const finalTotal = itemsTotal + safeShippingCost;
 
   const handleBillingChange = (e) =>
     setBilling({ ...billing, [e.target.name]: e.target.value });
@@ -175,7 +176,7 @@ const Checkout = () => {
 
       if (response.ok) {
         setShowSuccessModal(true);
-        clearCart();
+        clearPurchasedItems(); 
       } else {
         console.error("Erreur Backend :", data);
         const errorMsg = data.message || data.error || JSON.stringify(data);
@@ -194,7 +195,7 @@ const Checkout = () => {
         className="checkout-page"
         style={{ textAlign: "center", paddingTop: "100px" }}
       >
-        <h1>Votre panier est vide</h1>
+        <h1>Aucun article sélectionné</h1>
         <button
           className="validate-btn"
           style={{ maxWidth: "300px" }}
@@ -594,9 +595,11 @@ const Checkout = () => {
             >
               <span>Livraison</span>
               <span>
-                {shippingCost === 0
-                  ? "Gratuit"
-                  : `${shippingCost.toFixed(2)} €`}
+                {shippingCost === -1
+                  ? "Sur Devis"
+                  : shippingCost === 0
+                    ? "Gratuit"
+                    : `${shippingCost.toFixed(2)} €`}
               </span>
             </div>
 
@@ -607,10 +610,26 @@ const Checkout = () => {
                 fontWeight: "bold",
                 borderTop: "2px solid #333",
                 paddingTop: "10px",
+                alignItems: "flex-start",
               }}
             >
               <span>Total HT</span>
-              <span>{finalTotal.toFixed(2)} €</span>
+              <div style={{ textAlign: "right" }}>
+                <span>{finalTotal.toFixed(2)} €</span>
+                {shippingCost === -1 && (
+                  <span
+                    style={{
+                      display: "block",
+                      fontSize: "0.8rem",
+                      color: "#856404",
+                      fontWeight: "normal",
+                      marginTop: "4px",
+                    }}
+                  >
+                    (+ Livraison sur devis)
+                  </span>
+                )}
+              </div>
             </div>
 
             <button

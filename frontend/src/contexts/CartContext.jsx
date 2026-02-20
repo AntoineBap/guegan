@@ -17,7 +17,7 @@ export const CartProvider = ({ children }) => {
     }
   });
 
-  // NOUVEAU : État pour stocker UNIQUEMENT les items à payer
+  // État pour stocker UNIQUEMENT les items à payer
   const [checkoutItems, setCheckoutItems] = useState([]);
 
   const [isDataLoaded, setIsDataLoaded] = useState(false);
@@ -114,8 +114,14 @@ export const CartProvider = ({ children }) => {
 
   const clearCart = () => {
     setCartItems([]);
-    setCheckoutItems([]); // On vide aussi le checkout
+    setCheckoutItems([]); 
     localStorage.removeItem("guest_cart");
+  };
+
+  // NOUVEAU : Supprime uniquement les articles qui viennent d'être payés/validés
+  const clearPurchasedItems = () => {
+    setCartItems((prev) => prev.filter(item => !checkoutItems.includes(item)));
+    setCheckoutItems([]);
   };
 
   const mergeCartAfterLogin = (dbCart = []) => {
@@ -129,7 +135,6 @@ export const CartProvider = ({ children }) => {
     setIsDataLoaded(true);
   };
 
-  // NOUVEAU : Fonction pour préparer le checkout
   const proceedToCheckout = (selectedIndices) => {
     // On filtre le panier global pour ne garder que les indices sélectionnés
     const itemsToBuy = cartItems.filter((_, index) =>
@@ -142,15 +147,16 @@ export const CartProvider = ({ children }) => {
     <CartContext.Provider
       value={{
         cartItems,
-        checkoutItems, // On expose les items à payer
+        checkoutItems, 
         addToCart,
         removeFromCart,
         updateCartItem,
         clearCart,
+        clearPurchasedItems, // On expose la nouvelle fonction
         isCartOpen,
         setIsCartOpen,
         mergeCartAfterLogin,
-        proceedToCheckout, // On expose la fonction
+        proceedToCheckout, 
       }}
     >
       {children}
