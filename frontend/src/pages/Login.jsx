@@ -17,7 +17,7 @@ const calculateTva = (siret) => {
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login } = useContext(AuthContext);
+  const { login, isAuthenticated, isAdmin } = useContext(AuthContext);
   const { mergeCartAfterLogin, cartItems, clearCart } = useCart();
 
   const [isSignUp, setIsSignUp] = useState(false);
@@ -27,6 +27,17 @@ const Login = () => {
 
   const [globalError, setGlobalError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
+
+  // --- REDIRECTION SI DÉJÀ CONNECTÉ ---
+  useEffect(() => {
+    if (isAuthenticated) {
+      if (isAdmin) {
+        navigate("/admin");
+      } else {
+        navigate("/configurator");
+      }
+    }
+  }, [isAuthenticated, isAdmin, navigate]);
 
   // --- SIRET & API ---
   const [isSiretLoading, setIsSiretLoading] = useState(false);
@@ -283,7 +294,7 @@ const Login = () => {
           );
           if (mergeCartAfterLogin) mergeCartAfterLogin(data.cart || []);
           if (data.role === "admin") navigate("/admin");
-          else navigate("/configurator"); // 👈 MODIFICATION ICI : Redirection vers le configurateur
+          else navigate("/configurator"); 
         }
       } else {
         setGlobalError(

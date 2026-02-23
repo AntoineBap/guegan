@@ -135,13 +135,11 @@ exports.sendStatusUpdateEmail = async (order, user, status) => {
 
 // --- 4. EMAIL DE CONTACT (NOUVEAU) ---
 exports.sendContactFormEmail = async (data, file) => {
-  // data contient : nom, prenom, email, phone, objet, message
-
   const attachments = [];
   if (file) {
     attachments.push({
-      name: file.originalname, // <--- ATTENTION : "name", PAS "filename"
-      content: file.buffer.toString("base64"), // <--- Votre correction précédente (Base64)
+      name: file.originalname,
+      content: file.buffer.toString("base64"),
     });
   }
 
@@ -162,16 +160,39 @@ exports.sendContactFormEmail = async (data, file) => {
 
   try {
     await apiInstance.sendTransacEmail({
-      sender: SENDER, // Ton adresse d'envoi (no-reply)
-      to: [{ email: "contact@etsguegan.com" }], // L'adresse de réception
-      replyTo: { email: data.email }, // Pour que tu puisses répondre directement au client
+      sender: SENDER,
+      to: [{ email: "contact@etsguegan.com" }],
+      replyTo: { email: data.email },
       subject: `[Contact Site Shop] ${data.objet}`,
       htmlContent: htmlContent,
       attachment: attachments.length > 0 ? attachments : undefined,
     });
-    console.log("Email de contact envoyé.");
   } catch (error) {
     console.error("Erreur envoi email contact:", error);
     throw error;
+  }
+};
+
+exports.sendDailyQuotesSummary = async (count) => {
+  if (count <= 0) return;
+
+  const htmlContent = `
+        <div style="font-family: Manrope, sans-serif; padding: 20px; color: #333; border: 1px solid #eee;">
+            <h2 style="color: #d4af37;">Récapitulatif Quotidien - Guegan Shop</h2>
+            <p>Bonjour,</p>
+            <p>Au cours des dernières 24 heures, <strong>${count}</strong> nouveau(x) devis a/ont été créé(s) sur le site.</p>
+            <p>Connectez-vous à votre espace administrateur pour les consulter.</p>
+        </div>
+    `;
+
+  try {
+    await apiInstance.sendTransacEmail({
+      sender: SENDER,
+      to: [{ email: "antoinebaptista@icloud.com" }],
+      subject: `Guegan Shop - ${count} nouveau(x) devis aujourd'hui`,
+      htmlContent: htmlContent,
+    });
+  } catch (error) {
+    console.error(error);
   }
 };

@@ -74,7 +74,7 @@ const ClientOrders = () => {
                             >
                                 {statusInfo.label}
                             </span>
-                            <button className="back-btn" onClick={() => navigate('/configurator')}>
+                            <button className="back-btn" onClick={() => setSelectedOrder(null)}>
                                 ← Retour
                             </button>
                         </div>

@@ -15,22 +15,41 @@ const AdminDashboard = () => {
     paid: 0,
     shipped: 0,
     users: "--",
+    quotes: 0,
   });
 
   useEffect(() => {
     if (!isAuthenticated) navigate("/login");
     else if (!isAdmin) navigate("/");
     else {
-      fetch(`${API_URL}/api/admin/stats`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((res) => res.json())
-        .then((data) => {
+      // On lance en parallèle la récupération des stats et des devis pour les compter
+      Promise.all([
+        fetch(`${API_URL}/api/admin/stats`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }).then((res) => res.json()),
+        fetch(`${API_URL}/api/admin/quotes`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }).then((res) => res.json())
+      ])
+        .then(([statsData, quotesData]) => {
+          let validQuotesCount = 0;
+          
+          if (Array.isArray(quotesData)) {
+            // On compte uniquement les devis qui ont moins d'1 mois
+            validQuotesCount = quotesData.filter(q => {
+              const creationDate = new Date(q.createdAt);
+              const oneMonthLater = new Date(creationDate);
+              oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
+              return new Date() <= oneMonthLater;
+            }).length;
+          }
+
           setStats({
-            pending: data.pending_payment || data.pending || 0,
-            paid: data.paid || 0,
-            shipped: data.shipped || 0,
-            users: data.users || "--",
+            pending: statsData.pending_payment || statsData.pending || 0,
+            paid: statsData.paid || 0,
+            shipped: statsData.shipped || 0,
+            users: statsData.users || "--",
+            quotes: validQuotesCount, // Le vrai compte s'affiche ici
           });
         })
         .catch((err) => console.error(err));
@@ -59,6 +78,13 @@ const AdminDashboard = () => {
       count: stats.shipped,
       path: "/admin/orders/shipped",
       icon: "📦",
+      type: "type-info",
+    },
+    {
+      title: "Devis Valables",
+      count: stats.quotes,
+      path: "/admin/quotes",
+      icon: "📄",
       type: "type-info",
     },
     {

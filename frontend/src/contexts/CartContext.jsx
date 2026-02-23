@@ -118,7 +118,7 @@ export const CartProvider = ({ children }) => {
     localStorage.removeItem("guest_cart");
   };
 
-  // NOUVEAU : Supprime uniquement les articles qui viennent d'être payés/validés
+  // Supprime uniquement les articles qui viennent d'être payés/validés
   const clearPurchasedItems = () => {
     setCartItems((prev) => prev.filter(item => !checkoutItems.includes(item)));
     setCheckoutItems([]);
@@ -148,11 +148,12 @@ export const CartProvider = ({ children }) => {
       value={{
         cartItems,
         checkoutItems, 
+        setCheckoutItems, // <-- C'EST ICI QUE ÇA MANQUAIT !
         addToCart,
         removeFromCart,
         updateCartItem,
         clearCart,
-        clearPurchasedItems, // On expose la nouvelle fonction
+        clearPurchasedItems, 
         isCartOpen,
         setIsCartOpen,
         mergeCartAfterLogin,

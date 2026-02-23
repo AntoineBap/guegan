@@ -1,5 +1,7 @@
 import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+
+// Imports des pages existantes
 import Home from "./pages/Home";
 import Configurator from "./pages/Configurator";
 import Login from "./pages/Login";
@@ -14,10 +16,17 @@ import OrderConfirmation from "./pages/OrderConfirmation";
 import Contact from "./pages/Contact";
 import CGV from "./pages/CGV";
 import AdminUsers from "./pages/AdminUsers";
-import AdminVariables from "./pages/AdminVariables"; // Import de la nouvelle page
+import AdminVariables from "./pages/AdminVariables";
+
+// NOUVEAUX IMPORTS POUR LES DEVIS
+import ClientQuotes from "./pages/ClientQuotes";
+import AdminQuotes from "./pages/AdminQuotes";
+import AdminQuoteDetails from "./pages/AdminQuoteDetails";
+
+// Providers et Styles
 import { CartProvider } from "./contexts/CartContext.jsx";
 import { AuthProvider } from "./contexts/AuthContext.jsx";
-import { SettingsProvider } from "./contexts/SettingsContext.jsx"; // Import du provider des réglages
+import { SettingsProvider } from "./contexts/SettingsContext.jsx";
 import "./styles/style.scss";
 
 function App() {
@@ -30,17 +39,25 @@ function App() {
               <Routes>
                 {/* Route principale (Configurateur) */}
                 <Route path="/" element={<Home />} />
-
                 <Route path="/configurator" element={<Configurator />} />
 
                 {/* Route de connexion / inscription */}
                 <Route path="/login" element={<Login />} />
-
-                <Route path="/contact" element={<Contact />} />
-
                 <Route path="/verify/:token" element={<VerifyEmail />} />
 
-                {/* Dashboard Admin */}
+                {/* Pages publiques */}
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/cgv" element={<CGV />} />
+
+                {/* --- ESPACE CLIENT --- */}
+                <Route path="/checkout" element={<Checkout />} />
+                <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
+                <Route path="/my-orders" element={<ClientOrders />} />
+                
+                {/* NOUVELLE ROUTE CLIENT : Mes Devis */}
+                <Route path="/my-quotes" element={<ClientQuotes />} />
+
+                {/* --- ESPACE ADMIN --- */}
                 <Route
                   path="/admin"
                   element={
@@ -48,13 +65,6 @@ function App() {
                       <AdminDashboard />
                     </ProtectedRoute>
                   }
-                />
-
-                <Route path="/checkout" element={<Checkout />} />
-
-                <Route
-                  path="/order-confirmation/:orderId"
-                  element={<OrderConfirmation />}
                 />
 
                 <Route
@@ -66,8 +76,6 @@ function App() {
                   }
                 />
 
-                <Route path="/my-orders" element={<ClientOrders />} />
-
                 <Route
                   path="/admin/order/:id"
                   element={
@@ -77,7 +85,25 @@ function App() {
                   }
                 />
 
-                {/* Nouvelle route pour la modification des prix/variables */}
+                {/* NOUVELLES ROUTES ADMIN : Gestion des devis */}
+                <Route
+                  path="/admin/quotes"
+                  element={
+                    <ProtectedRoute adminOnly={true}>
+                      <AdminQuotes />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/admin/quotes/:id"
+                  element={
+                    <ProtectedRoute adminOnly={true}>
+                      <AdminQuoteDetails />
+                    </ProtectedRoute>
+                  }
+                />
+
                 <Route
                   path="/admin/settings"
                   element={
@@ -86,8 +112,6 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
-
-                <Route path="/cgv" element={<CGV />} />
 
                 <Route
                   path="/admin/users"

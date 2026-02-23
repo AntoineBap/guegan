@@ -4,15 +4,17 @@ import { AuthContext } from "../contexts/AuthContext";
 import { useCart } from "../contexts/CartContext";
 import "../styles/cart.scss";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
 const Cart = ({ updateItem, removeItem, closeCart, onLoadConfig }) => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useContext(AuthContext);
+  const { isAuthenticated, token } = useContext(AuthContext);
   const { cartItems, proceedToCheckout } = useCart();
 
   const [selectedIndices, setSelectedIndices] = useState([]);
   const [expandedIndex, setExpandedIndex] = useState(null);
+  const [isGeneratingQuote, setIsGeneratingQuote] = useState(false);
 
-  // --- SYNCHRONISATION SÉLECTION ---
   useEffect(() => {
     const allIndices = cartItems.map((_, index) => index);
     setSelectedIndices(allIndices);
@@ -50,12 +52,10 @@ const Cart = ({ updateItem, removeItem, closeCart, onLoadConfig }) => {
 
   const fmt = (n) => n.toFixed(2).replace(".", ",") + " €";
 
-  // --- 🔒 NOUVELLE FONCTION : Gestion de l'affichage du prix ---
   const renderPrice = (amount) => {
     if (isAuthenticated) {
       return fmt(amount);
     }
-    // Si pas connecté, on affiche un faux montant flouté
     return (
       <span className="blurred-price" title="Connectez-vous pour voir le prix">
         XXX,XX €
@@ -63,11 +63,39 @@ const Cart = ({ updateItem, removeItem, closeCart, onLoadConfig }) => {
     );
   };
 
-  // --- LOGIQUE DE PAIEMENT ---
   const handleCheckoutClick = () => {
     proceedToCheckout(selectedIndices);
     closeCart();
     navigate("/checkout");
+  };
+
+  const handleGenerateQuote = async () => {
+    if (!isAuthenticated) return;
+    setIsGeneratingQuote(true);
+    const itemsToQuote = cartItems.filter((_, index) => selectedIndices.includes(index));
+    
+    try {
+      const response = await fetch(`${API_URL}/api/auth/quotes`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ items: itemsToQuote, totalAmount: totalToPay }),
+      });
+
+      if (response.ok) {
+        alert("Devis généré avec succès ! Vous pouvez le retrouver dans votre profil.");
+        closeCart();
+        navigate("/my-quotes");
+      } else {
+        alert("Erreur lors de la génération du devis.");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Erreur réseau.");
+    }
+    setIsGeneratingQuote(false);
   };
 
   return (
@@ -89,7 +117,6 @@ const Cart = ({ updateItem, removeItem, closeCart, onLoadConfig }) => {
                 key={index}
                 className={`cart-item ${selectedIndices.includes(index) ? "selected" : ""}`}
               >
-                {/* LIGNE PRINCIPALE */}
                 <div className="cart-item-main">
                   <div className="item-select">
                     <input
@@ -160,7 +187,6 @@ const Cart = ({ updateItem, removeItem, closeCart, onLoadConfig }) => {
                   </div>
                 </div>
 
-                {/* ZONE DETAILS */}
                 {expandedIndex === index && (
                   <div className="cart-item-details fade-in">
                     <h4>Caractéristiques complètes :</h4>
@@ -181,7 +207,6 @@ const Cart = ({ updateItem, removeItem, closeCart, onLoadConfig }) => {
                             else if (s.position === "right") positionLabel = "Droite";
                             else if (s.position === "center") positionLabel = "Centrée";
 
-                            // 3. Traduction de la position de l'égouttoir (si besoin)
                             let drainerLabel = s.drainerPosition;
                             if (s.drainerPosition === "left") drainerLabel = "Gauche";
                             else if (s.drainerPosition === "right") drainerLabel = "Droite";
@@ -253,7 +278,6 @@ const Cart = ({ updateItem, removeItem, closeCart, onLoadConfig }) => {
         <div className="cart-footer">
           <div className="total-row">
             <span>Total Sélectionné (HT)</span>
-            {/* 👇 UTILISATION DE renderPrice ICI */}
             <span className="amount">{renderPrice(totalToPay)}</span>
           </div>
 
@@ -267,7 +291,7 @@ const Cart = ({ updateItem, removeItem, closeCart, onLoadConfig }) => {
                   fontWeight: "600",
                 }}
               >
-                ⚠️ Veuillez vous connecter pour voir les prix
+                ⚠️ Veuillez vous connecter pour voir les prix et commander
               </p>
               <button
                 onClick={() => {
@@ -292,10 +316,30 @@ const Cart = ({ updateItem, removeItem, closeCart, onLoadConfig }) => {
           )}
 
           <button
+            onClick={handleGenerateQuote}
+            disabled={totalToPay === 0 || isGeneratingQuote || !isAuthenticated}
+            style={{
+              width: "100%",
+              padding: "12px",
+              backgroundColor: "transparent",
+              border: "2px solid #111",
+              color: "#111",
+              borderRadius: "6px",
+              cursor: (totalToPay === 0 || !isAuthenticated) ? "not-allowed" : "pointer",
+              fontWeight: "bold",
+              marginBottom: "10px",
+              opacity: (totalToPay === 0 || !isAuthenticated) ? 0.5 : 1,
+              transition: "all 0.2s"
+            }}
+          >
+            {isGeneratingQuote ? "Génération en cours..." : "Générer un devis"}
+          </button>
+
+          <button
             className="checkout-btn"
             disabled={totalToPay === 0 || !isAuthenticated}
             style={
-              !isAuthenticated
+              !isAuthenticated || totalToPay === 0
                 ? {
                     opacity: 0.5,
                     cursor: "not-allowed",

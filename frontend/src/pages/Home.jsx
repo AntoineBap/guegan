@@ -35,7 +35,7 @@ const Home = () => {
     // Si c'est une VIDÉO
     if (currentMedia.type === "video" && videoRef.current) {
       const video = videoRef.current;
-      video.currentTime = 0; // Rembobiner au début
+      video.currentTime = 0;
       video.play().catch((e) => console.log(e));
 
       // On passe à la suite seulement quand la vidéo est finie
