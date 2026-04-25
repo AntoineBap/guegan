@@ -17,4 +17,8 @@ router.post("/quotes", auth, quoteCtrl.createQuote);
 router.get("/my-quotes", auth, quoteCtrl.getMyQuotes);
 router.delete("/quotes/:id", auth, quoteCtrl.deleteQuote);
 
+router.get("/check-token", auth, (req, res) => {
+  res.status(200).json({ message: "Token valide" });
+});
+
 module.exports = router;

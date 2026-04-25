@@ -1,8 +1,10 @@
-import React, { createContext, useState } from "react";
+import React, { createContext, useState, useEffect } from "react";
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
   // 1. Initialisation depuis le localStorage
   const [token, setToken] = useState(
     () => localStorage.getItem("token") || null,
@@ -10,12 +12,9 @@ export const AuthProvider = ({ children }) => {
   const [userId, setUserId] = useState(
     () => localStorage.getItem("userId") || null,
   );
-
-  // NOUVEAU : On gère le rôle
   const [role, setRole] = useState(
     () => localStorage.getItem("role") || "client",
   );
-
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem("user");
     try {
@@ -26,10 +25,8 @@ export const AuthProvider = ({ children }) => {
   });
 
   const isAuthenticated = !!token;
-  // Helper pour savoir si c'est un admin
   const isAdmin = isAuthenticated && role === "admin";
 
-  // Mise à jour de login pour accepter le role
   const login = (newToken, newUserId, newUserInfo, newRole) => {
     setToken(newToken);
     setUserId(newUserId);
@@ -55,14 +52,43 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("guest_cart");
   };
 
+  // --- NOUVEAU : VÉRIFICATION DU TOKEN AU CHARGEMENT ---
+  useEffect(() => {
+    const verifyToken = async () => {
+      // Si pas de token, rien à vérifier
+      if (!token) return;
+
+      try {
+        const response = await fetch(`${API_URL}/api/auth/check-token`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        // Si le serveur répond par une erreur (ex: 401 Token invalide/expiré)
+        if (!response.ok) {
+          console.warn("Session expirée ou token invalide. Déconnexion...");
+          logout();
+        }
+      } catch (error) {
+        console.error("Erreur lors de la vérification du token", error);
+        // Optionnel : on peut décider de déconnecter si le serveur est injoignable
+        // mais c'est souvent mieux de laisser l'utilisateur réessayer.
+      }
+    };
+
+    verifyToken();
+  }, []); // Le tableau vide [] assure que cela ne s'exécute qu'une fois au lancement du site
+
   return (
     <AuthContext.Provider
       value={{
         token,
         userId,
         user,
-        role, // On expose le rôle
-        isAdmin, // On expose le booléen pratique
+        role,
+        isAdmin,
         isAuthenticated,
         login,
         logout,
