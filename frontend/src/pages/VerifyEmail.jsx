@@ -47,7 +47,6 @@ const VerifyEmail = () => {
 
         {status === "success" && (
           <div className="success-content">
-            <span className="icon">✅</span>
             <h1>Compte validé !</h1>
             <p>Votre compte professionnel est désormais actif.</p>
             <p style={{ fontSize: "0.9rem", marginTop: "10px" }}>

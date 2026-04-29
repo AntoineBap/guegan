@@ -112,7 +112,6 @@ const Header = () => {
 
       <div className="header-actions">
         <button className="contact-btn" onClick={() => navigate("/contact")}>
-          <span className="icon">✉️</span>
           <span className="text">Contact</span>
         </button>
 
@@ -122,12 +121,10 @@ const Header = () => {
               className="config-btn"
               onClick={() => navigate("/configurator")}
             >
-              <span className="icon">🛠️</span>
               <span className="text">Configurateur</span>
             </button>
           ) : (
             <button className="admin-btn" onClick={() => navigate("/admin")}>
-              <span className="icon">⚙️</span>
               <span className="text">Admin</span>
             </button>
           ))}
@@ -143,7 +140,6 @@ const Header = () => {
                 className={`profile-btn ${showDropdown ? "active" : ""}`}
                 onClick={handleProfileClick}
               >
-                <span className="icon">👤</span>
                 <span className="text">Mon Profil</span>
               </button>
 
@@ -176,13 +172,11 @@ const Header = () => {
           </div>
         ) : (
           <button className="login-btn" onClick={() => navigate("/login")}>
-            <span className="icon">👤</span>
             <span className="text">Connexion</span>
           </button>
         )}
 
         <button className="cart-btn" onClick={toggleCart}>
-          <span className="icon">🛒</span>
           <span className="text">Panier</span>
           {cartCount > 0 && <span className="badge">{cartCount}</span>}
         </button>
