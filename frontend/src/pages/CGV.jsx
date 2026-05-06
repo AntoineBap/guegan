@@ -19,7 +19,7 @@ const CGV = () => {
             <p>RCS Bobigny 785 583 527 — TVA FR 84 785 583 527</p>
             <p>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</p>
             <p>Site internet : https://www.etsguegan.com/</p>
-            <p>Applicables à compter du [DATE]</p>
+            <p>Applicables à compter du 01/05/2026</p>
             <p>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</p>
           </div>
 
@@ -39,8 +39,7 @@ const CGV = () => {
                 intracommunautaire FR 84 785 583 527.
               </li>
               <li>
-                <strong>« Site »</strong> : désigne le site internet [À
-                COMPLÉTER — nom de domaine] exploité par le Vendeur.
+                <strong>« Site »</strong> : désigne le site internet www.guegan-shop.fr exploité par le Vendeur.
               </li>
               <li>
                 <strong>« Client »</strong> : désigne toute personne physique ou
@@ -286,9 +285,7 @@ const CGV = () => {
 
             <h3>6.2. Modalités de paiement</h3>
             <p>
-              Le paiement s'effectue intégralement à la Commande, par carte
-              bancaire ou par virement bancaire, via le prestataire de paiement
-              sécurisé [À COMPLÉTER — prestataire de paiement].
+              Le paiement s'effectue intégralement à la Commande, par virement bancaire.
             </p>
             <p>
               La Commande n’est définitivement prise en compte et mise en
@@ -816,8 +813,7 @@ const CGV = () => {
               laquelle les présentes CGV renvoient expressément.
             </p>
             <p>
-              Hébergeur du Site : [À COMPLÉTER — nom, adresse et coordonnées de
-              l'hébergeur]
+              Hébergeur du Site : IAF - 27 Rue Alfred Nobel, 77420 Champs-sur-Marne
             </p>
           </section>
 
@@ -941,10 +937,9 @@ const CGV = () => {
               amassoulle@etsguegan.com
             </p>
             <p>
-              Hébergeur du Site : [À COMPLÉTER — nom, dénomination sociale,
-              adresse, numéro de téléphone]
+              Hébergeur du Site : IAF - 27 Rue Alfred Nobel, 77420 Champs-sur-Marne
             </p>
-            <p>Prestataire de paiement : [À COMPLÉTER]</p>
+            <p>Prestataire de paiement : virement bancaire</p>
             <p>Médiateur de la consommation :</p>
             <p>
               CM2C : 49 rue de Ponthieu, 75008 Paris à :
