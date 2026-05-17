@@ -106,7 +106,7 @@ const Checkout = () => {
               if (distance <= 250) price = 0;
               else if (distance <= 400) price = 200;
               else if (distance <= 600) price = 400;
-              else price = -1; 
+              else price = -1;
 
               setShippingCost(price);
             }
@@ -176,7 +176,7 @@ const Checkout = () => {
 
       if (response.ok) {
         setShowSuccessModal(true);
-        clearPurchasedItems(); 
+        clearPurchasedItems();
       } else {
         console.error("Erreur Backend :", data);
         const errorMsg = data.message || data.error || JSON.stringify(data);
@@ -482,7 +482,7 @@ const Checkout = () => {
                                 <>
                                   Oui ({s.tapHolePosition})
                                   {s.tapHoleOffset && s.tapHoleOffset !== 0
-                                    ? ` [Décalage : ${s.tapHoleOffset}mm]`
+                                    ? ` [Décalage du centre : ${s.tapHoleOffset}mm]`
                                     : ""}
                                 </>
                               ) : (

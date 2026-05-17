@@ -6,6 +6,102 @@ import "../styles/adminOrderDetails.scss";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
+const IconUser = () => (
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.7"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+);
+const IconTruck = () => (
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.7"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="1" y="3" width="15" height="13" rx="1" />
+    <path d="M16 8h4l3 5v3h-7V8z" />
+    <circle cx="5.5" cy="18.5" r="2.5" />
+    <circle cx="18.5" cy="18.5" r="2.5" />
+  </svg>
+);
+const IconWrench = () => (
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.7"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+  </svg>
+);
+const IconTrash = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.7"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polyline points="3 6 5 6 21 6" />
+    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+    <path d="M10 11v6" />
+    <path d="M14 11v6" />
+    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+  </svg>
+);
+const IconDownload = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.7"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="7 10 12 15 17 10" />
+    <line x1="12" y1="15" x2="12" y2="3" />
+  </svg>
+);
+const IconFile = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.7"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+  </svg>
+);
+
 const AdminOrderDetails = () => {
   const { id } = useParams();
   const { token } = useContext(AuthContext);
@@ -64,7 +160,9 @@ const AdminOrderDetails = () => {
           {/* INFOS CLIENT */}
           <div className="info-column">
             <div className="info-card">
-              <h3>👤 Client & Facturation</h3>
+              <h3>
+                <IconUser /> Client & Facturation
+              </h3>
               <p>
                 <strong>Société :</strong>{" "}
                 {order.billingAddress.company || "Particulier"}
@@ -73,7 +171,8 @@ const AdminOrderDetails = () => {
                 <strong>Numéro SIRET :</strong> {order.userId?.siret || "N/A"}
               </p>
               <p>
-                <strong>Numéro de TVA :</strong> {order.userId?.tvaNumber || "N/A"}
+                <strong>Numéro de TVA :</strong>{" "}
+                {order.userId?.tvaNumber || "N/A"}
               </p>
               <p>
                 <strong>Nom :</strong> {order.billingAddress.firstName}{" "}
@@ -87,20 +186,24 @@ const AdminOrderDetails = () => {
                 <strong>Tel :</strong> {order.userId?.phone || "N/A"}
               </p>
               <p>
-                <strong>Adresse :</strong> {order.billingAddress.address || "N/A"}
+                <strong>Adresse :</strong>{" "}
+                {order.billingAddress.address || "N/A"}
               </p>
               <p>
                 <strong>Ville :</strong> {order.billingAddress.city || "N/A"}
               </p>
               <p>
-                <strong>Code Postal :</strong> {order.billingAddress.zip || "N/A"}
+                <strong>Code Postal :</strong>{" "}
+                {order.billingAddress.zip || "N/A"}
               </p>
               <p>
                 <strong>Pays :</strong> {order.billingAddress.country || "N/A"}
               </p>
             </div>
             <div className="info-card">
-              <h3>🚚 Livraison</h3>
+              <h3>
+                <IconTruck /> Livraison
+              </h3>
               <p>{order.shippingAddress.address}</p>
               <p>
                 {order.shippingAddress.zip} {order.shippingAddress.city}
@@ -111,7 +214,9 @@ const AdminOrderDetails = () => {
 
           {/* LISTE DES PLANS */}
           <div className="items-column">
-            <h3>🛠️ Plans à produire ({order.items.length})</h3>
+            <h3>
+              <IconWrench /> Plans à produire ({order.items.length})
+            </h3>
             <div className="items-list">
               {order.items.map((item, index) => (
                 <div key={index} className="item-card-detail">
@@ -125,7 +230,7 @@ const AdminOrderDetails = () => {
                         className="btn-3d"
                         onClick={() => handleOpen3D(item)}
                       >
-                        👁️ Voir en 3D
+                        Voir en 3D
                       </button>
                     </div>
                   </div>
@@ -160,14 +265,14 @@ const AdminOrderDetails = () => {
                             {s.hasTapHole ? (
                               <>
                                 Oui (
-                                {s.tapHolePosition === "left"
+                                {s.tapHolePosition === "Gauche"
                                   ? "Gauche"
-                                  : s.tapHolePosition === "right"
+                                  : s.tapHolePosition === "Droite"
                                     ? "Droite"
                                     : "Centré"}
                                 )
                                 {s.tapHoleOffset && s.tapHoleOffset !== 0
-                                  ? ` [Décalage : ${s.tapHoleOffset}mm]`
+                                  ? ` [Décalage du centre : ${s.tapHoleOffset}mm]`
                                   : ""}
                               </>
                             ) : (
@@ -184,7 +289,7 @@ const AdminOrderDetails = () => {
                       {/* DOSSERETS */}
                       {item.rims && (
                         <li className="sub-spec">
-                          🧱 <strong>Dosserets (H{item.rimHeigh}mm) :</strong>{" "}
+                          <strong>Dosserets (H{item.rimHeigh}mm) :</strong>{" "}
                           {[
                             item.rimLeft && "Gauche",
                             item.rimBack && "Fond",

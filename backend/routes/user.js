@@ -17,6 +17,11 @@ router.post("/quotes", auth, quoteCtrl.createQuote);
 router.get("/my-quotes", auth, quoteCtrl.getMyQuotes);
 router.delete("/quotes/:id", auth, quoteCtrl.deleteQuote);
 
+// Profil utilisateur
+router.patch("/:id", auth, userCtrl.updateProfile);
+router.patch("/:id/password", auth, userCtrl.updatePassword);
+router.delete("/:id", auth, userCtrl.deleteAccount);
+
 router.get("/check-token", auth, (req, res) => {
   res.status(200).json({ message: "Token valide" });
 });

@@ -78,7 +78,7 @@ export const AuthProvider = ({ children }) => {
 
     // ── Cas 2 : Changement de mot de passe ─────────────────────────────────
     if (payload.newPassword) {
-      const response = await fetch(`${API_URL}/api/users/${userId}/password`, {
+      const response = await fetch(`${API_URL}/api/auth/${userId}/password`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -107,7 +107,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     // ── Cas 3 : Mise à jour du profil ──────────────────────────────────────
-    const response = await fetch(`${API_URL}/api/users/${userId}`, {
+    const response = await fetch(`${API_URL}/api/auth/${userId}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",

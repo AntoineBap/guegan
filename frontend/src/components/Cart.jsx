@@ -156,7 +156,7 @@ const Cart = ({ updateItem, removeItem, closeCart, onLoadConfig }) => {
                               onLoadConfig(item);
                             }}
                           >
-                            👁️ Voir en 3D
+                             Voir en 3D
                           </button>
                         </>
                       )}

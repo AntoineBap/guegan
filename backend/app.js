@@ -40,6 +40,7 @@ mongoose.connect(process.env.MONGO_URI).catch((error) => {
 // --- ROUTES ---
 app.use("/api/auth", userRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/users", userRoutes);
 app.use("/api/config", configRoutes);
 app.use("/api", publicRoutes);
 

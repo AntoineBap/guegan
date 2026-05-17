@@ -7,7 +7,7 @@ import "../styles/my-account.scss";
 export const ACCOUNT_RULES = {
   PASSWORD_MIN_LENGTH: 12,
   PASSWORD_CHANGE_DELAY_DAYS: 14,
-  PASSWORD_REGEX: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).{12,}$/,
+  PASSWORD_REGEX: /^(?=.*[a-z])(?=.*[A-Z]).{8,}$/,
   PASSWORD_HINT:
     "12 caractères minimum, avec au moins une majuscule, une minuscule, un chiffre et un caractère spécial.",
 };
@@ -626,11 +626,9 @@ const MyAccount = () => {
 
 const PasswordStrength = ({ value }) => {
   const checks = [
-    { label: "12 caractères", ok: value.length >= 12 },
+    { label: "8 caractères", ok: value.length >= 8 },
     { label: "Majuscule", ok: /[A-Z]/.test(value) },
-    { label: "Minuscule", ok: /[a-z]/.test(value) },
-    { label: "Chiffre", ok: /\d/.test(value) },
-    { label: "Caractère spécial", ok: /[^a-zA-Z\d]/.test(value) },
+    { label: "Minuscule", ok: /[a-z]/.test(value) },,
   ];
   const score = checks.filter((c) => c.ok).length;
   const levels = ["", "Très faible", "Faible", "Moyen", "Fort", "Très fort"];

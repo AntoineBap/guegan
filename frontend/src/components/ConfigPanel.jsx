@@ -1087,7 +1087,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
                               marginBottom: "4px",
                             }}
                           >
-                            Décalage Bord (min: {Math.ceil(minOffset)})
+                            Décalage Bord (min: {Math.ceil(minOffset)}mm)
                           </span>
                           <input
                             type="number"

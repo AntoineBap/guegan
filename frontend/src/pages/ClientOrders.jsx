@@ -1,299 +1,377 @@
-import React, { useEffect, useState, useContext } from 'react';
-import { AuthContext } from '../contexts/AuthContext';
-import { useLocation, useNavigate } from 'react-router-dom'; // Import useLocation
-import Header from '../components/Header';
-import '../styles/clientOrders.scss';
+import React, { useEffect, useState, useContext } from "react";
+import { AuthContext } from "../contexts/AuthContext";
+import { useLocation, useNavigate } from "react-router-dom"; // Import useLocation
+import Header from "../components/Header";
+import "../styles/clientOrders.scss";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 const ClientOrders = () => {
-    const { token, isAuthenticated } = useContext(AuthContext);
-    const [orders, setOrders] = useState([]);
-    const [selectedOrder, setSelectedOrder] = useState(null); // Pour la vue détaillée
-    const [showSuccessModal, setShowSuccessModal] = useState(false);
-    
-    const location = useLocation();
-    const navigate = useNavigate();
-    const bic = import.meta.env.VITE_BANK_BIC || 'BIC non configuré';
-    const iban = import.meta.env.VITE_BANK_IBAN || 'IBAN non configuré';
+  const { token, isAuthenticated } = useContext(AuthContext);
+  const [orders, setOrders] = useState([]);
+  const [selectedOrder, setSelectedOrder] = useState(null); // Pour la vue détaillée
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-    // 1. Détection du retour de commande pour afficher la modale
-    useEffect(() => {
-        if (location.state && location.state.orderSuccess) {
-            setShowSuccessModal(true);
-            // On nettoie l'état pour que la modale ne réapparaisse au refresh
-            window.history.replaceState({}, document.title);
-        }
-    }, [location]);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const bic = import.meta.env.VITE_BANK_BIC || "BIC non configuré";
+  const iban = import.meta.env.VITE_BANK_IBAN || "IBAN non configuré";
 
-    useEffect(() => {
-        if (isAuthenticated && token) {
-            fetch(`${API_URL}/api/auth/my-orders`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            })
-            .then(res => res.json())
-            .then(data => setOrders(data))
-            .catch(err => console.error(err));
-        }
-    }, [isAuthenticated, token]);
-
-    // Helper pour le statut
-    const getStatusLabel = (status) => {
-        switch(status) {
-            case 'pending_payment': return { label: 'En attente de paiement', color: 'orange' };
-            case 'paid': return { label: 'Payée (En production)', color: 'green' };
-            case 'shipped': return { label: 'Expédiée', color: 'blue' };
-            default: return { label: status, color: 'gray' };
-        }
-    };
-
-    const handleOpen3D = (item) => {
-        navigate("/configurator", { state: { loadConfig: item } });
-    };
-
-    // --- RENDU DE LA VUE DÉTAILLÉE ---
-    if (selectedOrder) {
-        const statusInfo = getStatusLabel(selectedOrder.status);
-        const totalItemsCount = selectedOrder.items.reduce((total, item) => total + item.quantity, 0);
-        
-        return (
-            <div style={{ backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
-                <Header />
-                <div className="admin-order-details"> {/* Réutilisation de la classe CSS fournie */}
-                    <div className="details-header">
-                        <div>
-                            <h1>Commande #{selectedOrder.orderNumber}</h1>
-                            <span className="date-creation">
-                                Du {new Date(selectedOrder.createdAt).toLocaleDateString()}
-                            </span>
-                        </div>
-                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                            <span 
-                                className={`status-badge ${selectedOrder.status}`}
-                                style={{ backgroundColor: statusInfo.color, color: 'white' }}
-                            >
-                                {statusInfo.label}
-                            </span>
-                            <button className="back-btn" onClick={() => setSelectedOrder(null)}>
-                                ← Retour
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="details-grid">
-                        {/* COLONNE GAUCHE : INFOS PAIEMENT (Au lieu de client) */}
-                        <div className="info-column">
-                            <div className="info-card">
-                                <h3>Informations de Paiement</h3>
-                                <p><strong>Montant Total :</strong> {selectedOrder.totalAmount.toFixed(2)} € HT</p>
-                                <p><strong>Méthode :</strong> Virement Bancaire</p>
-                                <div style={{ marginTop: '15px', padding: '10px', background: '#f9f9f9', borderRadius: '5px', fontSize:'0.9rem' }}>
-                                    <strong>Coordonnées bancaires :</strong><br/>
-                                    IBAN : {iban}<br/>
-                                    BIC : {bic}<br/>
-                                    <br/>
-                                    <em>Merci d'indiquer la référence <strong>#{selectedOrder.orderNumber}</strong> dans le libellé du virement.</em>
-                                </div>
-                            </div>
-
-                            <div className="info-card">
-                                <h3>Adresse de Livraison</h3>
-                                <p>{selectedOrder.shippingAddress.firstName} {selectedOrder.shippingAddress.lastName}</p>
-                                <p>{selectedOrder.shippingAddress.company}</p>
-                                <p>{selectedOrder.shippingAddress.address}</p>
-                                <p>{selectedOrder.shippingAddress.zip} {selectedOrder.shippingAddress.city}</p>
-                            </div>
-                        </div>
-
-                        {/* COLONNE DROITE : ARTICLES */}
-                        <div className="items-column">
-                            <h3>Articles ({totalItemsCount})</h3>
-
-                            <div className="items-list">
-                              {selectedOrder.items.map((item, index) => (
-                                <div key={index} className="item-card-detail">
-                                  <div className="item-header-row">
-                                    <h4>
-                                      Plan #{index + 1} - {item.length}x{item.width}mm
-                                    </h4>
-                                    <div className="item-actions">
-                                      <span className="qty-badge">Qté: {item.quantity}</span>
-                                      <button
-                                        className="btn-3d"
-                                        onClick={() => handleOpen3D(item)}
-                                      >
-                                        👁️ Voir en 3D
-                                      </button>
-                                    </div>
-                                  </div>
-
-                                  <div className="item-specs">
-                                    <ul>
-                                      {/* CUVES : Masqué si "Aucune cuve" */}
-                                      {item.sinks &&
-                                        item.sinks.length > 0 &&
-                                        item.sinks[0]?.type !== "Aucune cuve" &&
-                                        item.sinks.map((s, idx) => (
-                                          <li
-                                            key={idx}
-                                            className="sub-spec"
-                                            style={{
-                                              borderLeft: "3px solid #ddd",
-                                              paddingLeft: "10px",
-                                            }}
-                                          >
-                                            <strong>Cuve {idx + 1} :</strong>{" "}
-                                            {s.type ? s.type.replace("Cuve ", "") : "Standard"}
-                                            <br />
-                                            Position :{" "}
-                                            {s.position === "left"
-                                              ? "Gauche"
-                                              : s.position === "right"
-                                                ? "Droite"
-                                                : "Centrée"}
-                                            {s.position !== "center" && ` (${s.offset}mm)`}
-                                            <br />
-                                            Robinet :{" "}
-                                            {s.hasTapHole ? (
-                                              <>
-                                                Oui (
-                                                {s.tapHolePosition === "left"
-                                                  ? "Gauche"
-                                                  : s.tapHolePosition === "right"
-                                                    ? "Droite"
-                                                    : "Centré"}
-                                                )
-                                                {s.tapHoleOffset && s.tapHoleOffset !== 0
-                                                  ? ` [Décalage : ${s.tapHoleOffset}mm]`
-                                                  : ""}
-                                              </>
-                                            ) : (
-                                              "Non"
-                                            )}
-                                            <br />
-                                            Egouttoir :{" "}
-                                            {s.hasDrainer
-                                              ? `Oui (${s.drainerPosition === "left" ? "Gauche" : "Droite"})`
-                                              : "Non"}
-                                          </li>
-                                        ))}
-
-                                      {/* DOSSERETS */}
-                                      {item.rims && (
-                                        <li className="sub-spec">
-                                          🧱 <strong>Dosserets (H{item.rimHeigh}mm) :</strong>{" "}
-                                          {[
-                                            item.rimLeft && "Gauche",
-                                            item.rimBack && "Fond",
-                                            item.rimRight && "Droite",
-                                          ]
-                                            .filter(Boolean)
-                                            .join(", ") || "Aucun"}
-                                        </li>
-                                      )}
-
-                                      {/* RETOMBÉES */}
-                                      {item.aprons && (
-                                        <li className="sub-spec">
-                                          <strong>Retombées (H{item.apronHeight}mm) :</strong>{" "}
-                                          {[
-                                            item.apronFront && "Avant",
-                                            item.apronLeft && "Gauche",
-                                            item.apronBack && "Fond",
-                                            item.apronRight && "Droite",
-                                          ]
-                                            .filter(Boolean)
-                                            .join(", ") || "Aucune"}
-                                        </li>
-                                      )}
-
-                                      {/* GOUTTE D'EAU */}
-                                      {item.splashback && (
-                                        <li>
-                                          <strong>Anti-Goutte d'eau :</strong> Oui
-                                        </li>
-                                      )}
-                                    </ul>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
+  // 1. Détection du retour de commande pour afficher la modale
+  useEffect(() => {
+    if (location.state && location.state.orderSuccess) {
+      setShowSuccessModal(true);
+      // On nettoie l'état pour que la modale ne réapparaisse au refresh
+      window.history.replaceState({}, document.title);
     }
+  }, [location]);
 
-    // --- RENDU LISTE (PAR DÉFAUT) ---
+  useEffect(() => {
+    if (isAuthenticated && token) {
+      fetch(`${API_URL}/api/auth/my-orders`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => res.json())
+        .then((data) => setOrders(data))
+        .catch((err) => console.error(err));
+    }
+  }, [isAuthenticated, token]);
+
+  // Helper pour le statut
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case "pending_payment":
+        return { label: "En attente de paiement", color: "orange" };
+      case "paid":
+        return { label: "Payée (En production)", color: "green" };
+      case "shipped":
+        return { label: "Expédiée", color: "blue" };
+      default:
+        return { label: status, color: "gray" };
+    }
+  };
+
+  const handleOpen3D = (item) => {
+    navigate("/configurator", { state: { loadConfig: item } });
+  };
+
+  // --- RENDU DE LA VUE DÉTAILLÉE ---
+  if (selectedOrder) {
+    const statusInfo = getStatusLabel(selectedOrder.status);
+    const totalItemsCount = selectedOrder.items.reduce(
+      (total, item) => total + item.quantity,
+      0,
+    );
+
     return (
-        <div style={{ backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
-            <Header />
+      <div style={{ backgroundColor: "#f4f6f8", minHeight: "100vh" }}>
+        <Header />
+        <div className="admin-order-details">
+          {" "}
+          {/* Réutilisation de la classe CSS fournie */}
+          <div className="details-header">
+            <div>
+              <h1>Commande #{selectedOrder.orderNumber}</h1>
+              <span className="date-creation">
+                Du {new Date(selectedOrder.createdAt).toLocaleDateString()}
+              </span>
+            </div>
+            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+              <span
+                className={`status-badge ${selectedOrder.status}`}
+                style={{ backgroundColor: statusInfo.color, color: "white" }}
+              >
+                {statusInfo.label}
+              </span>
+              <button
+                className="back-btn"
+                onClick={() => setSelectedOrder(null)}
+              >
+                ← Retour
+              </button>
+            </div>
+          </div>
+          <div className="details-grid">
+            {/* COLONNE GAUCHE : INFOS PAIEMENT (Au lieu de client) */}
+            <div className="info-column">
+              <div className="info-card">
+                <h3>Informations de Paiement</h3>
+                <p>
+                  <strong>Montant Total :</strong>{" "}
+                  {selectedOrder.totalAmount.toFixed(2)} € HT
+                </p>
+                <p>
+                  <strong>Méthode :</strong> Virement Bancaire
+                </p>
+                <div
+                  style={{
+                    marginTop: "15px",
+                    padding: "10px",
+                    background: "#f9f9f9",
+                    borderRadius: "5px",
+                    fontSize: "0.9rem",
+                  }}
+                >
+                  <strong>Coordonnées bancaires :</strong>
+                  <br />
+                  IBAN : {iban}
+                  <br />
+                  BIC : {bic}
+                  <br />
+                  <br />
+                  <em>
+                    Merci d'indiquer la référence{" "}
+                    <strong>#{selectedOrder.orderNumber}</strong> dans le
+                    libellé du virement.
+                  </em>
+                </div>
+              </div>
 
-            
-            <div className="client-orders-container">
-                <button className="back-btn" onClick={() => navigate('/configurator')}>
-                    ← Retour au configurateur
-                </button>
-                <h1>Mes Commandes</h1>
-                
-                {orders.length === 0 ? (
-                    <p>Aucune commande pour le moment.</p>
-                ) : (
-                    <div className="orders-list">
-                        {orders.map(order => {
-                            const statusInfo = getStatusLabel(order.status);
-                            const totalQuantity = order.items.reduce((total, item) => total + item.quantity, 0);
-
-                            return (
-                                <div 
-                                    key={order._id} 
-                                    className="order-card-client clickable"
-                                    onClick={() => setSelectedOrder(order)} // Clic pour voir le détail
-                                    style={{ cursor: 'pointer' }}
-                                >
-                                    <div className="order-header">
-                                        <span className="order-ref">#{order.orderNumber}</span>
-                                        <span className="order-date">{new Date(order.createdAt).toLocaleDateString()}</span>
-                                        <span className="status-badge" style={{backgroundColor: statusInfo.color, color: 'white'}}>
-                                            {statusInfo.label}
-                                        </span>
-                                    </div>
-                                    <div className="order-body">
-                                        <p>{totalQuantity} article(s)</p>
-                                        <p className="amount">{order.totalAmount.toFixed(2)} €</p>
-                                        <span style={{ fontSize: '0.8rem', color: '#666', marginTop:'5px', textDecoration:'underline' }}>Voir le détail & paiement &rarr;</span>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
+              <div className="info-card">
+                <h3>Adresse de Livraison</h3>
+                <p>
+                  {selectedOrder.shippingAddress.firstName}{" "}
+                  {selectedOrder.shippingAddress.lastName}
+                </p>
+                <p>{selectedOrder.shippingAddress.company}</p>
+                <p>{selectedOrder.shippingAddress.address}</p>
+                <p>
+                  {selectedOrder.shippingAddress.zip}{" "}
+                  {selectedOrder.shippingAddress.city}
+                </p>
+              </div>
             </div>
 
-            {/* --- MODALE DE SUCCÈS --- */}
-            {showSuccessModal && (
-                <div className="modal-overlay" onClick={() => setShowSuccessModal(false)}>
-                    <div className="modal-content" style={{ height: 'auto', maxWidth: '500px', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
-                        <button className="close-btn" onClick={() => setShowSuccessModal(false)}>×</button>
-                        <div style={{ fontSize: '3rem', marginBottom: '10px' }}>✅</div>
-                        <h2 style={{ color: '#27ae60' }}>Commande Validée !</h2>
-                        <p style={{ fontSize: '1.1rem', margin: '20px 0', lineHeight: '1.5' }}>
-                            Votre commande a bien été prise en compte.<br/>
-                            Veuillez consulter votre boîte mail pour obtenir les informations de paiement et la confirmation.
-                        </p>
-                        <button 
-                            className="btn-secondary" 
-                            style={{ background:'#111', color:'#fff', marginTop:'10px' }}
-                            onClick={() => setShowSuccessModal(false)}
+            {/* COLONNE DROITE : ARTICLES */}
+            <div className="items-column">
+              <h3>Articles ({totalItemsCount})</h3>
+
+              <div className="items-list">
+                {selectedOrder.items.map((item, index) => (
+                  <div key={index} className="item-card-detail">
+                    <div className="item-header-row">
+                      <h4>
+                        Plan #{index + 1} - {item.length}x{item.width}mm
+                      </h4>
+                      <div className="item-actions">
+                        <span className="qty-badge">Qté: {item.quantity}</span>
+                        <button
+                          className="btn-3d"
+                          onClick={() => handleOpen3D(item)}
                         >
-                            Fermer
+                          Voir en 3D
                         </button>
+                      </div>
                     </div>
-                </div>
-            )}
+
+                    <div className="item-specs">
+                      <ul>
+                        {/* CUVES : Masqué si "Aucune cuve" */}
+                        {item.sinks &&
+                          item.sinks.length > 0 &&
+                          item.sinks[0]?.type !== "Aucune cuve" &&
+                          item.sinks.map((s, idx) => (
+                            <li
+                              key={idx}
+                              className="sub-spec"
+                              style={{
+                                borderLeft: "3px solid #ddd",
+                                paddingLeft: "10px",
+                              }}
+                            >
+                              <strong>Cuve {idx + 1} :</strong>{" "}
+                              {s.type
+                                ? s.type.replace("Cuve ", "")
+                                : "Standard"}
+                              <br />
+                              Position :{" "}
+                              {s.position === "left"
+                                ? "Gauche"
+                                : s.position === "right"
+                                  ? "Droite"
+                                  : "Centrée"}
+                              {s.position !== "center" && ` (${s.offset}mm)`}
+                              <br />
+                              Robinet :{" "}
+                              {s.hasTapHole ? (
+                                <>
+                                  Oui (
+                                  {s.tapHolePosition === "Gauche"
+                                    ? "Gauche"
+                                    : s.tapHolePosition === "Droite"
+                                      ? "Droite"
+                                      : "Centré"}
+                                  )
+                                  {s.tapHoleOffset && s.tapHoleOffset !== 0
+                                    ? ` [Décalage du centre : ${s.tapHoleOffset}mm]`
+                                    : ""}
+                                </>
+                              ) : (
+                                "Non"
+                              )}
+                              <br />
+                              Egouttoir :{" "}
+                              {s.hasDrainer
+                                ? `Oui (${s.drainerPosition === "left" ? "Gauche" : "Droite"})`
+                                : "Non"}
+                            </li>
+                          ))}
+
+                        {/* DOSSERETS */}
+                        {item.rims && (
+                          <li className="sub-spec">
+                            🧱 <strong>Dosserets (H{item.rimHeigh}mm) :</strong>{" "}
+                            {[
+                              item.rimLeft && "Gauche",
+                              item.rimBack && "Fond",
+                              item.rimRight && "Droite",
+                            ]
+                              .filter(Boolean)
+                              .join(", ") || "Aucun"}
+                          </li>
+                        )}
+
+                        {/* RETOMBÉES */}
+                        {item.aprons && (
+                          <li className="sub-spec">
+                            <strong>Retombées (H{item.apronHeight}mm) :</strong>{" "}
+                            {[
+                              item.apronFront && "Avant",
+                              item.apronLeft && "Gauche",
+                              item.apronBack && "Fond",
+                              item.apronRight && "Droite",
+                            ]
+                              .filter(Boolean)
+                              .join(", ") || "Aucune"}
+                          </li>
+                        )}
+
+                        {/* GOUTTE D'EAU */}
+                        {item.splashback && (
+                          <li>
+                            <strong>Anti-Goutte d'eau :</strong> Oui
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
     );
+  }
+
+  // --- RENDU LISTE (PAR DÉFAUT) ---
+  return (
+    <div style={{ backgroundColor: "#f4f6f8", minHeight: "100vh" }}>
+      <Header />
+
+      <div className="client-orders-container">
+        <button className="back-btn" onClick={() => navigate("/configurator")}>
+          ← Retour au configurateur
+        </button>
+        <h1>Mes Commandes</h1>
+
+        {orders.length === 0 ? (
+          <p>Aucune commande pour le moment.</p>
+        ) : (
+          <div className="orders-list">
+            {orders.map((order) => {
+              const statusInfo = getStatusLabel(order.status);
+              const totalQuantity = order.items.reduce(
+                (total, item) => total + item.quantity,
+                0,
+              );
+
+              return (
+                <div
+                  key={order._id}
+                  className="order-card-client clickable"
+                  onClick={() => setSelectedOrder(order)} // Clic pour voir le détail
+                  style={{ cursor: "pointer" }}
+                >
+                  <div className="order-header">
+                    <span className="order-ref">#{order.orderNumber}</span>
+                    <span className="order-date">
+                      {new Date(order.createdAt).toLocaleDateString()}
+                    </span>
+                    <span
+                      className="status-badge"
+                      style={{
+                        backgroundColor: statusInfo.color,
+                        color: "white",
+                      }}
+                    >
+                      {statusInfo.label}
+                    </span>
+                  </div>
+                  <div className="order-body">
+                    <p>{totalQuantity} article(s)</p>
+                    <p className="amount">{order.totalAmount.toFixed(2)} €</p>
+                    <span
+                      style={{
+                        fontSize: "0.8rem",
+                        color: "#666",
+                        marginTop: "5px",
+                        textDecoration: "underline",
+                      }}
+                    >
+                      Voir le détail & paiement &rarr;
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* --- MODALE DE SUCCÈS --- */}
+      {showSuccessModal && (
+        <div
+          className="modal-overlay"
+          onClick={() => setShowSuccessModal(false)}
+        >
+          <div
+            className="modal-content"
+            style={{ height: "auto", maxWidth: "500px", textAlign: "center" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="close-btn"
+              onClick={() => setShowSuccessModal(false)}
+            >
+              ×
+            </button>
+            <div style={{ fontSize: "3rem", marginBottom: "10px" }}>✅</div>
+            <h2 style={{ color: "#27ae60" }}>Commande Validée !</h2>
+            <p
+              style={{
+                fontSize: "1.1rem",
+                margin: "20px 0",
+                lineHeight: "1.5",
+              }}
+            >
+              Votre commande a bien été prise en compte.
+              <br />
+              Veuillez consulter votre boîte mail pour obtenir les informations
+              de paiement et la confirmation.
+            </p>
+            <button
+              className="btn-secondary"
+              style={{ background: "#111", color: "#fff", marginTop: "10px" }}
+              onClick={() => setShowSuccessModal(false)}
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default ClientOrders;

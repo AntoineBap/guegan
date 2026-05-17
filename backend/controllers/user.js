@@ -268,3 +268,70 @@ exports.getMyOrders = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// --- MISE À JOUR DU PROFIL ---
+exports.updateProfile = async (req, res) => {
+  try {
+    const { firstName, lastName, phone, siret, companyName, companyAddress, tvaNumber } = req.body;
+
+    if (!firstName || !lastName) {
+      return res.status(400).json({ message: "Le prénom et le nom sont obligatoires." });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.auth.userId,
+      { $set: { firstName, lastName, phone, siret, companyName, companyAddress, tvaNumber } },
+      { new: true, runValidators: true }
+    ).select("-password -verificationToken");
+
+    if (!updatedUser) return res.status(404).json({ message: "Utilisateur introuvable." });
+
+    return res.status(200).json({
+      firstName: updatedUser.firstName,
+      lastName: updatedUser.lastName,
+      phone: updatedUser.phone,
+      siret: updatedUser.siret,
+      companyName: updatedUser.companyName,
+      companyAddress: updatedUser.companyAddress,
+      tvaNumber: updatedUser.tvaNumber,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Erreur serveur", error: error.message });
+  }
+};
+
+// --- CHANGEMENT DE MOT DE PASSE ---
+exports.updatePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "Les deux mots de passe sont obligatoires." });
+    }
+
+    const user = await User.findById(req.auth.userId);
+    if (!user) return res.status(404).json({ message: "Utilisateur introuvable." });
+
+    const valid = await bcrypt.compare(currentPassword, user.password);
+    if (!valid) return res.status(401).json({ message: "Mot de passe actuel incorrect." });
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    user.lastPasswordChange = new Date();
+    await user.save();
+
+    return res.status(200).json({ lastPasswordChange: user.lastPasswordChange });
+  } catch (error) {
+    return res.status(500).json({ message: "Erreur serveur", error: error.message });
+  }
+};
+
+// --- SUPPRESSION DU COMPTE ---
+exports.deleteAccount = async (req, res) => {
+  try {
+    const user = await User.findByIdAndDelete(req.auth.userId);
+    if (!user) return res.status(404).json({ message: "Utilisateur introuvable." });
+    return res.status(200).json({ message: "Compte supprimé." });
+  } catch (error) {
+    return res.status(500).json({ message: "Erreur serveur", error: error.message });
+  }
+};
