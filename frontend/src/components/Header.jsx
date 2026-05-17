@@ -4,6 +4,41 @@ import { AuthContext } from "../contexts/AuthContext";
 import { useCart } from "../contexts/CartContext";
 import "../styles/header.scss";
 
+// ── Icônes SVG minimalistes ────────────────────────────────────────────────
+const IconOrders = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+    <polyline points="9 22 9 12 15 12 15 22"/>
+  </svg>
+);
+
+const IconQuotes = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+    <polyline points="14 2 14 8 20 8"/>
+    <line x1="16" y1="13" x2="8" y2="13"/>
+    <line x1="16" y1="17" x2="8" y2="17"/>
+    <polyline points="10 9 9 9 8 9"/>
+  </svg>
+);
+
+const IconAccount = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+    <circle cx="12" cy="7" r="4"/>
+  </svg>
+);
+
+const IconLogout = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+    <polyline points="16 17 21 12 16 7"/>
+    <line x1="21" y1="12" x2="9" y2="12"/>
+  </svg>
+);
+
+// ──────────────────────────────────────────────────────────────────────────
+
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -60,6 +95,11 @@ const Header = () => {
 
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
+  const navigateTo = (path) => {
+    navigate(path);
+    setIsClicked(false);
+  };
+
   return (
     <header className="header">
       <div className="social-links">
@@ -69,14 +109,7 @@ const Header = () => {
           rel="noopener noreferrer"
           className="social-btn instagram"
         >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="black"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
+          <svg viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
             <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
             <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
@@ -117,10 +150,7 @@ const Header = () => {
 
         {isAdmin &&
           (isInternalAdminPage ? (
-            <button
-              className="config-btn"
-              onClick={() => navigate("/configurator")}
-            >
+            <button className="config-btn" onClick={() => navigate("/configurator")}>
               <span className="text">Configurateur</span>
             </button>
           ) : (
@@ -143,30 +173,34 @@ const Header = () => {
                 <span className="text">Mon Profil</span>
               </button>
 
-              <div
-                className={`dropdown-content ${showDropdown ? "visible" : ""}`}
-              >
-                <button
-                  className="menu-item"
-                  onClick={() => {
-                    navigate("/my-orders");
-                    setIsClicked(false);
-                  }}
-                >
-                  📦 Mes Commandes
+              <div className={`dropdown-content ${showDropdown ? "visible" : ""}`}>
+
+                {/* ── Section principale ── */}
+                <button className="menu-item" onClick={() => navigateTo("/my-account")}>
+                  <IconAccount />
+                  <span>Mon Compte</span>
                 </button>
-                <button
-                  className="menu-item"
-                  onClick={() => {
-                    navigate("/my-quotes");
-                    setIsClicked(false);
-                  }}
-                >
-                  📄 Mes Devis
+
+                <div className="dropdown-divider" />
+
+                {/* ── Commandes & Devis ── */}
+                <button className="menu-item" onClick={() => navigateTo("/my-orders")}>
+                  <IconOrders />
+                  <span>Mes Commandes</span>
                 </button>
+                <button className="menu-item" onClick={() => navigateTo("/my-quotes")}>
+                  <IconQuotes />
+                  <span>Mes Devis</span>
+                </button>
+
+                <div className="dropdown-divider" />
+
+                {/* ── Déconnexion ── */}
                 <button className="logout-item" onClick={handleLogout}>
-                  Se déconnecter
+                  <IconLogout />
+                  <span>Se déconnecter</span>
                 </button>
+
               </div>
             </div>
           </div>

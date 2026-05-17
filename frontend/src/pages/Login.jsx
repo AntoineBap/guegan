@@ -262,6 +262,7 @@ const Login = () => {
       });
 
       const data = await response.json();
+      console.log("Login response:", data);
 
       if (response.ok) {
         if (isSignUp) {
@@ -289,7 +290,7 @@ const Login = () => {
           login(
             data.token,
             data.userId,
-            { firstName: data.firstName, companyName: data.companyName },
+            { firstName: data.firstName, lastName: data.lastName, phone: data.phone, companyName: data.companyName, tvaNumber: data.tvaNumber, companyAddress: data.companyAddress, siret: data.siret },
             data.role,
           );
           if (mergeCartAfterLogin) mergeCartAfterLogin(data.cart || []);

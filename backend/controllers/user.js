@@ -154,7 +154,12 @@ exports.login = async (req, res, next) => {
       userId: user._id,
       token,
       firstName: user.firstName,
+      lastName: user.lastName,
       companyName: user.companyName,
+      companyAddress: user.companyAddress,
+      tvaNumber: user.tvaNumber,
+      siret: user.siret,
+      phone: user.phone,
       cart: user.cart,
       role: user.role,
     });

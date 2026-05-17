@@ -12,6 +12,8 @@ import AdminOrders from "./pages/AdminOrders";
 import ClientOrders from "./pages/ClientOrders";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminOrderDetails from "./pages/AdminOrderDetails";
+import PolitiqueConfidentialite from "./pages/PolitiqueConfidentialite";
+import MyAccount from "./pages/MyAccount";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import Contact from "./pages/Contact";
 import CGV from "./pages/CGV";
@@ -48,13 +50,13 @@ function App() {
                 {/* Pages publiques */}
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/cgv" element={<CGV />} />
+                <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
 
                 {/* --- ESPACE CLIENT --- */}
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
                 <Route path="/my-orders" element={<ClientOrders />} />
-                
-                {/* NOUVELLE ROUTE CLIENT : Mes Devis */}
+                <Route path="/my-account" element={<MyAccount />} />
                 <Route path="/my-quotes" element={<ClientQuotes />} />
 
                 {/* --- ESPACE ADMIN --- */}

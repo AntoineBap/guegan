@@ -1,0 +1,469 @@
+@use "sass:color";
+
+// ── Variables (reprises de home.scss) ─────────────────────────────────────
+$gold: #d4af37;
+$gold-light: rgba($gold, 0.08);
+$black: #1a1a1a;
+$grey-light: #f4f4f6;
+$grey-mid: #e0e0e0;
+$white: #ffffff;
+$text: #2c2c2c;
+$text-muted: #888;
+$danger: #c0392b;
+$danger-light: rgba($danger, 0.07);
+$success: #27ae60;
+$radius: 10px;
+
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap");
+
+// ── Layout ─────────────────────────────────────────────────────────────────
+// FIX: .layout must not clip its children. Ensure it can grow and scroll.
+.layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  // Remove any overflow: hidden that may have been set globally
+  overflow: visible;
+}
+
+.account-page {
+  // FIX: use min-height + overflow-y auto so the page scrolls when content overflows
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: $grey-light;
+  padding: 48px 24px 80px;
+  font-family: "Manrope", sans-serif;
+}
+
+.account-container {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+// ── En-tête ────────────────────────────────────────────────────────────────
+.account-header {
+  margin-bottom: 32px;
+
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: $black;
+    margin: 0 0 6px;
+    letter-spacing: -0.3px;
+  }
+
+  .account-subtitle {
+    font-size: 0.95rem;
+    color: $text-muted;
+    margin: 0;
+    font-weight: 400;
+  }
+}
+
+// ── Onglets ────────────────────────────────────────────────────────────────
+.account-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 28px;
+  background: $white;
+  border: 1px solid $grey-mid;
+  border-radius: $radius;
+  padding: 6px;
+
+  @media (max-width: 560px) {
+    flex-direction: column;
+  }
+}
+
+.account-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  border-radius: 7px;
+  font-family: "Manrope", sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: $text-muted;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+
+  svg {
+    flex-shrink: 0;
+    transition: stroke 0.18s ease;
+  }
+
+  &:hover {
+    background: $grey-light;
+    color: $text;
+  }
+
+  &.active {
+    background: $black;
+    color: $white;
+  }
+
+  &.danger-tab {
+    &:hover {
+      background: $danger-light;
+      color: $danger;
+    }
+    &.active {
+      background: $danger;
+      color: $white;
+    }
+  }
+}
+
+// ── Panel ──────────────────────────────────────────────────────────────────
+.account-panel {
+  background: $white;
+  border: 1px solid $grey-mid;
+  border-radius: $radius;
+  padding: 36px 40px;
+
+  @media (max-width: 560px) {
+    padding: 24px 20px;
+  }
+
+  h2 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: $black;
+    margin: 0 0 6px;
+  }
+
+  .panel-desc {
+    font-size: 0.875rem;
+    color: $text-muted;
+    margin: 0 0 28px;
+    line-height: 1.6;
+
+    a {
+      color: $gold;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+  }
+}
+
+// ── Formulaire ─────────────────────────────────────────────────────────────
+.account-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: $text;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  // Inline hint badge next to label (e.g. "via SIRET")
+  .label-hint {
+    font-size: 0.7rem;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+    color: $text-muted;
+    background: $grey-light;
+    border: 1px solid $grey-mid;
+    border-radius: 4px;
+    padding: 1px 6px;
+  }
+
+  // Inline field-level error (used for SIRET lookup)
+  .field-error {
+    font-size: 0.78rem;
+    color: $danger;
+    margin-top: 2px;
+  }
+
+  input {
+    padding: 11px 14px;
+    border: 1px solid $grey-mid;
+    border-radius: 8px;
+    font-family: "Manrope", sans-serif;
+    font-size: 0.9rem;
+    color: $text;
+    background: $white;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    outline: none;
+
+    &::placeholder {
+      color: #bbb;
+    }
+
+    &:focus {
+      border-color: $gold;
+      box-shadow: 0 0 0 3px rgba($gold, 0.12);
+    }
+
+    &:disabled {
+      background: $grey-light;
+      color: #bbb;
+      cursor: not-allowed;
+    }
+
+    // Read-only fields (SIRET-derived data)
+    &.readonly-field {
+      background: $grey-light;
+      color: $text-muted;
+      cursor: default;
+      border-style: dashed;
+
+      &:focus {
+        border-color: $grey-mid;
+        box-shadow: none;
+      }
+    }
+  }
+}
+
+// ── Spinner (SIRET loading) ────────────────────────────────────────────────
+.spinner {
+  display: inline-block;
+  vertical-align: middle;
+  animation: spin 0.8s linear infinite;
+  color: $gold;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+// ── Champ avec icône œil ──────────────────────────────────────────────────
+.input-with-toggle {
+  position: relative;
+
+  input {
+    width: 100%;
+    padding-right: 44px;
+    box-sizing: border-box;
+  }
+
+  .toggle-visibility {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: $text-muted;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+
+    &:hover {
+      color: $text;
+    }
+  }
+}
+
+// ── Messages feedback ─────────────────────────────────────────────────────
+.form-error {
+  font-size: 0.85rem;
+  color: $danger;
+  margin: 0;
+  padding: 10px 14px;
+  background: $danger-light;
+  border-radius: 7px;
+  border-left: 3px solid $danger;
+}
+
+.form-success {
+  font-size: 0.85rem;
+  color: $success;
+  margin: 0;
+  padding: 10px 14px;
+  background: rgba($success, 0.07);
+  border-radius: 7px;
+  border-left: 3px solid $success;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+// ── Bandeau info ──────────────────────────────────────────────────────────
+.info-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba($gold, 0.08);
+  border: 1px solid rgba($gold, 0.25);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: color.adjust($gold, $lightness: -20%);
+  margin-bottom: 20px;
+  line-height: 1.5;
+
+  svg {
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+}
+
+// ── Indicateur de force ───────────────────────────────────────────────────
+.password-strength {
+  margin-top: 8px;
+
+  .strength-bar {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 4px;
+
+    .strength-segment {
+      flex: 1;
+      height: 3px;
+      border-radius: 99px;
+      transition: background 0.25s ease;
+    }
+  }
+
+  .strength-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .strength-checks {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+
+    li {
+      font-size: 0.75rem;
+      color: $text-muted;
+
+      &.ok {
+        color: $success;
+      }
+    }
+  }
+}
+
+// ── Boutons ───────────────────────────────────────────────────────────────
+.btn-primary {
+  align-self: flex-start;
+  padding: 12px 28px;
+  background: $black;
+  color: $white;
+  border: none;
+  border-radius: 50px;
+  font-family: "Manrope", sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+
+  &:hover:not(:disabled) {
+    background: color.adjust($black, $lightness: 12%);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+// ── Zone danger ───────────────────────────────────────────────────────────
+.danger-panel {
+  border-color: rgba($danger, 0.2);
+}
+
+.danger-card {
+  background: $danger-light;
+  border: 1px solid rgba($danger, 0.15);
+  border-radius: 8px;
+  padding: 24px;
+
+  .danger-warning {
+    font-size: 0.875rem;
+    color: $text;
+    margin: 0 0 16px;
+    line-height: 1.6;
+  }
+
+  .delete-input {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1px solid rgba($danger, 0.3);
+    border-radius: 8px;
+    font-family: "Manrope", sans-serif;
+    font-size: 0.9rem;
+    background: $white;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.15s;
+
+    &:focus {
+      border-color: $danger;
+      box-shadow: 0 0 0 3px rgba($danger, 0.1);
+    }
+  }
+}
+
+.btn-danger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 12px 24px;
+  background: $danger;
+  color: $white;
+  border: none;
+  border-radius: 50px;
+  font-family: "Manrope", sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+
+  &:hover:not(:disabled) {
+    background: color.adjust($danger, $lightness: -6%);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}

@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/home.scss";
 
+// Clé utilisée dans localStorage pour mémoriser le consentement cookies
+const COOKIE_CONSENT_KEY = "guegan_cookie_consent";
+
 // DÉFINITION DE LA SÉQUENCE
 // type: 'video' ou 'image'
 // src: chemin du fichier
@@ -12,10 +15,46 @@ const MEDIA_SEQUENCE = [
   { type: "image", src: "img2.png", duration: 3000 },
 ];
 
+const IconCookie = () => (
+  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <circle cx="8" cy="9" r="1" fill="currentColor"/>
+    <circle cx="14" cy="8" r="0.7" fill="currentColor"/>
+    <circle cx="15" cy="14" r="1" fill="currentColor"/>
+    <circle cx="9" cy="15" r="0.7" fill="currentColor"/>
+    <circle cx="12" cy="12" r="0.7" fill="currentColor"/>
+  </svg>
+);
+
 const Home = () => {
   const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
   const videoRef = useRef(null);
+
+  // Vérifie si l'utilisateur est authentifié (adapter selon votre système d'auth)
+  const isAuthenticated = !!localStorage.getItem("token");
+
+  // Affiche la modale si l'utilisateur n'est pas authentifié ET n'a pas encore répondu
+  const [showCookieBanner, setShowCookieBanner] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      const consent = localStorage.getItem(COOKIE_CONSENT_KEY);
+      if (!consent) {
+        setShowCookieBanner(true);
+      }
+    }
+  }, [isAuthenticated]);
+
+  const handleAcceptCookies = () => {
+    localStorage.setItem(COOKIE_CONSENT_KEY, "accepted");
+    setShowCookieBanner(false);
+  };
+
+  const handleDeclineCookies = () => {
+    localStorage.setItem(COOKIE_CONSENT_KEY, "declined");
+    setShowCookieBanner(false);
+  };
 
   // Fonction pour passer à l'étape suivante
   const nextStep = () => {
@@ -114,6 +153,32 @@ const Home = () => {
           </div>
         </div>
       </header>
+      {/* MODALE CONSENTEMENT COOKIES */}
+      {showCookieBanner && (
+        <div className="cookie-overlay">
+          <div className="cookie-modal">
+            <div className="cookie-icon"><IconCookie /></div>
+            <h3>Ce site utilise des cookies</h3>
+            <p>
+              Nous utilisons des cookies pour améliorer votre expérience,
+              mémoriser vos préférences et analyser le trafic de notre site.
+              En continuant, vous acceptez leur utilisation conformément à notre{" "}
+              <a href="/politique-confidentialite" className="cookie-link">
+                politique de confidentialité
+              </a>
+              .
+            </p>
+            <div className="cookie-actions">
+              <button className="cookie-decline" onClick={handleDeclineCookies}>
+                Refuser
+              </button>
+              <button className="cookie-accept" onClick={handleAcceptCookies}>
+                Accepter
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
