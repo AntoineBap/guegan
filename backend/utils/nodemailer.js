@@ -307,7 +307,7 @@ exports.sendDailyQuotesSummary = async (count) => {
 
   await apiInstance.sendTransacEmail({
     sender: SENDER,
-    to: [{ email: "antoinebaptista@icloud.com" }],
+    to: [{ email: "contact@etsguegan.com" }],
     subject: `${count} nouveau${count > 1 ? "x" : ""} devis — Guegan Shop`,
     htmlContent: emailWrapper(content),
   });
