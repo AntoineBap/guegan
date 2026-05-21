@@ -4,6 +4,50 @@ import { AuthContext } from "../contexts/AuthContext";
 import { useCart } from "../contexts/CartContext";
 import "../styles/header.scss";
 
+// ── Icônes boutons header ─────────────────────────────────────────────────
+const IconContact = () => (
+  <svg className="btn-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+    <polyline points="22,6 12,13 2,6"/>
+  </svg>
+);
+
+const IconAdmin = () => (
+  <svg className="btn-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+  </svg>
+);
+
+const IconConfigurator = () => (
+  <svg className="btn-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+  </svg>
+);
+
+const IconProfile = () => (
+  <svg className="btn-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+    <circle cx="12" cy="7" r="4"/>
+  </svg>
+);
+
+const IconLogin = () => (
+  <svg className="btn-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+    <polyline points="10 17 15 12 10 7"/>
+    <line x1="15" y1="12" x2="3" y2="12"/>
+  </svg>
+);
+
+const IconCart = () => (
+  <svg className="btn-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+    <line x1="3" y1="6" x2="21" y2="6"/>
+    <path d="M16 10a4 4 0 0 1-8 0"/>
+  </svg>
+);
+
 // ── Icônes SVG minimalistes ────────────────────────────────────────────────
 const IconOrders = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -147,16 +191,19 @@ const Header = () => {
 
       <div className="header-actions">
         <button className="contact-btn" onClick={() => navigate("/contact")}>
+          <IconContact />
           <span className="text">Contact</span>
         </button>
 
         {isAdmin &&
           (isInternalAdminPage ? (
             <button className="config-btn" onClick={() => navigate("/configurator")}>
+              <IconConfigurator />
               <span className="text">Configurateur</span>
             </button>
           ) : (
             <button className="admin-btn" onClick={() => navigate("/admin")}>
+              <IconAdmin />
               <span className="text">Admin</span>
             </button>
           ))}
@@ -172,6 +219,7 @@ const Header = () => {
                 className={`profile-btn ${showDropdown ? "active" : ""}`}
                 onClick={handleProfileClick}
               >
+                <IconProfile />
                 <span className="text">Mon Profil</span>
               </button>
 
@@ -208,11 +256,13 @@ const Header = () => {
           </div>
         ) : (
           <button className="login-btn" onClick={() => navigate("/login")}>
+            <IconLogin />
             <span className="text">Connexion</span>
           </button>
         )}
 
         <button className="cart-btn" onClick={toggleCart}>
+          <IconCart />
           <span className="text">Panier</span>
           {cartCount > 0 && <span className="badge">{cartCount}</span>}
         </button>
