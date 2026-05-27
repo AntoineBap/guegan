@@ -8,6 +8,7 @@ import Header from "../components/Header";
 import Cart from "../components/Cart";
 import Carousel from "../components/Carousel";
 import { useCart } from "../contexts/CartContext";
+import { Helmet } from 'react-helmet-async';
 
 const INITIAL_CONFIG = {
   color: "white",
@@ -72,6 +73,33 @@ const Configurator = () => {
 
   return (
     <div className="layout">
+      <Helmet>
+        <title>Configurateur plans vasque Guégan — Personnalisez votre commande</title>
+        <meta name="description" content="Utilisez notre configurateur pour personnaliser et commander vos plans vasque Guégan : choisissez dimensions, finitions et options. Devis immédiat en ligne." />
+        <meta name="keywords" content="configurateur plan vasque, commander plan vasque Guégan, plan vasque sur mesure, robinetterie personnalisée Guégan" />
+        <link rel="canonical" href="https://guegan-shop.fr/configurator" />
+        <meta property="og:title" content="Configurateur plans vasque Guégan" />
+        <meta property="og:description" content="Personnalisez et commandez vos plans vasque Guégan en quelques clics." />
+        <meta property="og:url" content="https://guegan-shop.fr/configurator" />
+
+        {/* Schema.org — Page produit/service */}
+        <script type="application/ld+json">{`
+          {
+            "@context": "https://schema.org",
+            "@type": "WebPage",
+            "name": "Configurateur plans vasque Guégan",
+            "description": "Configurez et commandez vos plans vasque et robinetterie Guégan en ligne",
+            "url": "https://guegan-shop.fr/configurator",
+            "breadcrumb": {
+              "@type": "BreadcrumbList",
+              "itemListElement": [
+                { "@type": "ListItem", "position": 1, "name": "Accueil", "item": "https://guegan-shop.fr/" },
+                { "@type": "ListItem", "position": 2, "name": "Configurateur", "item": "https://guegan-shop.fr/configurator" }
+              ]
+            }
+          }
+        `}</script>
+      </Helmet>
       <Header
         toggleCart={() => setIsCartOpen(true)}
         cartCount={cartItems.length}

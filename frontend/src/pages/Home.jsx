@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/home.scss";
+import { Helmet } from 'react-helmet-async';
 
 // Clé utilisée dans localStorage pour mémoriser le consentement cookies
 const COOKIE_CONSENT_KEY = "guegan_cookie_consent";
@@ -89,6 +90,35 @@ const Home = () => {
 
   return (
     <div className="home-page">
+      <Helmet>
+        <title>Guégan Shop — Plans vasque et robinetterie sanitaire</title>
+        <meta name="description" content="Configurez et commandez vos plans vasque, meubles de salle de bain et robinetterie de la marque Guégan. Livraison rapide, qualité professionnelle." />
+        <meta name="keywords" content="plans vasque Guégan, robinetterie Guégan, meuble salle de bain Guégan, sanitaire Guégan, achat plan vasque" />
+        <link rel="canonical" href="https://guegan-shop.fr/" />
+
+        {/* Open Graph (réseaux sociaux) */}
+        <meta property="og:title" content="Guégan Shop — Plans vasque et robinetterie sanitaire" />
+        <meta property="og:description" content="Configurez et commandez vos plans vasque et robinetterie Guégan en ligne." />
+        <meta property="og:url" content="https://guegan-shop.fr/" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://guegan-shop.fr/og-image.jpg" />
+
+        {/* Schema.org — Organisation */}
+        <script type="application/ld+json">{`
+          {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": "Guégan Shop",
+            "url": "https://guegan-shop.fr",
+            "description": "Vente en ligne de plans vasque, robinetterie et sanitaire de la marque Guégan",
+            "contactPoint": {
+              "@type": "ContactPoint",
+              "contactType": "customer service",
+              "url": "https://guegan-shop.fr/contact"
+            }
+          }
+        `}</script>
+      </Helmet>
       {/* CONTAINER DES MÉDIAS (BACKGROUND) */}
       <div className="background-container">
         <div className="overlay"></div> {/* Filtre sombre constant */}

@@ -1,10 +1,17 @@
 import React from "react";
 import Header from "../components/Header";
 import "../styles/cgv.scss";
+import { Helmet } from 'react-helmet-async';
 
 const CGV = () => {
   return (
     <div className="layout">
+      <Helmet>
+        <title>Conditions Générales de Vente — Guégan Shop</title>
+        <meta name="description" content="Consultez les conditions générales de vente de Guégan Shop : modalités de commande, livraison, retours et garanties." />
+        <link rel="canonical" href="https://guegan-shop.fr/cgv" />
+        <meta name="robots" content="noindex, follow" />
+      </Helmet>
       <Header />
       <div className="cgv-page">
         <div className="cgv-container">

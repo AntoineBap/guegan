@@ -1,5 +1,6 @@
 import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HelmetProvider } from 'react-helmet-async';
 
 // Imports des pages existantes
 import Home from "./pages/Home";
@@ -33,102 +34,104 @@ import "./styles/style.scss";
 
 function App() {
   return (
-    <AuthProvider>
-      <SettingsProvider>
-        <CartProvider>
-          <BrowserRouter>
-            <div className="App">
-              <Routes>
-                {/* Route principale (Configurateur) */}
-                <Route path="/" element={<Home />} />
-                <Route path="/configurator" element={<Configurator />} />
+    <HelmetProvider>
+      <AuthProvider>
+        <SettingsProvider>
+          <CartProvider>
+            <BrowserRouter>
+              <div className="App">
+                <Routes>
+                  {/* Route principale (Configurateur) */}
+                  <Route path="/" element={<Home />} />
+                  <Route path="/configurator" element={<Configurator />} />
 
-                {/* Route de connexion / inscription */}
-                <Route path="/login" element={<Login />} />
-                <Route path="/verify/:token" element={<VerifyEmail />} />
+                  {/* Route de connexion / inscription */}
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/verify/:token" element={<VerifyEmail />} />
 
-                {/* Pages publiques */}
-                <Route path="/contact" element={<Contact />} />
-                <Route path="/cgv" element={<CGV />} />
-                <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
+                  {/* Pages publiques */}
+                  <Route path="/contact" element={<Contact />} />
+                  <Route path="/cgv" element={<CGV />} />
+                  <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
 
-                {/* --- ESPACE CLIENT --- */}
-                <Route path="/checkout" element={<Checkout />} />
-                <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
-                <Route path="/my-orders" element={<ClientOrders />} />
-                <Route path="/my-account" element={<MyAccount />} />
-                <Route path="/my-quotes" element={<ClientQuotes />} />
+                  {/* --- ESPACE CLIENT --- */}
+                  <Route path="/checkout" element={<Checkout />} />
+                  <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
+                  <Route path="/my-orders" element={<ClientOrders />} />
+                  <Route path="/my-account" element={<MyAccount />} />
+                  <Route path="/my-quotes" element={<ClientQuotes />} />
 
-                {/* --- ESPACE ADMIN --- */}
-                <Route
-                  path="/admin"
-                  element={
-                    <ProtectedRoute adminOnly={true}>
-                      <AdminDashboard />
-                    </ProtectedRoute>
-                  }
-                />
+                  {/* --- ESPACE ADMIN --- */}
+                  <Route
+                    path="/admin"
+                    element={
+                      <ProtectedRoute adminOnly={true}>
+                        <AdminDashboard />
+                      </ProtectedRoute>
+                    }
+                  />
 
-                <Route
-                  path="/admin/orders/:status"
-                  element={
-                    <ProtectedRoute adminOnly={true}>
-                      <AdminOrders />
-                    </ProtectedRoute>
-                  }
-                />
+                  <Route
+                    path="/admin/orders/:status"
+                    element={
+                      <ProtectedRoute adminOnly={true}>
+                        <AdminOrders />
+                      </ProtectedRoute>
+                    }
+                  />
 
-                <Route
-                  path="/admin/order/:id"
-                  element={
-                    <ProtectedRoute adminOnly={true}>
-                      <AdminOrderDetails />
-                    </ProtectedRoute>
-                  }
-                />
+                  <Route
+                    path="/admin/order/:id"
+                    element={
+                      <ProtectedRoute adminOnly={true}>
+                        <AdminOrderDetails />
+                      </ProtectedRoute>
+                    }
+                  />
 
-                {/* NOUVELLES ROUTES ADMIN : Gestion des devis */}
-                <Route
-                  path="/admin/quotes"
-                  element={
-                    <ProtectedRoute adminOnly={true}>
-                      <AdminQuotes />
-                    </ProtectedRoute>
-                  }
-                />
+                  {/* NOUVELLES ROUTES ADMIN : Gestion des devis */}
+                  <Route
+                    path="/admin/quotes"
+                    element={
+                      <ProtectedRoute adminOnly={true}>
+                        <AdminQuotes />
+                      </ProtectedRoute>
+                    }
+                  />
 
-                <Route
-                  path="/admin/quotes/:id"
-                  element={
-                    <ProtectedRoute adminOnly={true}>
-                      <AdminQuoteDetails />
-                    </ProtectedRoute>
-                  }
-                />
+                  <Route
+                    path="/admin/quotes/:id"
+                    element={
+                      <ProtectedRoute adminOnly={true}>
+                        <AdminQuoteDetails />
+                      </ProtectedRoute>
+                    }
+                  />
 
-                <Route
-                  path="/admin/settings"
-                  element={
-                    <ProtectedRoute adminOnly={true}>
-                      <AdminVariables />
-                    </ProtectedRoute>
-                  }
-                />
+                  <Route
+                    path="/admin/settings"
+                    element={
+                      <ProtectedRoute adminOnly={true}>
+                        <AdminVariables />
+                      </ProtectedRoute>
+                    }
+                  />
 
-                <Route
-                  path="/admin/users"
-                  element={
-                    <ProtectedRoute adminOnly={true}>
-                      <AdminUsers />
-                    </ProtectedRoute>
-                  }
-                />
-              </Routes>
-            </div>
-          </BrowserRouter>
-        </CartProvider>
-      </SettingsProvider>
-    </AuthProvider>
+                  <Route
+                    path="/admin/users"
+                    element={
+                      <ProtectedRoute adminOnly={true}>
+                        <AdminUsers />
+                      </ProtectedRoute>
+                    }
+                  />
+                </Routes>
+              </div>
+            </BrowserRouter>
+          </CartProvider>
+        </SettingsProvider>
+      </AuthProvider>
+    </HelmetProvider>
   );
 }
 

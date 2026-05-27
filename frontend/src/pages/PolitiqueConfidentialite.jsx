@@ -1,10 +1,17 @@
 import React from "react";
 import Header from "../components/Header";
 import "../styles/cgv.scss";
+import { Helmet } from 'react-helmet-async';
 
 const PolitiqueConfidentialite = () => {
   return (
     <div className="layout">
+      <Helmet>
+        <title>Politique de confidentialité — Guégan Shop</title>
+        <meta name="description" content="Politique de confidentialité de Guégan Shop : collecte et traitement de vos données personnelles conformément au RGPD." />
+        <link rel="canonical" href="https://guegan-shop.fr/politique-confidentialite" />
+        <meta name="robots" content="noindex, follow" />
+      </Helmet>
       <Header />
       <div className="cgv-page">
         <div className="cgv-container">

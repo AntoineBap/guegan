@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "../styles/contact.scss"; // Correction ici : 'c' minuscule
+import "../styles/contact.scss";
+import { Helmet } from 'react-helmet-async';
 
 
 const IconPin = () => (
@@ -93,6 +94,13 @@ const Contact = () => {
 
   return (
     <div className="contact-page">
+      <Helmet>
+        <title>Contact — Guégan Shop</title>
+        <meta name="description" content="Contactez l'équipe Guégan Shop pour toute question sur vos commandes de plans vasque, robinetterie ou sanitaire. Réponse rapide garantie." />
+        <link rel="canonical" href="https://guegan-shop.fr/contact" />
+        <meta property="og:title" content="Contact — Guégan Shop" />
+        <meta property="og:url" content="https://guegan-shop.fr/contact" />
+      </Helmet>
       <div className="contact-container">
         {/* --- COLONNE GAUCHE : FORMULAIRE --- */}
         <div className="contact-form-section">
