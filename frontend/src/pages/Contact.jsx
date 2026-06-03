@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "../styles/contact.scss";
 import { Helmet } from 'react-helmet-async';
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 const IconPin = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
@@ -65,8 +66,7 @@ const Contact = () => {
     }
 
     try {
-      // Assure-toi que l'URL correspond bien à ton backend
-      const response = await fetch("http://localhost:3000/api/contact", {
+      const response = await fetch(`${API_URL}/api/contact`, {
         method: "POST",
         body: data, // Fetch gère automatiquement le Content-Type pour FormData
       });
