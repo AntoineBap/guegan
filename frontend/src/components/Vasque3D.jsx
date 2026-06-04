@@ -104,7 +104,19 @@ const Vasque3D = ({ config }) => {
       const prev = calculatedItems[i - 1];
       const curr = items[i];
 
-      const dist = prev.width / 2 + curr.offsetVal + curr.width / 2;
+      // Si la cuve précédente a un égouttoir à droite, il faut en tenir compte
+      const prevDrainerExtra =
+        prev.hasDrainer && prev.drainerPosition === "right" ? DRAINER_LEN : 0;
+      // Si la cuve courante a un égouttoir à gauche, il faut en tenir compte
+      const currDrainerExtra =
+        curr.hasDrainer && curr.drainerPosition === "left" ? DRAINER_LEN : 0;
+
+      const dist =
+        prev.width / 2 +
+        prevDrainerExtra +
+        curr.offsetVal +
+        currDrainerExtra +
+        curr.width / 2;
       const x = prev.x + dist;
 
       calculatedItems[i] = {
@@ -121,7 +133,19 @@ const Vasque3D = ({ config }) => {
 
       const gapVal = curr.offsetVal;
 
-      const dist = next.width / 2 + gapVal + curr.width / 2;
+      // Si la cuve suivante a un égouttoir à gauche, il faut en tenir compte
+      const nextDrainerExtra =
+        next.hasDrainer && next.drainerPosition === "left" ? DRAINER_LEN : 0;
+      // Si la cuve courante a un égouttoir à droite, il faut en tenir compte
+      const currDrainerExtra =
+        curr.hasDrainer && curr.drainerPosition === "right" ? DRAINER_LEN : 0;
+
+      const dist =
+        next.width / 2 +
+        nextDrainerExtra +
+        gapVal +
+        currDrainerExtra +
+        curr.width / 2;
       const x = next.x - dist;
 
       calculatedItems[i] = {
@@ -892,6 +916,18 @@ const Vasque3D = ({ config }) => {
     metalness: 0.1,
   };
 
+  // Méla hydro : plaque de 28mm sous la résine, visible sur les côtés sans retombée ni dosseret
+  // Jamais sur l'avant (retombée obligatoire). Couleur jaune-verdâtre typique du mélaminé hydrofuge.
+  const MELA_H = 0.28; // 28mm en unités Three.js
+  const MELA_COLOR = "#c8bb72"; // jaune verdâtre mélaminé hydrofuge
+  const melaMatProps = { color: MELA_COLOR, roughness: 0.85, metalness: 0.05 };
+
+  // Un côté est visible si pas de retombée ET pas de dosseret sur ce côté
+  const melaVisibleLeft  = !config.apronLeft;
+  const melaVisibleRight = !config.apronRight;
+  const melaVisibleBack  = !config.apronBack;
+  // L'avant n'est jamais visible (retombée avant obligatoire)
+
   return (
     <group position={[0, elevationY, 0]}>
       {planComponents.isSplit ? (
@@ -1001,7 +1037,50 @@ const Vasque3D = ({ config }) => {
         </>
       )}
 
-      {config.splashback && (
+      {/* MÉLA HYDRO — tranche 28mm peinte sur les faces latérales du plan */}
+      {/* On place un mesh plat (epsilon d'épaisseur) exactement sur la face, légèrement en avant */}
+      {melaVisibleLeft && (() => {
+        const EPS = 0.002;
+        const frontCrop = wallThickness; // retombée avant obligatoire (côté +Z)
+        const backCrop  = config.apronBack ? wallThickness : 0; // côté -Z
+        const melaLen   = totalW - frontCrop - backCrop;
+        // Centre de la bande : entre -totalW/2+backCrop et +totalW/2-frontCrop
+        const centerZ   = (backCrop - frontCrop) / 2;
+        return (
+          <mesh position={[-totalL / 2 - EPS, MELA_H / 2, centerZ]} rotation={[0, Math.PI / 2, 0]}>
+            <planeGeometry args={[melaLen, MELA_H]} />
+            <meshStandardMaterial {...melaMatProps} side={THREE.DoubleSide} />
+          </mesh>
+        );
+      })()}
+      {melaVisibleRight && (() => {
+        const EPS = 0.002;
+        const frontCrop = wallThickness;
+        const backCrop  = config.apronBack ? wallThickness : 0;
+        const melaLen   = totalW - frontCrop - backCrop;
+        const centerZ   = (backCrop - frontCrop) / 2;
+        return (
+          <mesh position={[totalL / 2 + EPS, MELA_H / 2, centerZ]} rotation={[0, -Math.PI / 2, 0]}>
+            <planeGeometry args={[melaLen, MELA_H]} />
+            <meshStandardMaterial {...melaMatProps} side={THREE.DoubleSide} />
+          </mesh>
+        );
+      })()}
+      {melaVisibleBack && (() => {
+        const EPS = 0.002;
+        // côté gauche = -X, côté droit = +X
+        const leftCrop  = config.apronLeft  ? wallThickness : 0;
+        const rightCrop = config.apronRight ? wallThickness : 0;
+        const melaLen   = totalL - leftCrop - rightCrop;
+        // Centre entre -totalL/2+leftCrop et +totalL/2-rightCrop
+        const centerX   = (leftCrop - rightCrop) / 2;
+        return (
+          <mesh position={[centerX, MELA_H / 2, -totalW / 2 - EPS]}>
+            <planeGeometry args={[melaLen, MELA_H]} />
+            <meshStandardMaterial {...melaMatProps} side={THREE.DoubleSide} />
+          </mesh>
+        );
+      })()}
         <>
           {geomFront && (
             <mesh
@@ -1039,7 +1118,6 @@ const Vasque3D = ({ config }) => {
             </mesh>
           )}
         </>
-      )}
     </group>
   );
 };
