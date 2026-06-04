@@ -127,7 +127,7 @@ const Cart = ({ updateItem, removeItem, closeCart, onLoadConfig }) => {
                   </div>
 
                   <div className="item-info">
-                    <h3>Plan Vasque</h3>
+                    <h3>{item.roomName ? item.roomName : "Plan Vasque"}</h3>
                     <p className="details">
                       Dim: {item.length}x{item.width}mm •{" "}
                       {item.sinks 

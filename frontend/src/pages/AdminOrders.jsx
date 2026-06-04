@@ -224,7 +224,7 @@ const AdminOrders = () => {
                   <ul>
                     {order.items.slice(0, 2).map((item, idx) => (
                       <li key={idx}>
-                        {item.quantity}x Plan {item.length}x{item.width}mm
+                        {item.quantity}x {item.roomName ? item.roomName : `Plan ${item.length}x${item.width}mm`}
                       </li>
                     ))}
                     {order.items.length > 2 && (

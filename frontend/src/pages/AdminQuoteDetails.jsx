@@ -240,7 +240,7 @@ const AdminQuoteDetails = () => {
                 <div key={index} className="item-card-detail">
                   <div className="item-header-row">
                     <h4>
-                      Plan #{index + 1} - {item.length}x{item.width}mm
+                      {item.roomName ? item.roomName : `Plan #${index + 1}`} — {item.length}x{item.width}mm
                     </h4>
                     <div className="item-actions">
                       <span className="qty-badge">Qté: {item.quantity}</span>

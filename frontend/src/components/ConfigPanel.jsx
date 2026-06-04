@@ -659,6 +659,24 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
 
   const addNewSink = (side) => {
     const newId = Date.now();
+
+    // Calcul de l'offset initial en tenant compte de l'égouttoir de la cuve voisine.
+    // Si on ajoute à droite, la voisine est la dernière cuve courante (son égouttoir "right" gêne).
+    // Si on ajoute à gauche, la voisine est la première cuve courante (son égouttoir "left" gêne).
+    const sinks = currentSinks;
+    let initialOffset = MIN_GAP_BETWEEN_SINKS;
+    if (side === "right" && sinks.length > 0) {
+      const neighbour = sinks[sinks.length - 1];
+      if (neighbour.hasDrainer && neighbour.drainerPosition === "right") {
+        initialOffset = MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM;
+      }
+    } else if (side === "left" && sinks.length > 0) {
+      const neighbour = sinks[0];
+      if (neighbour.hasDrainer && neighbour.drainerPosition === "left") {
+        initialOffset = MIN_GAP_BETWEEN_SINKS + DRAINER_WIDTH_MM;
+      }
+    }
+
     const newSink = {
       id: newId,
       type: "Cuve Labo 400x400x300",
@@ -667,7 +685,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
       tapHoleOffset: 0,
       hasDrainer: false,
       drainerPosition: "right",
-      offset: MIN_GAP_BETWEEN_SINKS,
+      offset: initialOffset,
     };
 
     setConfig((prev) => {
@@ -756,6 +774,26 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
       >
         Réinitialiser la configuration
       </button>
+
+      <div className="form-group section-box">
+        <label className="section-title">Nom de la pièce <span style={{ fontWeight: "normal", color: "#999", fontSize: "0.8rem" }}>(optionnel)</span></label>
+        <input
+          type="text"
+          name="roomName"
+          placeholder="Ex : Salle de bain RDC, Cuisine…"
+          value={config.roomName || ""}
+          onChange={handleGlobalChange}
+          maxLength={60}
+          style={{
+            width: "100%",
+            padding: "8px 10px",
+            border: "1px solid #ccc",
+            borderRadius: "5px",
+            fontSize: "0.95rem",
+            boxSizing: "border-box",
+          }}
+        />
+      </div>
 
       <div className="form-group section-box">
         <label className="section-title">Dimensions du Plan</label>
