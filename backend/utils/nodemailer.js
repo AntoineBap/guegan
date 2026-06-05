@@ -191,25 +191,47 @@ exports.sendOrderConfirmationEmail = async (order, user) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 3. EMAIL STATUT
+// 3. EMAIL STATUT — avec délai d'1h et possibilité d'annulation
 // ─────────────────────────────────────────────────────────────────────────────
-exports.sendStatusUpdateEmail = async (order, user, status) => {
-  if (!user || !user.email) return;
 
-  let subject, message, icon, accentColor;
+// Map des timers en attente : orderId (string) → timeoutId
+const pendingStatusEmails = new Map();
+
+// Annule le mail planifié pour une commande (appeler avant rollback)
+exports.cancelStatusEmail = (orderId) => {
+  const key = String(orderId);
+  if (pendingStatusEmails.has(key)) {
+    clearTimeout(pendingStatusEmails.get(key));
+    pendingStatusEmails.delete(key);
+    console.log(`[Mail] Timer annulé pour commande ${key}`);
+    return true;
+  }
+  return false;
+};
+
+const EMAIL_DELAY_MS = 60 * 60 * 1000; // 1 heure
+
+exports.sendStatusUpdateEmail = (order, user, status) => {
+  if (!user || !user.email) return;
+  if (status !== "paid" && status !== "shipped") return;
+
+  const key = String(order._id);
+
+  // Si un timer existe déjà pour cette commande, on l'annule (doublon de clic)
+  if (pendingStatusEmails.has(key)) {
+    clearTimeout(pendingStatusEmails.get(key));
+  }
+
+  let subject, message, accentColor;
 
   if (status === "paid") {
     subject = "Paiement reçu — Fabrication lancée";
     message = "Nous avons bien reçu votre virement et votre commande est maintenant en cours de fabrication dans nos ateliers.";
-    icon = "✓";
     accentColor = "#27ae60";
-  } else if (status === "shipped") {
+  } else {
     subject = "Votre commande est expédiée";
     message = "Votre commande est terminée et a été remise au transporteur. Vous la recevrez dans les prochains jours.";
-    icon = "→";
     accentColor = "#2980b9";
-  } else {
-    return;
   }
 
   const content = `
@@ -233,12 +255,23 @@ exports.sendStatusUpdateEmail = async (order, user, status) => {
     <p style="font-size: 13px; color: #888;">Pour toute question, contactez-nous à <a href="mailto:contact@etsguegan.com" style="color: #d4af37;">contact@etsguegan.com</a> ou au 01 48 40 05 05.</p>
   `;
 
-  await apiInstance.sendTransacEmail({
-    sender: SENDER,
-    to: [{ email: user.email }],
-    subject: `${subject} — Guegan Shop`,
-    htmlContent: emailWrapper(content),
-  });
+  const timerId = setTimeout(async () => {
+    pendingStatusEmails.delete(key);
+    try {
+      await apiInstance.sendTransacEmail({
+        sender: SENDER,
+        to: [{ email: user.email }],
+        subject: `${subject} — Guegan Shop`,
+        htmlContent: emailWrapper(content),
+      });
+      console.log(`[Mail] Email statut "${status}" envoyé pour commande ${key}`);
+    } catch (err) {
+      console.error(`[Mail] Erreur envoi email statut pour commande ${key}:`, err);
+    }
+  }, EMAIL_DELAY_MS);
+
+  pendingStatusEmails.set(key, timerId);
+  console.log(`[Mail] Email statut "${status}" planifié dans 1h pour commande ${key}`);
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

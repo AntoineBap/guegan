@@ -60,18 +60,24 @@ const AdminOrders = () => {
       action: "Confirmer le paiement",
       nextStatus: "paid",
       color: "#f39c12",
+      rollbackStatus: null,
+      rollbackLabel: null,
     },
     paid: {
       label: "Commandes Payées (À Produire)",
       action: "Marquer comme Expédié",
       nextStatus: "shipped",
       color: "#27ae60",
+      rollbackStatus: "pending_payment",
+      rollbackLabel: "← Revenir en attente de paiement",
     },
     shipped: {
       label: "Commandes Expédiées / Terminées",
       action: null,
       nextStatus: null,
       color: "#2980b9",
+      rollbackStatus: "paid",
+      rollbackLabel: "← Revenir en fabrication",
     },
   };
 
@@ -154,6 +160,34 @@ const AdminOrders = () => {
       }
     } catch (error) {
       alert("Erreur technique lors de la suppression");
+    }
+  };
+
+  const handleRollback = async (e, orderId, orderNumber) => {
+    e.stopPropagation();
+    if (
+      !window.confirm(
+        `Repasser la commande #${orderNumber} à l'étape précédente ?\nSi un email de notification était planifié, il sera annulé.`,
+      )
+    )
+      return;
+
+    try {
+      const response = await fetch(`${API_URL}/api/admin/order/${orderId}/rollback`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        fetchOrders();
+      } else {
+        alert("Erreur lors du rollback.");
+      }
+    } catch (error) {
+      alert("Erreur technique lors du rollback.");
     }
   };
 
@@ -263,6 +297,28 @@ const AdminOrders = () => {
                         }
                       </PDFDownloadLink>
                     </div>
+                  )}
+
+                  {/* --- BOUTON ROLLBACK (paid et shipped uniquement) --- */}
+                  {currentConfig.rollbackStatus && (
+                    <button
+                      onClick={(e) => handleRollback(e, order._id, order.orderNumber)}
+                      style={{
+                        backgroundColor: "transparent",
+                        border: "1px solid #95a5a6",
+                        color: "#7f8c8d",
+                        cursor: "pointer",
+                        padding: "6px 10px",
+                        borderRadius: "4px",
+                        fontSize: "0.8rem",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                      }}
+                      title={currentConfig.rollbackLabel}
+                    >
+                      ↩ Revenir en arrière
+                    </button>
                   )}
 
                   <button

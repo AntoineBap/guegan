@@ -136,6 +136,47 @@ const AdminOrderDetails = () => {
     navigate("/configurator", { state: { loadConfig: item } });
   };
 
+  const rollbackConfig = {
+    paid: {
+      prevStatus: "pending_payment",
+      label: "← Revenir en attente de paiement",
+    },
+    shipped: { prevStatus: "paid", label: "← Revenir en fabrication" },
+  };
+
+  const handleRollback = async () => {
+    const rb = rollbackConfig[order.status];
+    if (!rb) return;
+    if (
+      !window.confirm(
+        `Repasser la commande #${order.orderNumber} à l'étape précédente ?\nSi un email de notification était planifié, il sera annulé.`,
+      )
+    )
+      return;
+
+    try {
+      const response = await fetch(
+        `${API_URL}/api/admin/order/${id}/rollback`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      if (response.ok) {
+        const updated = await response.json();
+        setOrder(updated.order || { ...order, status: rb.prevStatus });
+      } else {
+        alert("Erreur lors du rollback.");
+      }
+    } catch (error) {
+      alert("Erreur technique lors du rollback.");
+    }
+  };
+
   if (loading) return <div className="loading">Chargement...</div>;
   if (!order) return <div className="error">Commande introuvable.</div>;
 
@@ -153,7 +194,29 @@ const AdminOrderDetails = () => {
               Du {new Date(order.createdAt).toLocaleDateString()}
             </span>
           </div>
-          <span className={`status-badge ${order.status}`}>{order.status}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            {rollbackConfig[order.status] && (
+              <button
+                onClick={handleRollback}
+                style={{
+                  backgroundColor: "transparent",
+                  border: "1px solid #95a5a6",
+                  color: "#7f8c8d",
+                  cursor: "pointer",
+                  padding: "7px 14px",
+                  borderRadius: "5px",
+                  fontSize: "0.85rem",
+                  fontWeight: "500",
+                }}
+                title={rollbackConfig[order.status].label}
+              >
+                ↩ {rollbackConfig[order.status].label.replace("← ", "")}
+              </button>
+            )}
+            <span className={`status-badge ${order.status}`}>
+              {order.status}
+            </span>
+          </div>
         </div>
 
         <div className="details-grid">
@@ -222,7 +285,8 @@ const AdminOrderDetails = () => {
                 <div key={index} className="item-card-detail">
                   <div className="item-header-row">
                     <h4>
-                      {item.roomName ? item.roomName : `Plan #${index + 1}`} — {item.length}x{item.width}mm
+                      {item.roomName ? item.roomName : `Plan #${index + 1}`} —{" "}
+                      {item.length}x{item.width}mm
                     </h4>
                     <div className="item-actions">
                       <span className="qty-badge">Qté: {item.quantity}</span>

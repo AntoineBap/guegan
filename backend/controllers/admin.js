@@ -1,6 +1,6 @@
 const Order = require("../models/Order");
 const User = require("../models/User");
-const { sendStatusUpdateEmail } = require("../utils/nodemailer");
+const { sendStatusUpdateEmail, cancelStatusEmail } = require("../utils/nodemailer");
 const Settings = require("../models/Settings");
 
 // --- 1. DASHBOARD STATS ---
@@ -65,7 +65,7 @@ exports.updateOrderStatus = async (req, res) => {
       // 3. Envoi de l'email via Brevo (si user trouvé)
       if (user) {
         try {
-          await sendStatusUpdateEmail(order, user, status);
+          sendStatusUpdateEmail(order, user, status);
         } catch (emailError) {
           console.error(
             "⚠️ Erreur envoi email (mais statut mis à jour):",
@@ -195,5 +195,29 @@ exports.updateSettings = async (req, res) => {
     res.status(200).json(settings);
   } catch (error) {
     res.status(500).json({ error });
+  }
+};
+
+// --- ROLLBACK STATUT COMMANDE (annule aussi le mail planifié) ---
+exports.rollbackOrderStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const prev = { paid: "pending_payment", shipped: "paid" };
+
+    const order = await Order.findById(id);
+    if (!order) return res.status(404).json({ message: "Commande introuvable" });
+    if (!prev[order.status]) return res.status(400).json({ error: "Rollback impossible depuis ce statut" });
+
+    // Annule le mail planifié si encore en attente
+    cancelStatusEmail(id);
+
+    order.status = prev[order.status];
+    await order.save();
+
+    const updatedOrder = await Order.findById(id).populate("userId", "-password");
+    res.status(200).json({ order: updatedOrder });
+  } catch (error) {
+    console.error("❌ Erreur rollbackOrderStatus:", error);
+    res.status(500).json({ error: error.message });
   }
 };

@@ -10,6 +10,7 @@ router.get("/orders/:status", auth, adminAuth, adminCtrl.getOrdersByStatus);
 router.put("/order/:id", auth, adminAuth, adminCtrl.updateOrderStatus);
 router.get("/order-details/:id", auth, adminAuth, adminCtrl.getOrderDetails);
 router.delete("/order/:id", auth, adminAuth, adminCtrl.deleteOrder);
+router.put("/order/:id/rollback", auth, adminAuth, adminCtrl.rollbackOrderStatus);
 router.get("/users-export", auth, adminAuth, adminCtrl.getAllUsersWithCarts);
 router.get("/settings/:key", auth, adminAuth, adminCtrl.getSettings);
 router.post("/settings", auth, adminAuth, adminCtrl.updateSettings);
