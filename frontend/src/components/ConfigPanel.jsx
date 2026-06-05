@@ -5,7 +5,7 @@ import { AuthContext } from "../contexts/AuthContext";
 import { SettingsContext } from "../contexts/SettingsContext";
 import "../styles/configurator.scss"; // ou configurator.scss selon votre structure
 
-const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
+const ConfigPanel = ({ config, setConfig, setShowModal, onReset, editIndex = null, onEditDone }) => {
   const { isAuthenticated } = useContext(AuthContext);
   const { settings } = useContext(SettingsContext);
 
@@ -1751,6 +1751,8 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset }) => {
         settings={settings}
         blockingErrors={Object.keys(alerts).length > 0}
         onScrollToError={scrollToFirstError}
+        editIndex={editIndex}
+        onEditDone={onEditDone}
       />
     </div>
   );

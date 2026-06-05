@@ -32,6 +32,7 @@ const Configurator = () => {
   const [config, setConfig] = useState(INITIAL_CONFIG);
   const [showModal, setShowModal] = useState(false);
   const [configKey, setConfigKey] = useState(0);
+  const [editIndex, setEditIndex] = useState(null);
 
   const {
     cartItems,
@@ -51,6 +52,7 @@ const Configurator = () => {
     if (location.state && location.state.loadConfig) {
       setConfig(location.state.loadConfig);
       setConfigKey((prev) => prev + 1);
+      setEditIndex(location.state.editIndex ?? null);
       window.history.replaceState({}, document.title);
     }
   }, [location]);
@@ -58,15 +60,20 @@ const Configurator = () => {
   const handleReset = () => {
     setConfig(INITIAL_CONFIG);
     setConfigKey((prev) => prev + 1);
+    setEditIndex(null);
   };
 
-  const handleLoadFromCart = (cartItem) => {
+  const handleLoadFromCart = (cartItem, cartIndex, isEdit = false) => {
     if (
-      window.confirm("Voulez-vous charger cette configuration dans l'éditeur ?")
+      window.confirm(isEdit
+        ? "Voulez-vous modifier cette configuration dans l'éditeur ?"
+        : "Voulez-vous charger cette configuration dans l'éditeur ?"
+      )
     ) {
       const { id, unitPrice, totalPrice, quantity, ...configData } = cartItem;
       setConfig(configData);
       setConfigKey((prev) => prev + 1);
+      setEditIndex(isEdit ? cartIndex : null);
       setIsCartOpen(false);
     }
   };
@@ -133,6 +140,8 @@ const Configurator = () => {
             setConfig={setConfig}
             setShowModal={setShowModal}
             onReset={handleReset}
+            editIndex={editIndex}
+            onEditDone={() => setEditIndex(null)}
           />
 
           <div className="carousel-area mobile-only">

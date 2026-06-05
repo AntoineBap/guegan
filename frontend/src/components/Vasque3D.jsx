@@ -168,9 +168,9 @@ const Vasque3D = ({ config }) => {
   const hasAprons = config.aprons && (config.apronFront || config.apronLeft || config.apronRight || config.apronBack);
 
   const elevationY =
-    maxBasinDepth > 0
-      ? maxBasinDepth + wallThickness - 0.4 + 0.05
-      : (!hasAnySink && hasAprons ? apronH : 0);
+    maxBasinDepth > apronH
+      ? maxBasinDepth + wallThickness
+      : apronH ;
 
   const drawTeethedHole = (holePath, sink) => {
     const w = sink.width;

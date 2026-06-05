@@ -83,8 +83,15 @@ export const CartProvider = ({ children }) => {
   };
 
   // --- ACTIONS ---
-  const addToCart = (item) => {
-    setCartItems((prev) => [...prev, item]);
+  const addToCart = (item, insertAtIndex = null) => {
+    setCartItems((prev) => {
+      if (insertAtIndex !== null && insertAtIndex >= 0 && insertAtIndex <= prev.length) {
+        const newCart = [...prev];
+        newCart.splice(insertAtIndex, 0, item);
+        return newCart;
+      }
+      return [...prev, item];
+    });
     setIsCartOpen(true);
   };
 

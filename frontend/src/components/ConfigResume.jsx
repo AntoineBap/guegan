@@ -41,9 +41,9 @@ const SummaryLine = ({
 };
 
 // On récupère settings et sinkSpecs via les props
-const ConfigResume = ({ config, onReset, sinkSpecs, settings }) => {
+const ConfigResume = ({ config, onReset, sinkSpecs, settings, editIndex = null, onEditDone }) => {
   const [quantity, setQuantity] = useState(1);
-  const { addToCart } = useCart();
+  const { addToCart, removeFromCart, cartItems } = useCart();
   const { isAuthenticated } = useContext(AuthContext);
 
   // Valeurs par défaut si settings tarde à charger (sécurité)
@@ -292,21 +292,37 @@ const ConfigResume = ({ config, onReset, sinkSpecs, settings }) => {
   const fmt = (n) => n.toFixed(2).replace(".", ",") + " €";
   const isHeavy = totalWeight > 80;
 
-  // --- 4. AJOUT AU PANIER ---
+  // --- 4. AJOUT / MODIFICATION AU PANIER ---
+  const isEditMode = editIndex !== null;
+
+  // En mode édition, on conserve la quantité de l'item original
+  const effectiveQuantity = isEditMode
+    ? (cartItems[editIndex]?.quantity ?? quantity)
+    : quantity;
+
   const performAddToCart = () => {
     const finalItem = {
       ...config,
       unitPrice: unitTotalPrice,
-      quantity,
-      totalPrice: grandTotal,
+      quantity: isEditMode ? effectiveQuantity : quantity,
+      totalPrice: unitTotalPrice * (isEditMode ? effectiveQuantity : quantity),
       totalWeight,
     };
 
-    addToCart(finalItem);
-
-    if (onReset) {
-      onReset();
-      setQuantity(1);
+    if (isEditMode) {
+      // Supprimer l'ancien, insérer le nouveau au même index
+      removeFromCart(editIndex);
+      // removeFromCart est synchrone sur le state, donc on doit insérer après
+      // On passe par addToCart qui pousse en fin — puis on réordonne via updateCartItem
+      // Solution plus simple : on utilise directement setCartItems via un helper dédié
+      addToCart(finalItem, editIndex); // editIndex passé pour insertion à la bonne position
+      if (onEditDone) onEditDone();
+    } else {
+      addToCart(finalItem);
+      if (onReset) {
+        onReset();
+        setQuantity(1);
+      }
     }
   };
 
@@ -451,18 +467,20 @@ const ConfigResume = ({ config, onReset, sinkSpecs, settings }) => {
             )}
           </div>
 
-          <div className="quantity-row">
-            <label>Quantité</label>
-            <input
-              type="number"
-              min="1"
-              value={quantity}
-              onChange={(e) => {
-                const val = parseInt(e.target.value);
-                setQuantity(val > 0 ? val : 1);
-              }}
-            />
-          </div>
+          {!isEditMode && (
+            <div className="quantity-row">
+              <label>Quantité</label>
+              <input
+                type="number"
+                min="1"
+                value={quantity}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value);
+                  setQuantity(val > 0 ? val : 1);
+                }}
+              />
+            </div>
+          )}
 
           <div className="total-row">
             <span className="total-label">Total HT</span>
@@ -491,8 +509,18 @@ const ConfigResume = ({ config, onReset, sinkSpecs, settings }) => {
           )}
         </div>
 
-        <button className="btn-add-cart" onClick={performAddToCart}>
-          Ajouter au panier ({quantity})
+        <button
+          className="btn-add-cart"
+          onClick={performAddToCart}
+          style={isEditMode ? {
+            backgroundColor: "#b8860b",
+            borderColor: "#b8860b",
+          } : {}}
+        >
+          {isEditMode
+            ? "✓ Valider les modifications"
+            : `Ajouter au panier (${quantity})`
+          }
         </button>
       </div>
     </div>

@@ -153,10 +153,21 @@ const Cart = ({ updateItem, removeItem, closeCart, onLoadConfig }) => {
                             className="btn-text load-btn"
                             onClick={() => {
                               closeCart();
-                              onLoadConfig(item);
+                              onLoadConfig(item, index);
                             }}
                           >
                              Voir en 3D
+                          </button>
+                          <span className="separator">•</span>
+                          <button
+                            className="btn-text"
+                            style={{ color: "#b8860b", fontWeight: "600" }}
+                            onClick={() => {
+                              closeCart();
+                              onLoadConfig(item, index, true);
+                            }}
+                          >
+                            ✏️ Modifier
                           </button>
                         </>
                       )}
