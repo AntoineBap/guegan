@@ -168,7 +168,7 @@ const Vasque3D = ({ config }) => {
   const hasAprons = config.aprons && (config.apronFront || config.apronLeft || config.apronRight || config.apronBack);
 
   const elevationY =
-    maxBasinDepth > apronH
+    maxBasinDepth + 0.01 > apronH
       ? maxBasinDepth + wallThickness
       : apronH ;
 
