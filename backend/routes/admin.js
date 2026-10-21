@@ -5,16 +5,19 @@ const quoteCtrl = require("../controllers/quoteController");
 const auth = require("../middleware/auth");
 const adminAuth = require("../middleware/adminAuth");
 
-router.get("/stats", auth, adminAuth, adminCtrl.getDashboardStats);
-router.get("/orders/:status", auth, adminAuth, adminCtrl.getOrdersByStatus);
-router.put("/order/:id", auth, adminAuth, adminCtrl.updateOrderStatus);
-router.get("/order-details/:id", auth, adminAuth, adminCtrl.getOrderDetails);
-router.delete("/order/:id", auth, adminAuth, adminCtrl.deleteOrder);
-router.put("/order/:id/rollback", auth, adminAuth, adminCtrl.rollbackOrderStatus);
-router.get("/users-export", auth, adminAuth, adminCtrl.getAllUsersWithCarts);
-router.get("/settings/:key", auth, adminAuth, adminCtrl.getSettings);
-router.post("/settings", auth, adminAuth, adminCtrl.updateSettings);
-router.get("/quotes", auth, adminAuth, quoteCtrl.getAllQuotes);
-router.get("/quotes/:id", auth, adminAuth, quoteCtrl.getQuoteById);
+// Toutes les routes admin exigent un token valide ET un rôle admin vérifié en base
+router.use(auth, adminAuth);
+
+router.get("/stats", adminCtrl.getDashboardStats);
+router.get("/orders/:status", adminCtrl.getOrdersByStatus);
+router.put("/order/:id", adminCtrl.updateOrderStatus);
+router.get("/order-details/:id", adminCtrl.getOrderDetails);
+router.delete("/order/:id", adminCtrl.deleteOrder);
+router.put("/order/:id/rollback", adminCtrl.rollbackOrderStatus);
+router.get("/users-export", adminCtrl.getAllUsersWithCarts);
+router.get("/settings/:key", adminCtrl.getSettings);
+router.post("/settings", adminCtrl.updateSettings);
+router.get("/quotes", quoteCtrl.getAllQuotes);
+router.get("/quotes/:id", quoteCtrl.getQuoteById);
 
 module.exports = router;

@@ -9,6 +9,18 @@ const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
 const iban = process.env.BANK_IBAN || "IBAN non configuré";
 const bic = process.env.BANK_BIC || "BIC non configuré";
 
+// Échappe toute donnée saisie par un utilisateur avant insertion dans le HTML d'un mail
+const esc = (v) =>
+  String(v ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+// Pour les sujets : pas de retour à la ligne
+const oneLine = (v, max = 120) => String(v ?? "").replace(/[\r\n]+/g, " ").slice(0, max);
+
 const SENDER = {
   email: "no-reply@etsguegan.com",
   name: "Guegan Shop",
@@ -124,9 +136,9 @@ exports.sendOrderConfirmationEmail = async (order, user) => {
     <tr style="background-color: ${i % 2 === 0 ? "#fafafa" : "#ffffff"};">
       <td style="padding: 12px 14px; border-bottom: 1px solid #eee;">
         <strong style="color: #111;">Plan Vasque Sur-Mesure</strong><br>
-        <span style="font-size: 12px; color: #888;">${item.length} × ${item.width} mm</span>
+        <span style="font-size: 12px; color: #888;">${esc(item.length)} × ${esc(item.width)} mm</span>
       </td>
-      <td style="padding: 12px 14px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
+      <td style="padding: 12px 14px; border-bottom: 1px solid #eee; text-align: center;">${esc(item.quantity)}</td>
       <td style="padding: 12px 14px; border-bottom: 1px solid #eee; text-align: right; color: #111;">${(item.unitPrice * item.quantity).toFixed(2)} €</td>
     </tr>
   `).join("");
@@ -137,7 +149,7 @@ exports.sendOrderConfirmationEmail = async (order, user) => {
     <p style="color: #888; margin: 0 0 20px; font-size: 14px;">Référence : <strong style="color: #d4af37;">#${order.orderNumber}</strong></p>
     ${goldDivider()}
 
-    <p>Bonjour <strong>${user.firstName} ${user.lastName || ""}</strong>,</p>
+    <p>Bonjour <strong>${esc(user.firstName)} ${esc(user.lastName)}</strong>,</p>
     <p>Nous avons bien reçu votre commande. Vous trouverez ci-dessous le récapitulatif ainsi que les instructions de paiement par virement bancaire.</p>
 
     ${goldDivider()}
@@ -153,6 +165,10 @@ exports.sendOrderConfirmationEmail = async (order, user) => {
       </thead>
       <tbody>${itemsRows}</tbody>
       <tfoot>
+        ${order.shippingCost > 0 ? `<tr>
+          <td colspan="2" style="padding: 10px 14px; text-align: right; font-size: 13px; color: #888;">Livraison HT</td>
+          <td style="padding: 10px 14px; text-align: right; color: #111;">${order.shippingCost.toFixed(2)} €</td>
+        </tr>` : ""}
         <tr>
           <td colspan="2" style="padding: 10px 14px; text-align: right; font-size: 13px; color: #888;">Total HT</td>
           <td style="padding: 10px 14px; text-align: right; font-weight: bold; color: #111;">${total} €</td>
@@ -240,7 +256,7 @@ exports.sendStatusUpdateEmail = (order, user, status) => {
     <p style="color: #888; margin: 0 0 20px; font-size: 14px;">Référence : <strong style="color: #d4af37;">#${order.orderNumber}</strong></p>
     ${goldDivider()}
 
-    <p>Bonjour <strong>${user.firstName} ${user.lastName || ""}</strong>,</p>
+    <p>Bonjour <strong>${esc(user.firstName)} ${esc(user.lastName)}</strong>,</p>
 
     <div style="background-color: #fafafa; border-left: 4px solid ${accentColor}; padding: 18px 24px; margin: 24px 0; border-radius: 12px;">
       <p style="margin: 0; font-size: 15px; color: #111;">${message}</p>
@@ -281,7 +297,7 @@ exports.sendContactFormEmail = async (data, file) => {
   const attachments = [];
   if (file) {
     attachments.push({
-      name: file.originalname,
+      name: oneLine(file.originalname, 150),
       content: file.buffer.toString("base64"),
     });
   }
@@ -292,26 +308,26 @@ exports.sendContactFormEmail = async (data, file) => {
     ${goldDivider()}
 
     <table cellpadding="0" cellspacing="0" style="font-size: 14px; width: 100%; margin-bottom: 20px;">
-      <tr><td style="padding: 6px 20px 6px 0; color: #888; white-space: nowrap; width: 120px;">Expéditeur</td><td style="font-weight: bold; color: #111;">${data.prenom} ${data.nom}</td></tr>
-      <tr><td style="padding: 6px 20px 6px 0; color: #888;">Email</td><td><a href="mailto:${data.email}" style="color: #d4af37;">${data.email}</a></td></tr>
-      <tr><td style="padding: 6px 20px 6px 0; color: #888;">Téléphone</td><td style="color: #111;">${data.phone || "Non renseigné"}</td></tr>
-      <tr><td style="padding: 6px 20px 6px 0; color: #888;">Objet</td><td style="font-weight: bold; color: #111;">${data.objet}</td></tr>
+      <tr><td style="padding: 6px 20px 6px 0; color: #888; white-space: nowrap; width: 120px;">Expéditeur</td><td style="font-weight: bold; color: #111;">${esc(data.prenom)} ${esc(data.nom)}</td></tr>
+      <tr><td style="padding: 6px 20px 6px 0; color: #888;">Email</td><td><a href="mailto:${esc(data.email)}" style="color: #d4af37;">${esc(data.email)}</a></td></tr>
+      <tr><td style="padding: 6px 20px 6px 0; color: #888;">Téléphone</td><td style="color: #111;">${esc(data.phone) || "Non renseigné"}</td></tr>
+      <tr><td style="padding: 6px 20px 6px 0; color: #888;">Objet</td><td style="font-weight: bold; color: #111;">${esc(data.objet)}</td></tr>
     </table>
 
     ${goldDivider()}
 
     <p style="font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #555; margin-bottom: 10px;">Message</p>
     <div style="background-color: #fafafa; border-left: 4px solid #d4af37; padding: 18px 24px; border-radius: 12px; font-size: 14px; line-height: 1.8; color: #333;">
-      ${data.message.replace(/\n/g, "<br>")}
+      ${esc(data.message).replace(/\n/g, "<br>")}
     </div>
-    ${file ? `<p style="font-size: 13px; color: #888; margin-top: 16px;">📎 Pièce jointe : <strong>${file.originalname}</strong></p>` : ""}
+    ${file ? `<p style="font-size: 13px; color: #888; margin-top: 16px;">📎 Pièce jointe : <strong>${esc(file.originalname)}</strong></p>` : ""}
   `;
 
   await apiInstance.sendTransacEmail({
     sender: SENDER,
     to: [{ email: "contact@etsguegan.com" }],
     replyTo: { email: data.email },
-    subject: `[Contact] ${data.objet} — ${data.prenom} ${data.nom}`,
+    subject: oneLine(`[Contact] ${data.objet} — ${data.prenom} ${data.nom}`, 200),
     htmlContent: emailWrapper(content),
     attachment: attachments.length > 0 ? attachments : undefined,
   });

@@ -8,4 +8,7 @@ const quoteSchema = mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
+quoteSchema.index({ userId: 1, createdAt: -1 });
+quoteSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model("Quote", quoteSchema);

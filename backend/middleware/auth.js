@@ -1,15 +1,17 @@
 const jwt = require("jsonwebtoken");
-require("dotenv").config();
 
 module.exports = (req, res, next) => {
   try {
-    const token = req.headers.authorization.split(" ")[1];
-    const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
-    const userId = decodedToken.userId;
-    const role = decodedToken.role;
-    req.auth = { userId, role };
+    const header = req.headers.authorization || "";
+    const [scheme, token] = header.split(" ");
+    if (scheme !== "Bearer" || !token) throw new Error("missing token");
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, {
+      algorithms: ["HS256"],
+    });
+    req.auth = { userId: decoded.userId, role: decoded.role };
     next();
-  } catch (error) {
-    res.status(401).json({ error });
+  } catch {
+    res.status(401).json({ message: "Session invalide ou expirée." });
   }
 };

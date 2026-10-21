@@ -1,10 +1,14 @@
-module.exports = (req, res, next) => {
-  // req.auth est rempli par ton middleware auth précédent
-  if (req.auth && req.auth.role === "admin") {
-    next(); // C'est un admin, on continue
-  } else {
-    res
-      .status(403)
-      .json({ error: "Accès refusé. Droits administrateur requis." });
+const User = require("../models/User");
+
+// Le rôle est relu en base : un token émis avant qu'un compte perde ses droits
+// admin (ou soit supprimé) ne donne plus accès à l'administration.
+module.exports = async (req, res, next) => {
+  try {
+    if (req.auth?.role !== "admin") throw new Error("not admin");
+    const user = await User.findById(req.auth.userId).select("role").lean();
+    if (user?.role !== "admin") throw new Error("not admin");
+    next();
+  } catch {
+    res.status(403).json({ message: "Accès refusé. Droits administrateur requis." });
   }
 };
