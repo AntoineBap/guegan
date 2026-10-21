@@ -1,359 +1,162 @@
 import React, { useEffect, useState, useContext } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { AuthContext } from "../contexts/AuthContext";
 import { useCart } from "../contexts/CartContext";
-import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
-import { PDFDownloadLink } from "@react-pdf/renderer";
-import QuoteNote from "../components/QuoteNote";
-import "../styles/clientOrders.scss";
+import ItemSpecs from "../components/ItemSpecs";
+import { downloadPdf } from "../utils/pdf";
+import { formatPrice, formatDate, formatDateLong, quoteExpiry, isQuoteValid, itemTitle } from "../utils/format";
+import "../styles/clientPages.scss";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 const ClientQuotes = () => {
-  const { user, token, isAuthenticated } = useContext(AuthContext);
+  const { token } = useContext(AuthContext);
   const { setCheckoutItems } = useCart();
-  const [quotes, setQuotes] = useState([]);
-  const [selectedQuote, setSelectedQuote] = useState(null);
+  const [quotes, setQuotes] = useState(null);
+  const [openId, setOpenId] = useState(null);
+  const [busyId, setBusyId] = useState(null);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const justCreated = location.state?.newQuote;
 
   useEffect(() => {
-    if (isAuthenticated && token) {
-      fetch(`${API_URL}/api/auth/my-quotes`, {
-        headers: { Authorization: `Bearer ${token}` },
+    fetch(`${API_URL}/api/auth/my-quotes`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => {
+        const list = Array.isArray(data) ? data : [];
+        setQuotes(list);
+        // Le devis qui vient d'être généré est déplié
+        if (justCreated && list[0]) setOpenId(list[0]._id);
       })
-        .then((res) => res.json())
-        .then((data) => {
-          if (Array.isArray(data)) {
-            setQuotes(data);
-          } else {
-            setQuotes([]);
-          }
-        })
-        .catch((err) => {
-          console.error("Erreur de fetch :", err);
-          setQuotes([]);
-        });
-    }
-  }, [isAuthenticated, token]);
+      .catch(() => setQuotes([]));
+  }, [token, justCreated]);
 
-  const isQuoteValid = (createdAt) => {
-    const creationDate = new Date(createdAt);
-    const oneMonthLater = new Date(creationDate);
-    oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
-    return new Date() <= oneMonthLater;
+  const handleDelete = async (quote) => {
+    if (!window.confirm(`Supprimer le devis #${quote.quoteNumber} ?`)) return;
+    setBusyId(quote._id);
+    const res = await fetch(`${API_URL}/api/auth/quotes/${quote._id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => null);
+    setBusyId(null);
+    if (res?.ok) setQuotes((prev) => prev.filter((q) => q._id !== quote._id));
+    else setError("Suppression impossible, réessayez.");
   };
 
-  const handleDelete = async (quoteId) => {
-    if (!window.confirm("Voulez-vous vraiment supprimer ce devis ?")) return;
+  const handleDownload = async (quote) => {
+    setBusyId(quote._id);
+    setError(null);
     try {
-      const res = await fetch(`${API_URL}/api/auth/quotes/${quoteId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        setQuotes((prev) => prev.filter((q) => q._id !== quoteId));
-        setSelectedQuote(null);
-      }
-    } catch (err) {
-      console.error("Erreur suppression:", err);
+      await downloadPdf(async () => {
+        const { default: QuoteNote } = await import("../components/QuoteNote");
+        return <QuoteNote quote={quote} />;
+      }, `Devis_${quote.quoteNumber}.pdf`);
+    } catch {
+      setError("Le PDF n'a pas pu être généré.");
     }
+    setBusyId(null);
   };
 
   const handleOrder = (quote) => {
-    setCheckoutItems(quote.items);
+    setCheckoutItems(quote.items.map((i) => ({ ...i, fromQuoteId: quote._id })));
     navigate("/checkout");
   };
 
-  const handleOpen3D = (item) => {
-    navigate("/configurator", { state: { loadConfig: item } });
-  };
+  return (
+    <>
+      <Helmet>
+        <title>Mes devis — Guegan Shop</title>
+        <meta name="robots" content="noindex" />
+      </Helmet>
+      <Header />
 
-  if (selectedQuote) {
-    const isValid = isQuoteValid(selectedQuote.createdAt);
-    const totalItemsCount = selectedQuote.items.reduce(
-      (total, item) => total + item.quantity,
-      0,
-    );
-
-    return (
-      <div style={{ backgroundColor: "#f4f6f8", minHeight: "100vh" }}>
-        <Header />
-        <div className="admin-order-details">
-          <div className="details-header">
-            <div>
-              <h1>Devis #{selectedQuote.quoteNumber}</h1>
-              <span className="date-creation">
-                Émis le {new Date(selectedQuote.createdAt).toLocaleDateString()}
-              </span>
-            </div>
-            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-              <span
-                className="status-badge"
-                style={{
-                  backgroundColor: isValid ? "#27ae60" : "#e74c3c",
-                  color: "white",
-                }}
-              >
-                {isValid ? "Valide" : "Expiré"}
-              </span>
-              <button
-                className="back-btn"
-                onClick={() => setSelectedQuote(null)}
-              >
-                ← Retour
-              </button>
-            </div>
+      <main className="client-page">
+        <div className="client-head">
+          <div>
+            <p className="eyebrow">Mon espace</p>
+            <h1>Mes devis</h1>
+            <p className="sub">Chaque devis est valable un mois. Les prix y sont garantis pendant cette période.</p>
           </div>
+        </div>
 
-          <div className="details-grid">
-            <div className="info-column">
-              <div className="info-card">
-                <h3>Actions sur le devis</h3>
-                <p>
-                  <strong>Montant Total :</strong>{" "}
-                  {selectedQuote.totalAmount.toFixed(2)} € HT
-                </p>
-                <p>
-                  <strong>Validité :</strong> 1 mois
-                </p>
+        {justCreated && <p className="notice">Votre devis a été généré. Vous pouvez le télécharger en PDF ou le commander directement.</p>}
+        {error && <p className="notice is-error" role="alert">{error}</p>}
 
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "10px",
-                    marginTop: "20px",
-                  }}
-                >
-                  <PDFDownloadLink
-                    document={<QuoteNote quote={selectedQuote} />}
-                    fileName={`Devis_${selectedQuote.quoteNumber}.pdf`}
-                    style={{
-                      textDecoration: "none",
-                      padding: "10px",
-                      backgroundColor: "#111",
-                      color: "#fff",
-                      textAlign: "center",
-                      borderRadius: "5px",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    {({ loading }) =>
-                      loading
-                        ? "Préparation du PDF..."
-                        : "⬇️ Télécharger le Devis (PDF)"
-                    }
-                  </PDFDownloadLink>
-
-                  <button
-                    onClick={() => handleOrder(selectedQuote)}
-                    disabled={!isValid}
-                    style={{
-                      padding: "10px",
-                      backgroundColor: isValid ? "#27ae60" : "#ccc",
-                      color: "#fff",
-                      border: "none",
-                      borderRadius: "5px",
-                      fontWeight: "bold",
-                      cursor: isValid ? "pointer" : "not-allowed",
-                    }}
-                  >
-                    {isValid ? "Passer Commande" : "Devis Expiré"}
+        {quotes === null ? (
+          <div className="page-loader" />
+        ) : quotes.length === 0 ? (
+          <div className="client-empty">
+            <strong>Aucun devis</strong>
+            <p>Depuis votre panier, « Générer un devis PDF » crée un devis valable un mois.</p>
+            <Link to="/configurator" className="btn btn-primary">Configurer un plan</Link>
+          </div>
+        ) : (
+          <ul className="record-list">
+            {quotes.map((quote) => {
+              const valid = isQuoteValid(quote.createdAt);
+              const open = openId === quote._id;
+              const busy = busyId === quote._id;
+              return (
+                <li key={quote._id} className={open ? "is-open" : ""}>
+                  <button className="record" onClick={() => setOpenId(open ? null : quote._id)} aria-expanded={open}>
+                    <div className="record-main">
+                      <div className="record-title">
+                        <strong>Devis #{quote.quoteNumber}</strong>
+                        <span className={`status-badge ${valid ? "is-paid" : "is-neutral"}`}>
+                          {valid ? `Valable jusqu'au ${formatDate(quoteExpiry(quote.createdAt))}` : "Expiré"}
+                        </span>
+                      </div>
+                      <span className="record-meta">
+                        Créé le {formatDateLong(quote.createdAt)} · {quote.items.reduce((n, i) => n + (i.quantity || 1), 0)} pièce(s)
+                      </span>
+                    </div>
+                    <div className="record-side">
+                      <span className="amount">{formatPrice(quote.totalAmount)}</span>
+                      <span className="hint">HT</span>
+                    </div>
                   </button>
 
-                  <button
-                    onClick={() => handleDelete(selectedQuote._id)}
-                    style={{
-                      padding: "10px",
-                      backgroundColor: "transparent",
-                      border: "1px solid #e74c3c",
-                      color: "#e74c3c",
-                      borderRadius: "5px",
-                      fontWeight: "bold",
-                      cursor: "pointer",
-                    }}
-                  >
-                    🗑️ Supprimer ce devis
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="items-column">
-              <h3>🛠️ Plans à produire ({totalItemsCount})</h3>
-              <div className="items-list">
-                {selectedQuote.items.map((item, index) => (
-                  <div key={index} className="item-card-detail">
-                    <div className="item-header-row">
-                      <h4>
-                        {item.roomName ? item.roomName : `Plan #${index + 1}`} — {item.length}x{item.width}mm
-                      </h4>
-                      <div className="item-actions">
-                        <span className="qty-badge">Qté: {item.quantity}</span>
-                        <button
-                          className="btn-3d"
-                          onClick={() => handleOpen3D(item)}
-                        >
-                          Voir en 3D
+                  {open && (
+                    <div className="record-detail">
+                      {quote.items.map((item, i) => (
+                        <div key={i} className="detail-item">
+                          <div className="detail-item-head">
+                            <strong>
+                              {item.quantity} × {itemTitle(item, i)}
+                            </strong>
+                            <span>{formatPrice(item.unitPrice * item.quantity)}</span>
+                          </div>
+                          <ItemSpecs item={item} />
+                          <button className="btn-link" onClick={() => navigate("/configurator", { state: { loadConfig: item } })}>
+                            Voir en 3D
+                          </button>
+                        </div>
+                      ))}
+                      <div className="detail-actions">
+                        {valid && (
+                          <button className="btn btn-primary" onClick={() => handleOrder(quote)}>
+                            Commander ce devis
+                          </button>
+                        )}
+                        <button className="btn btn-outline" disabled={busy} onClick={() => handleDownload(quote)}>
+                          {busy ? "Génération…" : "Télécharger le PDF"}
+                        </button>
+                        <button className="btn btn-ghost" disabled={busy} onClick={() => handleDelete(quote)}>
+                          Supprimer
                         </button>
                       </div>
                     </div>
-
-                    <div className="item-specs">
-                      <ul>
-                        {item.sinks &&
-                          item.sinks.length > 0 &&
-                          item.sinks[0]?.type !== "Aucune cuve" &&
-                          item.sinks.map((s, idx) => (
-                            <li
-                              key={idx}
-                              className="sub-spec"
-                              style={{
-                                borderLeft: "3px solid #ddd",
-                                paddingLeft: "10px",
-                              }}
-                            >
-                              <strong>Cuve {idx + 1} :</strong>{" "}
-                              {s.type
-                                ? s.type.replace("Cuve ", "")
-                                : "Standard"}
-                              <br />
-                              Position :{" "}
-                              {s.position === "left"
-                                ? "Gauche"
-                                : s.position === "right"
-                                  ? "Droite"
-                                  : "Centrée"}
-                              {s.position !== "center" && ` (${s.offset}mm)`}
-                              <br />
-                              Robinet :{" "}
-                              {s.hasTapHole ? (
-                                <>
-                                  Oui (
-                                  {s.tapHolePosition === "Gauche"
-                                    ? "Gauche"
-                                    : s.tapHolePosition === "Droite"
-                                      ? "Droite"
-                                      : "Centré"}
-                                  )
-                                  {s.tapHoleOffset && s.tapHoleOffset !== 0
-                                    ? ` [Décalage du centre : ${s.tapHoleOffset}mm]`
-                                    : ""}
-                                </>
-                              ) : (
-                                "Non"
-                              )}
-                              <br />
-                              Egouttoir :{" "}
-                              {s.hasDrainer
-                                ? `Oui (${s.drainerPosition === "left" ? "Gauche" : "Droite"})`
-                                : "Non"}
-                            </li>
-                          ))}
-
-                        {item.rims && (
-                          <li className="sub-spec">
-                            🧱 <strong>Dosserets (H{item.rimHeigh}mm) :</strong>{" "}
-                            {[
-                              item.rimLeft && "Gauche",
-                              item.rimBack && "Fond",
-                              item.rimRight && "Droite",
-                            ]
-                              .filter(Boolean)
-                              .join(", ") || "Aucun"}
-                          </li>
-                        )}
-
-                        {item.aprons && (
-                          <li className="sub-spec">
-                            <strong>Retombées (H{item.apronHeight}mm) :</strong>{" "}
-                            {[
-                              item.apronFront && "Avant",
-                              item.apronLeft && "Gauche",
-                              item.apronBack && "Fond",
-                              item.apronRight && "Droite",
-                            ]
-                              .filter(Boolean)
-                              .join(", ") || "Aucune"}
-                          </li>
-                        )}
-
-                        {item.splashback && (
-                          <li>
-                            <strong>Anti-Goutte d'eau :</strong> Oui
-                          </li>
-                        )}
-                      </ul>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ backgroundColor: "#f4f6f8", minHeight: "100vh" }}>
-      <Header />
-      <div className="client-orders-container">
-        <button className="back-btn" onClick={() => navigate("/configurator")}>
-          ← Retour au configurateur
-        </button>
-        <h1>Mes Devis</h1>
-
-        {quotes.length === 0 ? (
-          <p className="empty-state">Aucun devis pour le moment.</p>
-        ) : (
-          <div className="orders-list">
-            {quotes.map((quote) => {
-              const isValid = isQuoteValid(quote.createdAt);
-              const totalQuantity = quote.items.reduce(
-                (total, item) => total + item.quantity,
-                0,
-              );
-
-              return (
-                <div
-                  key={quote._id}
-                  className="order-card-client clickable"
-                  onClick={() => setSelectedQuote(quote)}
-                  style={{
-                    cursor: "pointer",
-                    borderLeft: isValid
-                      ? "5px solid #27ae60"
-                      : "5px solid #e74c3c",
-                  }}
-                >
-                  <div className="order-header">
-                    <span className="order-ref">#{quote.quoteNumber}</span>
-                    <span className="order-date">
-                      {new Date(quote.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <div className="order-body">
-                    <p>{totalQuantity} article(s)</p>
-                    <p className="amount">{quote.totalAmount.toFixed(2)} €</p>
-                    <span
-                      style={{
-                        fontSize: "0.8rem",
-                        color: "#666",
-                        marginTop: "5px",
-                        textDecoration: "underline",
-                      }}
-                    >
-                      Voir le devis &rarr;
-                    </span>
-                  </div>
-                </div>
+                  )}
+                </li>
               );
             })}
-          </div>
+          </ul>
         )}
-      </div>
-    </div>
+      </main>
+    </>
   );
 };
 

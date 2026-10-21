@@ -1,271 +1,207 @@
 import React, { useContext, useState, useRef, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
 import { useCart } from "../contexts/CartContext";
 import "../styles/header.scss";
 
-// ── Icônes boutons header ─────────────────────────────────────────────────
-const IconContact = () => (
-  <svg className="btn-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-    <polyline points="22,6 12,13 2,6"/>
+const Svg = ({ children, size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    {children}
   </svg>
 );
 
-const IconAdmin = () => (
-  <svg className="btn-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-  </svg>
+const IconUser = () => (
+  <Svg>
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </Svg>
 );
 
-const IconConfigurator = () => (
-  <svg className="btn-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="3"/>
-    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-  </svg>
+const IconBag = () => (
+  <Svg>
+    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+    <line x1="3" y1="6" x2="21" y2="6" />
+    <path d="M16 10a4 4 0 0 1-8 0" />
+  </Svg>
 );
 
-const IconProfile = () => (
-  <svg className="btn-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-    <circle cx="12" cy="7" r="4"/>
-  </svg>
+const IconChevron = () => (
+  <Svg size={14}>
+    <polyline points="6 9 12 15 18 9" />
+  </Svg>
 );
 
-const IconLogin = () => (
-  <svg className="btn-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-    <polyline points="10 17 15 12 10 7"/>
-    <line x1="15" y1="12" x2="3" y2="12"/>
-  </svg>
+const IconMenu = () => (
+  <Svg size={20}>
+    <line x1="4" y1="7" x2="20" y2="7" />
+    <line x1="4" y1="12" x2="20" y2="12" />
+    <line x1="4" y1="17" x2="20" y2="17" />
+  </Svg>
 );
 
-const IconCart = () => (
-  <svg className="btn-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
-    <line x1="3" y1="6" x2="21" y2="6"/>
-    <path d="M16 10a4 4 0 0 1-8 0"/>
-  </svg>
-);
-
-// ── Icônes SVG minimalistes ────────────────────────────────────────────────
-const IconOrders = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 8H3l1.5 12h15L21 8z"/>
-    <path d="M1 8h22"/>
-    <path d="M10 8V4h4v4"/>
-    <path d="M10 13h4"/>
-  </svg>
-);
-
-const IconQuotes = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-    <polyline points="14 2 14 8 20 8"/>
-    <line x1="16" y1="13" x2="8" y2="13"/>
-    <line x1="16" y1="17" x2="8" y2="17"/>
-    <polyline points="10 9 9 9 8 9"/>
-  </svg>
-);
-
-const IconAccount = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-    <circle cx="12" cy="7" r="4"/>
-  </svg>
-);
-
-const IconLogout = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-    <polyline points="16 17 21 12 16 7"/>
-    <line x1="21" y1="12" x2="9" y2="12"/>
-  </svg>
-);
-
-// ──────────────────────────────────────────────────────────────────────────
+const SOCIALS = [
+  {
+    label: "Instagram",
+    href: "https://www.instagram.com/etablissementsguegan/",
+    icon: (
+      <Svg size={16}>
+        <rect x="2" y="2" width="20" height="20" rx="5" />
+        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+      </Svg>
+    ),
+  },
+  {
+    label: "Facebook",
+    href: "https://www.facebook.com/EtablissementsGUEGAN/",
+    icon: (
+      <Svg size={16}>
+        <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+      </Svg>
+    ),
+  },
+  {
+    label: "LinkedIn",
+    href: "https://www.linkedin.com/company/etablissementsguegan/",
+    icon: (
+      <Svg size={16}>
+        <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z" />
+        <rect x="2" y="9" width="4" height="12" />
+        <circle cx="4" cy="4" r="2" />
+      </Svg>
+    ),
+  },
+];
 
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated, logout, isAdmin } = useContext(AuthContext);
+  const { isAuthenticated, logout, isAdmin, user } = useContext(AuthContext);
   const { cartItems, setIsCartOpen, isCartOpen } = useCart();
 
-  const [isHovered, setIsHovered] = useState(false);
-  const [isClicked, setIsClicked] = useState(false);
-  const hoverTimeoutRef = useRef(null);
-  const dropdownRef = useRef(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const menuRef = useRef(null);
 
-  const showDropdown = isHovered || isClicked;
+  const cartCount = cartItems.reduce((acc, item) => acc + (item.quantity || 0), 0);
 
-  const isInternalAdminPage = location.pathname.startsWith("/admin");
-
-  const handleMouseEnter = () => {
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
-      hoverTimeoutRef.current = null;
-    }
-    setIsHovered(true);
-  };
-
-  const handleMouseLeave = () => {
-    hoverTimeoutRef.current = setTimeout(() => {
-      setIsHovered(false);
-    }, 500);
-  };
-
-  const handleProfileClick = (e) => {
-    e.stopPropagation();
-    setIsClicked(!isClicked);
-  };
+  // Ferme les menus au changement de page, au clic extérieur et sur Échap
+  const [lastPath, setLastPath] = useState(location.pathname);
+  if (lastPath !== location.pathname) {
+    setLastPath(location.pathname);
+    setMenuOpen(false);
+    setMobileNavOpen(false);
+  }
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsClicked(false);
+    const onClick = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+    };
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        setMenuOpen(false);
+        setMobileNavOpen(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
   }, []);
 
   const handleLogout = () => {
     logout();
-    setIsClicked(false);
     navigate("/");
   };
 
-  const toggleCart = () => {
-    setIsCartOpen(!isCartOpen);
-  };
-
-  const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
-
-  const navigateTo = (path) => {
-    navigate(path);
-    setIsClicked(false);
-  };
+  const initials = user
+    ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase()
+    : "";
 
   return (
     <header className="header">
-      <div className="social-links">
-        <a
-          href="https://www.instagram.com/etablissementsguegan/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="social-btn instagram"
+      <div className="header-inner">
+        <button
+          className="nav-toggle"
+          aria-label="Menu"
+          aria-expanded={mobileNavOpen}
+          onClick={() => setMobileNavOpen((o) => !o)}
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-          </svg>
-        </a>
-        <a
-          href="https://www.facebook.com/EtablissementsGUEGAN/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="social-btn"
-        >
-          <svg viewBox="0 0 24 24" fill="black">
-            <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
-          </svg>
-        </a>
-        <a
-          href="https://www.linkedin.com/company/etablissementsguegan/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="social-btn"
-        >
-          <svg viewBox="0 0 24 24" fill="black">
-            <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path>
-            <rect x="2" y="9" width="4" height="12"></rect>
-            <circle cx="4" cy="4" r="2"></circle>
-          </svg>
-        </a>
-      </div>
-
-      <div className="logo" onClick={() => navigate("/")}>
-        GUEGAN <span className="subtitle">Shop</span>
-      </div>
-
-      <div className="header-actions">
-        <button className="contact-btn" onClick={() => navigate("/contact")}>
-          <IconContact />
-          <span className="text">Contact</span>
+          <IconMenu />
         </button>
 
-        {isAdmin &&
-          (isInternalAdminPage ? (
-            <button className="config-btn" onClick={() => navigate("/configurator")}>
-              <IconConfigurator />
-              <span className="text">Configurateur</span>
-            </button>
-          ) : (
-            <button className="admin-btn" onClick={() => navigate("/admin")}>
-              <IconAdmin />
-              <span className="text">Admin</span>
-            </button>
-          ))}
+        <Link to="/" className="logo" aria-label="Guegan Shop — accueil">
+          GUEGAN <span className="subtitle">Shop</span>
+        </Link>
 
-        {isAuthenticated ? (
-          <div className="profile-container" ref={dropdownRef}>
-            <div
-              className="dropdown-trigger"
-              onMouseEnter={handleMouseEnter}
-              onMouseLeave={handleMouseLeave}
-            >
+        <nav className={`main-nav ${mobileNavOpen ? "open" : ""}`} aria-label="Navigation principale">
+          <NavLink to="/configurator">Configurateur</NavLink>
+          <NavLink to="/contact">Contact</NavLink>
+          {isAdmin && (
+            <NavLink to="/admin" className="nav-admin">
+              Administration
+            </NavLink>
+          )}
+          <div className="social-links">
+            {SOCIALS.map((s) => (
+              <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" aria-label={s.label} title={s.label}>
+                {s.icon}
+              </a>
+            ))}
+          </div>
+        </nav>
+
+        <div className="header-actions">
+          {isAuthenticated ? (
+            <div className="account-menu" ref={menuRef}>
               <button
-                className={`profile-btn ${showDropdown ? "active" : ""}`}
-                onClick={handleProfileClick}
+                className={`account-btn ${menuOpen ? "active" : ""}`}
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                onClick={() => setMenuOpen((o) => !o)}
               >
-                <IconProfile />
-                <span className="text">Mon Profil</span>
+                <span className="avatar" aria-hidden="true">{initials || <IconUser />}</span>
+                <span className="label">Mon compte</span>
+                <IconChevron />
               </button>
 
-              <div className={`dropdown-content ${showDropdown ? "visible" : ""}`}>
-
-                {/* ── Section principale ── */}
-                <button className="menu-item" onClick={() => navigateTo("/my-account")}>
-                  <IconAccount />
-                  <span>Mon Compte</span>
-                </button>
-
-                <div className="dropdown-divider" />
-
-                {/* ── Commandes & Devis ── */}
-                <button className="menu-item" onClick={() => navigateTo("/my-orders")}>
-                  <IconOrders />
-                  <span>Mes Commandes</span>
-                </button>
-                <button className="menu-item" onClick={() => navigateTo("/my-quotes")}>
-                  <IconQuotes />
-                  <span>Mes Devis</span>
-                </button>
-
-                <div className="dropdown-divider" />
-
-                {/* ── Déconnexion ── */}
-                <button className="logout-item" onClick={handleLogout}>
-                  <IconLogout />
-                  <span>Se déconnecter</span>
-                </button>
-
-              </div>
+              {menuOpen && (
+                <div className="dropdown" role="menu">
+                  {user && (
+                    <div className="dropdown-head">
+                      <strong>{user.firstName} {user.lastName}</strong>
+                      {user.companyName && <span>{user.companyName}</span>}
+                    </div>
+                  )}
+                  <Link role="menuitem" to="/my-account">Mes informations</Link>
+                  <Link role="menuitem" to="/my-orders">Mes commandes</Link>
+                  <Link role="menuitem" to="/my-quotes">Mes devis</Link>
+                  <hr />
+                  <button role="menuitem" className="logout" onClick={handleLogout}>
+                    Se déconnecter
+                  </button>
+                </div>
+              )}
             </div>
-          </div>
-        ) : (
-          <button className="login-btn" onClick={() => navigate("/login")}>
-            <IconLogin />
-            <span className="text">Connexion</span>
-          </button>
-        )}
+          ) : (
+            <Link to="/login" className="login-link">
+              <IconUser />
+              <span className="label">Connexion</span>
+            </Link>
+          )}
 
-        <button className="cart-btn" onClick={toggleCart}>
-          <IconCart />
-          <span className="text">Panier</span>
-          {cartCount > 0 && <span className="badge">{cartCount}</span>}
-        </button>
+          <button
+            className="cart-btn"
+            onClick={() => setIsCartOpen(!isCartOpen)}
+            aria-label={`Panier, ${cartCount} article${cartCount > 1 ? "s" : ""}`}
+          >
+            <IconBag />
+            <span className="label">Panier</span>
+            {cartCount > 0 && <span className="count">{cartCount}</span>}
+          </button>
+        </div>
       </div>
     </header>
   );

@@ -1,0 +1,261 @@
+@use "tokens" as *;
+
+// Pages « Mon espace » : commandes et devis
+.client-page {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 44px 24px 80px;
+
+  @media (max-width: $bp-sm) {
+    padding: 28px 16px 60px;
+  }
+}
+
+.client-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+
+  .eyebrow {
+    @include eyebrow;
+    margin: 0 0 6px;
+    color: $gold-dark;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 1.85rem;
+    font-weight: 750;
+  }
+
+  .sub {
+    margin: 6px 0 0;
+    color: $muted;
+    font-size: 0.92rem;
+  }
+}
+
+.notice {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border-radius: $radius;
+  background: $success-soft;
+  color: $success;
+  font-size: 0.9rem;
+  font-weight: 600;
+
+  &.is-error {
+    background: $danger-soft;
+    color: $danger;
+  }
+}
+
+.client-empty {
+  padding: 64px 24px;
+  border: 1px dashed $line-strong;
+  border-radius: $radius-lg;
+  text-align: center;
+
+  strong {
+    display: block;
+    margin-bottom: 6px;
+    color: $ink;
+    font-size: 1.05rem;
+  }
+
+  p {
+    margin: 0 0 22px;
+    color: $muted;
+  }
+}
+
+.record-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid $line;
+  border-radius: $radius-lg;
+  background: $paper;
+  overflow: hidden;
+
+  > li + li {
+    border-top: 1px solid $line;
+  }
+
+  > li.is-open {
+    background: #fcfbf8;
+  }
+}
+
+.record {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  padding: 18px 22px;
+  border: none;
+  background: none;
+  color: inherit;
+  text-align: left;
+
+  &:hover {
+    background: #fbfaf7;
+  }
+
+  .record-main {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .record-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+
+    strong {
+      color: $ink;
+      font-size: 1rem;
+    }
+  }
+
+  .record-meta {
+    display: block;
+    color: $muted;
+    font-size: 0.86rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .record-side {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    flex-shrink: 0;
+
+    .amount {
+      color: $ink;
+      font-size: 1.1rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .hint {
+      color: $faint;
+      font-size: 0.75rem;
+    }
+
+    .action {
+      margin-top: 6px;
+      color: $gold-dark;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+  }
+
+  @media (max-width: $bp-sm) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 16px;
+
+    .record-side {
+      flex-direction: row;
+      align-items: baseline;
+      gap: 6px;
+
+      .action {
+        margin: 0 0 0 auto;
+      }
+    }
+
+    .record-meta {
+      white-space: normal;
+    }
+  }
+}
+
+// Avancement d'une commande
+.progress {
+  display: flex;
+  gap: 6px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    flex: 1;
+    max-width: 140px;
+    padding-top: 7px;
+    border-top: 3px solid $line;
+    color: $faint;
+    font-size: 0.74rem;
+    font-weight: 650;
+
+    &.done {
+      border-top-color: $gold;
+      color: $ink;
+    }
+  }
+}
+
+.record-detail {
+  padding: 4px 22px 22px;
+
+  .detail-item {
+    padding: 14px 0;
+    border-top: 1px solid $line;
+
+    .item-specs {
+      margin: 10px 0 6px;
+    }
+  }
+
+  .detail-item-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    color: $ink;
+
+    span {
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  .btn-link {
+    padding: 0;
+    border: none;
+    background: none;
+    color: $muted;
+    font-size: 0.84rem;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+
+    &:hover {
+      color: $ink;
+    }
+  }
+
+  .detail-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding-top: 16px;
+    border-top: 1px solid $line;
+  }
+
+  @media (max-width: $bp-sm) {
+    padding: 4px 16px 18px;
+
+    .detail-actions .btn {
+      flex: 1 1 100%;
+    }
+  }
+}

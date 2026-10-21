@@ -738,70 +738,42 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset, editIndex = nul
   };
 
   const handleResetClick = () => {
-    if (window.confirm("Êtes-vous sûr de vouloir annuler la configuration ?")) {
+    if (window.confirm("Repartir d'une configuration vierge ? Les réglages en cours seront perdus.")) {
       onReset();
     }
   };
 
   return (
     <div className="config-panel">
-      <h1>
-        Votre Plan-Vasque <span className="gold-text">Sur Mesure</span>
-      </h1>
-
-      <button
-        onClick={handleResetClick}
-        style={{
-          display: "block",
-          marginBottom: "20px",
-          background: "rgba(231, 76, 60, 0.1)",
-          border: "3px solid #e74c3c",
-          color: "#e74c3c",
-          textDecoration: "none",
-          cursor: "pointer",
-          fontWeight: "bold",
-          fontSize: "0.9rem",
-          padding: "10px 10px",
-          borderRadius: "5px",
-          transition: "background 0.3s ease",
-        }}
-        onMouseEnter={(e) =>
-          (e.currentTarget.style.background = "rgba(231, 76, 60, 0.25)")
-        }
-        onMouseLeave={(e) =>
-          (e.currentTarget.style.background = "rgba(231, 76, 60, 0.1)")
-        }
-      >
-        Réinitialiser la configuration
-      </button>
+      <div className="config-head">
+        <div>
+          <p className="config-eyebrow">Configurateur</p>
+          <h1>Votre plan-vasque sur mesure</h1>
+        </div>
+        <button type="button" className="btn btn-ghost btn-sm reset-btn" onClick={handleResetClick}>
+          Réinitialiser
+        </button>
+      </div>
 
       <div className="form-group section-box">
-        <label className="section-title">Nom de la pièce <span style={{ fontWeight: "normal", color: "#999", fontSize: "0.8rem" }}>(optionnel)</span></label>
+        <label className="section-title" htmlFor="roomName">
+          Nom de la pièce <span className="optional">facultatif</span>
+        </label>
         <input
+          id="roomName"
           type="text"
           name="roomName"
           placeholder="Ex : Salle de bain RDC, Cuisine…"
           value={config.roomName || ""}
           onChange={handleGlobalChange}
           maxLength={60}
-          style={{
-            width: "100%",
-            padding: "8px 10px",
-            border: "1px solid #ccc",
-            borderRadius: "5px",
-            fontSize: "0.95rem",
-            boxSizing: "border-box",
-          }}
         />
       </div>
 
       <div className="form-group section-box">
-        <label className="section-title">Dimensions du Plan</label>
+        <label className="section-title">Dimensions du plan</label>
         <div className="inputs-row">
           <div className="input-wrapper">
-            <div className="limit-label">
-              Min: {minPlanLength} / Max: {maxPlanLength}
-            </div>
             <span>Largeur (mm)</span>
             <input
               type="number"
@@ -818,14 +790,14 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset, editIndex = nul
               max={maxPlanLength}
               step="10"
             />
+            <div className="limit-label">
+              {minPlanLength} à {maxPlanLength} mm
+            </div>
             {alerts["length"] && (
               <div className="alert-message">{alerts["length"]}</div>
             )}
           </div>
           <div className="input-wrapper">
-            <div className="limit-label">
-              Min: {minPlanDepth} / Max: {maxPlanDepth}
-            </div>
             <span>Profondeur (mm)</span>
             <input
               type="number"
@@ -842,6 +814,9 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset, editIndex = nul
               max={maxPlanDepth}
               step="10"
             />
+            <div className="limit-label">
+              {minPlanDepth} à {maxPlanDepth} mm
+            </div>
             {alerts["width"] && (
               <div className="alert-message">{alerts["width"]}</div>
             )}
@@ -850,9 +825,9 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset, editIndex = nul
       </div>
 
       {currentSinks.length > 1 && (
-        <div style={{ textAlign: "center", fontStyle: "italic", color: "#666", marginBottom: "15px", fontSize: "0.9rem" }}>
-          Les cuves sont numérotées de gauche à droite (la cuve #1 est la plus à gauche, etc...)
-        </div>
+        <p className="config-note">
+          Les cuves sont numérotées de gauche à droite : la cuve 1 est la plus à gauche.
+        </p>
       )}
 
       {currentSinks.map((sink, index) => {
@@ -969,44 +944,16 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset, editIndex = nul
           <div
             key={sink.id}
             ref={(el) => (inputsRef.current[`sink-section-${sink.id}`] = el)}
-            className="form-group section-box"
-            style={{
-              borderLeft: isAnchor ? "4px solid #d4af37" : "4px solid #ccc",
-            }}
+            className={`form-group section-box sink-box ${isAnchor && isMulti ? "is-anchor" : ""}`}
           >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
+            <div className="section-head">
               <label className="section-title">
-                {isMulti ? `Cuve #${index + 1}` : "Choix de la cuve"}
-                {isAnchor && isMulti && (
-                  <span
-                    style={{
-                      fontSize: "0.7em",
-                      color: "#d4af37",
-                      marginLeft: "5px",
-                    }}
-                  >
-                    (Ancre)
-                  </span>
-                )}
+                {isMulti ? `Cuve ${index + 1}` : "Choix de la cuve"}
+                {isAnchor && isMulti && <span className="anchor-tag">référence</span>}
               </label>
               {isMulti && !isAnchor && (
-                <button
-                  onClick={() => removeSink(sink.id)}
-                  style={{
-                    fontSize: "0.8rem",
-                    color: "red",
-                    border: "none",
-                    background: "transparent",
-                    cursor: "pointer",
-                  }}
-                >
-                  Supprimer 🗑️
+                <button type="button" className="btn btn-ghost btn-sm remove-sink" onClick={() => removeSink(sink.id)}>
+                  Retirer
                 </button>
               )}
             </div>
@@ -1045,9 +992,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset, editIndex = nul
 
             {!isNoSink && (
               <>
-                <div
-                  style={{ margin: "20px 0", borderTop: "1px solid #e0e0e0" }}
-                ></div>
+                <div className="section-sep" />
                 {isAnchor ? (
                   <>
                     <label className="section-title">
@@ -1281,9 +1226,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset, editIndex = nul
                   </>
                 )}
 
-                <div
-                  style={{ margin: "20px 0", borderTop: "1px solid #e0e0e0" }}
-                ></div>
+                <div className="section-sep" />
                 <div className="checkbox-group">
                   <label style={{ marginBottom: "15px", fontWeight: "bold" }}>
                     <input
@@ -1485,43 +1428,26 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset, editIndex = nul
       })}
 
       {hasAtLeastOneSink && (
-        <div
-          className="form-group"
-          style={{ textAlign: "center", margin: "20px 0" }}
-        >
-          <span
-            style={{
-              display: "block",
-              marginBottom: "10px",
-              fontWeight: "bold",
-            }}
-          >
-            Ajouter une cuve ?
-          </span>
-          <div
-            style={{ display: "flex", gap: "10px", justifyContent: "center" }}
-          >
+        <div className="add-sink">
+          <span>Ajouter une cuve</span>
+          <div>
             <button
-              className="btn-secondary"
+              type="button"
+              className="btn btn-outline"
               onClick={() => addNewSink("left")}
               disabled={!canAddSinkLeft}
-              style={
-                !canAddSinkLeft ? { opacity: 0.5, cursor: "not-allowed" } : {}
-              }
               title={!canAddSinkLeft ? "Pas assez de place à gauche" : ""}
             >
-              + Ajouter à Gauche
+              + À gauche
             </button>
             <button
-              className="btn-secondary"
+              type="button"
+              className="btn btn-outline"
               onClick={() => addNewSink("right")}
               disabled={!canAddSinkRight}
-              style={
-                !canAddSinkRight ? { opacity: 0.5, cursor: "not-allowed" } : {}
-              }
               title={!canAddSinkRight ? "Pas assez de place à droite" : ""}
             >
-              + Ajouter à Droite
+              + À droite
             </button>
           </div>
         </div>
@@ -1566,15 +1492,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset, editIndex = nul
               {alerts["rimHeigh"] && (
                 <div className="alert-message">{alerts["rimHeigh"]}</div>
               )}
-              <span
-                style={{
-                  fontSize: "0.7rem",
-                  color: "#666",
-                  marginLeft: "10px",
-                }}
-              >
-                (Min 100mm - Max 550mm)
-              </span>
+              <div className="limit-label">100 à 550 mm</div>
             </div>
             <div className="drilling-options">
               <button
@@ -1667,11 +1585,7 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset, editIndex = nul
             {alerts["apronHeight"] && (
               <div className="alert-message">{alerts["apronHeight"]}</div>
             )}
-            <span
-              style={{ fontSize: "0.7rem", color: "#666", marginLeft: "10px" }}
-            >
-              (Min 40mm - Max 200mm)
-            </span>
+            <div className="limit-label">40 à 200 mm</div>
           </div>
           <div className="drilling-options">
             <button
@@ -1734,15 +1648,13 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset, editIndex = nul
             checked={config.splashback}
             onChange={handleGlobalChange}
           />{" "}
-          Anti-Goutte d'eau
+          Anti-goutte d'eau
         </label>
       </div>
 
-      <div style={{ textAlign: "center", margin: "20px 0", fontSize: "0.95rem", color: "#333" }}>
-        Pour toute demande particulière, n’hésitez pas à <Link to="/contact" style={{ color: "#b8860b", fontWeight: "bold", textDecoration: "none" }}>nous contacter</Link>.
-      </div>
-
-      <div className="actions"></div>
+      <p className="config-note">
+        Une forme particulière, une autre finition ? <Link to="/contact">Contactez-nous</Link> pour un chiffrage sur demande.
+      </p>
 
       <ConfigResume
         config={config}

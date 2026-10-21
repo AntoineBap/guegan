@@ -1,78 +1,68 @@
-import React, { createContext, useState, useEffect } from "react";
+import React, { createContext, useState, useEffect, useContext } from "react";
+import { AuthContext } from "./AuthContext";
 
 export const SettingsContext = createContext();
 
+const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+// Valeurs de repli. Les prix ne sont pas écrits ici : l'API ne les envoie
+// qu'aux comptes connectés (les visiteurs voient « ** € »).
+const DEFAULT_SETTINGS = {
+  sinkPrices: {
+    "Cuve Labo 400x400x300": undefined,
+    "Cuve Détente 400x400x200": undefined,
+    "Cuve Cuisine 500x400x180": undefined,
+    "Cuve Sanitaire 422x336x139": undefined,
+  },
+  prices: {},
+  linearFormula: {},
+  constraints: {
+    maxLength: 3600,
+    maxDepth: 700,
+  },
+};
+
+const merge = (value = {}) => ({
+  ...DEFAULT_SETTINGS,
+  ...value,
+  sinkPrices: { ...DEFAULT_SETTINGS.sinkPrices, ...(value.sinkPrices || {}) },
+  prices: { ...DEFAULT_SETTINGS.prices, ...(value.prices || {}) },
+  linearFormula: { ...DEFAULT_SETTINGS.linearFormula, ...(value.linearFormula || {}) },
+  constraints: { ...DEFAULT_SETTINGS.constraints, ...(value.constraints || {}) },
+});
+
 export const SettingsProvider = ({ children }) => {
-  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+  const { token } = useContext(AuthContext);
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
 
-  // Valeurs par défaut (Configuration actuelle)
-  const defaultSettings = {
-    sinkPrices: {
-      "Cuve Labo 400x400x300": 520,
-      "Cuve Détente 400x400x200": 490,
-      "Cuve Cuisine 500x400x180": 540,
-      "Cuve Sanitaire 422x336x139": 330,
-    },
-    prices: {
-      tapHole: 15, // Prix robinetterie
-      drainer: 50, // Prix égouttoir
-      waterDrip: 50, // Prix mètre linéaire anti-goutte
-    },
-    // Formule logarithmique: Prix = A * ln(hauteur - B) - C
-    linearFormula: {
-      rims: { a: 53.6, b: 17.6, c: 86.4 }, // Dosserets
-      aprons: { a: 53.6, b: 17.6, c: 86.4 }, // Retombées
-    },
-    constraints: {
-      maxLength: 3600,
-      maxDepth: 700,
-    },
-  };
-
-  const [settings, setSettings] = useState(defaultSettings);
-
+  // Rechargé à la connexion / déconnexion pour obtenir (ou retirer) les tarifs
   useEffect(() => {
-    // MODIFICATION ICI : On tape sur la route publique '/api/config/global'
-    // Au lieu de '/api/admin/settings/global_settings' qui est verrouillée
-    fetch(`${apiUrl}/api/config/global`)
+    let cancelled = false;
+    fetch(`${apiUrl}/api/config/global`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
       .then((res) => {
         if (!res.ok) throw new Error("Erreur réseau");
         return res.json();
       })
       .then((data) => {
-        if (data && data.value) {
-          setSettings((prev) => ({
-            ...prev,
-            ...data.value,
-            sinkPrices: {
-              ...prev.sinkPrices,
-              ...(data.value.sinkPrices || {}),
-            },
-            prices: { ...prev.prices, ...(data.value.prices || {}) },
-            linearFormula: {
-              ...prev.linearFormula,
-              ...(data.value.linearFormula || {}),
-            },
-            constraints: {
-              ...prev.constraints,
-              ...(data.value.constraints || {}),
-            },
-          }));
-        }
+        if (!cancelled) setSettings(merge(data?.value));
       })
       .catch((err) => console.error("Erreur chargement settings:", err));
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
 
-  // Fonction helper pour sauvegarder (utilisée par AdminVariables)
-  const saveSettings = async (newSettings, token) => {
+  // Utilisé par la page admin des tarifs
+  const saveSettings = async (newSettings, authToken) => {
     try {
       const response = await fetch(`${apiUrl}/api/admin/settings`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${authToken}`,
         },
-        // On sauvegarde sous une clé unique 'global_settings'
         body: JSON.stringify({ key: "global_settings", value: newSettings }),
       });
       return response.ok;

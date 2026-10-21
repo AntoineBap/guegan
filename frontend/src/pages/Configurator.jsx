@@ -5,9 +5,7 @@ import ConfigPanel from "../components/ConfigPanel";
 import Visualizer from "../components/Visualizer";
 import Modal3D from "../components/Modal3D";
 import Header from "../components/Header";
-import Cart from "../components/Cart";
 import Carousel from "../components/Carousel";
-import { useCart } from "../contexts/CartContext";
 import { Helmet } from 'react-helmet-async';
 
 const INITIAL_CONFIG = {
@@ -24,7 +22,8 @@ const INITIAL_CONFIG = {
   anchorId: null,
 };
 
-const SLIDES = ["img3.jpg", "img4.jpg", "img5.jpg", "img6.jpg"];
+// Photos optimisées (WebP 1000 / 2000 px) générées depuis img3 à img6
+const SLIDES = [1, 2, 3, 4].map((n) => `/photos/realisation-${n}`);
 
 const CAROUSEL_OPTIONS = { loop: true };
 
@@ -34,25 +33,14 @@ const Configurator = () => {
   const [configKey, setConfigKey] = useState(0);
   const [editIndex, setEditIndex] = useState(null);
 
-  const {
-    cartItems,
-    isCartOpen,
-    setIsCartOpen,
-    updateCartItem,
-    removeFromCart,
-  } = useCart();
-
   const location = useLocation();
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
 
   useEffect(() => {
     if (location.state && location.state.loadConfig) {
       setConfig(location.state.loadConfig);
       setConfigKey((prev) => prev + 1);
       setEditIndex(location.state.editIndex ?? null);
+      window.scrollTo(0, 0);
       window.history.replaceState({}, document.title);
     }
   }, [location]);
@@ -61,21 +49,6 @@ const Configurator = () => {
     setConfig(INITIAL_CONFIG);
     setConfigKey((prev) => prev + 1);
     setEditIndex(null);
-  };
-
-  const handleLoadFromCart = (cartItem, cartIndex, isEdit = false) => {
-    if (
-      window.confirm(isEdit
-        ? "Voulez-vous modifier cette configuration dans l'éditeur ?"
-        : "Voulez-vous charger cette configuration dans l'éditeur ?"
-      )
-    ) {
-      const { id, unitPrice, totalPrice, quantity, ...configData } = cartItem;
-      setConfig(configData);
-      setConfigKey((prev) => prev + 1);
-      setEditIndex(isEdit ? cartIndex : null);
-      setIsCartOpen(false);
-    }
   };
 
   return (
@@ -107,20 +80,7 @@ const Configurator = () => {
           }
         `}</script>
       </Helmet>
-      <Header
-        toggleCart={() => setIsCartOpen(true)}
-        cartCount={cartItems.length}
-      />
-
-      {isCartOpen && (
-        <Cart
-          cartItems={cartItems}
-          updateItem={updateCartItem}
-          removeItem={removeFromCart}
-          closeCart={() => setIsCartOpen(false)}
-          onLoadConfig={handleLoadFromCart}
-        />
-      )}
+      <Header />
 
       <main className="main-content">
         <div className="visualizer-area">

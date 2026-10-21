@@ -1,0 +1,895 @@
+@use "tokens" as *;
+
+// =============================================================
+// Coquille de l'administration : header + barre latérale + contenu
+// =============================================================
+.admin-shell {
+  min-height: 100vh;
+  background: $canvas;
+}
+
+.admin-body {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.admin-sidebar {
+  position: sticky;
+  top: 64px;
+  align-self: start;
+  height: calc(100vh - 64px);
+  padding: 24px 14px;
+  border-right: 1px solid $line;
+  overflow-y: auto;
+
+  nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .side-section {
+    @include eyebrow;
+    padding: 18px 12px 6px;
+    font-size: 0.68rem;
+    color: $faint;
+  }
+
+  .side-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: $radius;
+    color: $muted;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition:
+      background-color 0.12s,
+      color 0.12s;
+
+    svg {
+      flex-shrink: 0;
+      opacity: 0.8;
+    }
+
+    &:hover {
+      background: rgba($ink, 0.04);
+      color: $ink;
+    }
+
+    &.active {
+      background: $paper;
+      color: $ink;
+      box-shadow: $shadow-sm, inset 2px 0 0 $gold;
+
+      svg {
+        color: $gold-dark;
+        opacity: 1;
+      }
+    }
+  }
+
+  .side-count {
+    margin-left: auto;
+    min-width: 24px;
+    padding: 1px 7px;
+    border-radius: 10px;
+    background: rgba($ink, 0.06);
+    color: $muted;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+
+    &.is-alert {
+      background: $gold;
+      color: $ink;
+    }
+  }
+}
+
+.admin-main {
+  min-width: 0;
+  padding: 32px 40px 80px;
+}
+
+@media (max-width: 900px) {
+  .admin-body {
+    grid-template-columns: 1fr;
+  }
+
+  // Sur mobile, la barre latérale devient une rangée d'onglets défilante
+  .admin-sidebar {
+    position: sticky;
+    top: 58px;
+    z-index: 50;
+    height: auto;
+    padding: 8px 12px;
+    border-right: none;
+    border-bottom: 1px solid $line;
+    background: $canvas;
+    overflow-x: auto;
+    scrollbar-width: none;
+
+    nav {
+      flex-direction: row;
+      gap: 4px;
+    }
+
+    .side-section {
+      display: none;
+    }
+
+    .side-link {
+      white-space: nowrap;
+      padding: 8px 12px;
+    }
+  }
+
+  .admin-main {
+    padding: 20px 16px 60px;
+  }
+}
+
+// =============================================================
+// Composants communs aux pages admin
+// =============================================================
+.admin-page {
+  max-width: 1240px;
+}
+
+.page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+
+  .eyebrow {
+    @include eyebrow;
+    margin: 0 0 6px;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 1.65rem;
+    font-weight: 750;
+  }
+
+  .sub {
+    margin: 6px 0 0;
+    color: $muted;
+    font-size: 0.92rem;
+  }
+
+  .actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .back-link {
+    margin-bottom: 14px;
+  }
+}
+
+.panel {
+  background: $paper;
+  border: 1px solid $line;
+  border-radius: $radius-lg;
+
+  & + & {
+    margin-top: 20px;
+  }
+
+  // Dans une grille, l'espacement est géré par le gap
+  .settings-grid > &,
+  .dash-columns > &,
+  .detail-grid > & {
+    margin-top: 0;
+  }
+
+  .panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid $line;
+
+    h2,
+    h3 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .hint {
+      color: $muted;
+      font-size: 0.85rem;
+    }
+  }
+
+  .panel-body {
+    padding: 20px;
+  }
+}
+
+// --- Indicateurs du tableau de bord ---
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 18px 20px;
+  background: $paper;
+  border: 1px solid $line;
+  border-radius: $radius-lg;
+  color: inherit;
+  text-decoration: none;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+
+  &:hover {
+    border-color: $line-strong;
+    box-shadow: $shadow-sm;
+  }
+
+  .kpi-label {
+    color: $muted;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .kpi-value {
+    color: $ink;
+    font-size: 2rem;
+    font-weight: 750;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .kpi-meta {
+    color: $faint;
+    font-size: 0.82rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &.is-highlight {
+    background: $ink;
+    border-color: $ink;
+
+    .kpi-label,
+    .kpi-meta {
+      color: rgba($paper, 0.6);
+    }
+
+    .kpi-value {
+      color: $gold;
+    }
+  }
+}
+
+.dash-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+
+  @media (max-width: 1100px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// --- Tableaux ---
+.table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+
+  th {
+    position: sticky;
+    top: 0;
+    padding: 11px 16px;
+    background: #faf9f6;
+    border-bottom: 1px solid $line;
+    color: $muted;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-align: left;
+    text-transform: uppercase;
+    white-space: nowrap;
+
+    &.num {
+      text-align: right;
+    }
+
+    button {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0;
+      border: none;
+      background: none;
+      color: inherit;
+      font: inherit;
+      letter-spacing: inherit;
+      text-transform: inherit;
+
+      &:hover {
+        color: $ink;
+      }
+    }
+  }
+
+  td {
+    padding: 13px 16px;
+    border-bottom: 1px solid $line;
+    color: $text;
+    vertical-align: top;
+
+    &.num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    &.muted {
+      color: $muted;
+    }
+
+    &.nowrap {
+      white-space: nowrap;
+    }
+
+    &.row-actions {
+      text-align: right;
+      white-space: nowrap;
+    }
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  tbody tr.is-clickable {
+    cursor: pointer;
+
+    &:hover td {
+      background: #fbfaf7;
+    }
+  }
+
+  .ref {
+    color: $ink;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stack {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    small {
+      color: $muted;
+      font-size: 0.82rem;
+    }
+  }
+
+  a {
+    color: $ink;
+    text-decoration: underline;
+    text-decoration-color: $line-strong;
+
+    &:hover {
+      text-decoration-color: $ink;
+    }
+  }
+}
+
+// --- Barre d'outils (recherche, filtres) ---
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  border-bottom: 1px solid $line;
+
+  .search {
+    position: relative;
+    flex: 1;
+    min-width: 220px;
+    max-width: 380px;
+
+    svg {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: $faint;
+      pointer-events: none;
+    }
+
+    input {
+      margin: 0;
+      padding-left: 38px;
+      height: 40px;
+      font-size: 0.92rem;
+    }
+  }
+
+  .result-count {
+    margin-left: auto;
+    color: $muted;
+    font-size: 0.85rem;
+  }
+}
+
+.empty-state {
+  padding: 56px 24px;
+  text-align: center;
+  color: $muted;
+
+  strong {
+    display: block;
+    margin-bottom: 4px;
+    color: $ink;
+    font-size: 1rem;
+  }
+}
+
+.loading-state {
+  padding: 56px 24px;
+  display: grid;
+  place-items: center;
+
+  &::after {
+    content: "";
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid $line;
+    border-top-color: $gold;
+    animation: spin 0.8s linear infinite;
+  }
+}
+
+// --- Fiches détail (commande / devis) ---
+.detail-grid {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+
+  @media (max-width: 1100px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.info-list {
+  margin: 0;
+  display: grid;
+  gap: 12px;
+
+  > div {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 12px;
+    font-size: 0.9rem;
+  }
+
+  dt {
+    color: $muted;
+  }
+
+  dd {
+    margin: 0;
+    color: $ink;
+    font-weight: 550;
+    word-break: break-word;
+  }
+}
+
+.line-item {
+  padding: 18px 20px;
+
+  & + & {
+    border-top: 1px solid $line;
+  }
+
+  .line-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+
+    h3 {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    .line-meta {
+      color: $muted;
+      font-size: 0.85rem;
+      margin-top: 2px;
+    }
+  }
+
+  .line-side {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+
+    .qty {
+      color: $muted;
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+
+    .price {
+      color: $ink;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+}
+
+.totals {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 16px 20px;
+  border-top: 1px solid $line;
+  font-size: 0.92rem;
+
+  > div {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  dt {
+    color: $muted;
+  }
+
+  dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .grand {
+    padding-top: 10px;
+    border-top: 1px solid $line;
+    font-size: 1.05rem;
+    font-weight: 750;
+
+    dt {
+      color: $ink;
+    }
+  }
+}
+
+// --- Liste "à traiter" du tableau de bord ---
+.todo-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  li + li {
+    border-top: 1px solid $line;
+  }
+
+  a {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 20px;
+    color: inherit;
+    text-decoration: none;
+
+    &:hover {
+      background: #fbfaf7;
+    }
+  }
+
+  .todo-main {
+    flex: 1;
+    min-width: 0;
+
+    strong {
+      display: block;
+      color: $ink;
+      font-size: 0.92rem;
+    }
+
+    span {
+      color: $muted;
+      font-size: 0.84rem;
+    }
+  }
+
+  .todo-amount {
+    color: $ink;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+}
+
+.quick-links {
+  display: grid;
+  gap: 8px;
+  padding: 16px 20px;
+
+  a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    border: 1px solid $line;
+    border-radius: $radius;
+    color: $ink;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+
+    &:hover {
+      border-color: $line-strong;
+      background: #fbfaf7;
+    }
+
+    span {
+      color: $faint;
+    }
+  }
+}
+
+// --- Paramètres / tarifs ---
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+
+.field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+
+  & + & {
+    border-top: 1px dashed $line;
+  }
+
+  label {
+    color: $text;
+    font-size: 0.9rem;
+    font-weight: 550;
+
+    small {
+      display: block;
+      color: $faint;
+      font-size: 0.78rem;
+      font-weight: 500;
+    }
+  }
+
+  .input-unit {
+    position: relative;
+    flex-shrink: 0;
+    width: 128px;
+
+    input {
+      margin: 0;
+      padding-right: 40px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    span {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: $faint;
+      font-size: 0.82rem;
+      pointer-events: none;
+    }
+  }
+
+  &.is-changed input {
+    border-color: $gold;
+    background: $gold-soft;
+  }
+}
+
+.formula-note {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  background: #faf9f6;
+  border-radius: $radius;
+  color: $muted;
+  font-size: 0.86rem;
+
+  code {
+    color: $ink;
+    font-family: $mono;
+    font-size: 0.85rem;
+  }
+}
+
+.formula-preview {
+  width: 100%;
+  margin-top: 14px;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+
+  th,
+  td {
+    padding: 6px 8px;
+    border-top: 1px solid $line;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  th {
+    color: $faint;
+    font-weight: 600;
+  }
+
+  th:first-child,
+  td:first-child {
+    text-align: left;
+    color: $muted;
+  }
+}
+
+.save-bar {
+  position: sticky;
+  bottom: 16px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 24px;
+  padding: 12px 12px 12px 20px;
+  background: $ink;
+  color: $paper;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-lg;
+
+  span {
+    font-size: 0.9rem;
+  }
+
+  .btn-outline {
+    background: transparent;
+    color: $paper;
+    border-color: rgba($paper, 0.3);
+
+    &:hover:not(:disabled) {
+      color: $paper;
+      border-color: $paper;
+    }
+  }
+}
+
+// Notification courte en bas d'écran
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 500;
+  transform: translateX(-50%);
+  padding: 12px 18px;
+  border-radius: $radius;
+  background: $ink;
+  color: $paper;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: $shadow-lg;
+  animation: toastIn 0.2s ease-out;
+
+  &.is-error {
+    background: $danger;
+  }
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// --- Mobile : indicateurs sur deux colonnes, tableaux en cartes ---
+@media (max-width: 700px) {
+  .kpi-grid {
+    grid-template-columns: 1fr 1fr;
+
+    .kpi.is-highlight {
+      grid-column: 1 / -1;
+    }
+
+    .kpi-value {
+      font-size: 1.6rem;
+    }
+  }
+
+  .data-table.as-cards {
+    thead {
+      display: none;
+    }
+
+    tbody,
+    tr,
+    td {
+      display: block;
+    }
+
+    tr {
+      position: relative;
+      padding: 14px 16px;
+      border-bottom: 1px solid $line;
+    }
+
+    tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    td {
+      padding: 2px 0;
+      border: none;
+
+      &.num {
+        text-align: left;
+      }
+
+      &.row-actions {
+        margin-top: 10px;
+        text-align: left;
+      }
+    }
+
+    // Le montant passe en haut à droite de la carte
+    td.amount {
+      position: absolute;
+      top: 14px;
+      right: 16px;
+    }
+  }
+}

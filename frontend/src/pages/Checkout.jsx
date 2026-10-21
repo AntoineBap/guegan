@@ -3,6 +3,10 @@ import { useNavigate, Link } from "react-router-dom";
 import { useCart } from "../contexts/CartContext";
 import { AuthContext } from "../contexts/AuthContext";
 import { SettingsContext } from "../contexts/SettingsContext";
+import { Helmet } from "react-helmet-async";
+import Header from "../components/Header";
+import ItemSpecs from "../components/ItemSpecs";
+import { formatPrice, itemTitle } from "../utils/format";
 import "../styles/checkout.scss";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -24,7 +28,7 @@ const Checkout = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [expandedItemIndex, setExpandedItemIndex] = useState(null);
 
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
   const [shippingCost, setShippingCost] = useState(0);
 
   const [billing, setBilling] = useState({
@@ -48,21 +52,19 @@ const Checkout = () => {
 
   const leadTime = settings?.constraints?.leadTime || 15;
 
-  // --- SCROLL TO TOP AU CHARGEMENT DE LA PAGE ---
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
-
   useEffect(() => {
     if (user) {
+      // L'adresse issue du SIRET est du type « 1 rue de l'Industrie, 93000 Bobigny » : on la découpe
+      const raw = user.companyAddress || "";
+      const m = raw.match(/^(.*?)[,\s]+(\d{5})\s+(.+)$/);
       setBilling((prev) => ({
         ...prev,
         firstName: user.firstName || "",
         lastName: user.lastName || "",
         company: user.companyName || "",
-        address: user.companyAddress || "",
-        city: user.city || "",
-        zip: user.zip || "",
+        address: m ? m[1].trim() : raw,
+        zip: m ? m[2] : user.zip || "",
+        city: m ? m[3].trim() : user.city || "",
       }));
     }
   }, [user]);
@@ -145,13 +147,11 @@ const Checkout = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitError(null);
 
     if (!acceptedTerms || !acceptedCGV) {
-      return alert("Veuillez accepter les conditions pour continuer.");
+      return setSubmitError("Merci d'accepter les conditions avant de valider.");
     }
-
-    if (!isAuthenticated)
-      return alert("Veuillez vous connecter pour commander.");
 
     setIsSubmitting(true);
     const finalShipping = useSameAddress ? billing : shipping;
@@ -163,549 +163,223 @@ const Checkout = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
+        // Le serveur recalcule les prix et la livraison : ces montants ne sont qu'indicatifs
         body: JSON.stringify({
+          // Commande issue d'un devis : le serveur reprend les prix du devis s'il est encore valable
+          quoteId: checkoutItems[0]?.fromQuoteId,
           items: checkoutItems,
           totalAmount: finalTotal,
-          shippingCost: shippingCost,
+          shippingCost,
           billingAddress: billing,
           shippingAddress: finalShipping,
         }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
       if (response.ok) {
-        setShowSuccessModal(true);
         clearPurchasedItems();
-      } else {
-        console.error("Erreur Backend :", data);
-        const errorMsg = data.message || data.error || JSON.stringify(data);
-        alert("Erreur lors de la commande : " + errorMsg);
+        navigate(`/order-confirmation/${data.orderId}`, { replace: true });
+        return;
       }
-    } catch (error) {
-      console.error("Erreur Réseau :", error);
-      alert("Impossible de contacter le serveur.");
+      setSubmitError(data.message || "La commande n'a pas pu être enregistrée.");
+    } catch {
+      setSubmitError("Impossible de contacter le serveur. Vérifiez votre connexion.");
     }
     setIsSubmitting(false);
   };
 
-  if (checkoutItems.length === 0 && !showSuccessModal) {
+  const renderAddressFields = ({ values, onChange, prefix }) => (
+    <div className="form-grid">
+      <label className="field-group">
+        <span>Prénom</span>
+        <input type="text" name="firstName" autoComplete={`${prefix} given-name`} value={values.firstName} onChange={onChange} required />
+      </label>
+      <label className="field-group">
+        <span>Nom</span>
+        <input type="text" name="lastName" autoComplete={`${prefix} family-name`} value={values.lastName} onChange={onChange} required />
+      </label>
+      <label className="field-group full-width">
+        <span>Entreprise</span>
+        <input type="text" name="company" autoComplete={`${prefix} organization`} value={values.company} onChange={onChange} />
+      </label>
+      <label className="field-group full-width">
+        <span>Adresse</span>
+        <input type="text" name="address" autoComplete={`${prefix} street-address`} value={values.address} onChange={onChange} required />
+      </label>
+      <label className="field-group">
+        <span>Code postal</span>
+        <input type="text" name="zip" inputMode="numeric" autoComplete={`${prefix} postal-code`} value={values.zip} onChange={onChange} required />
+      </label>
+      <label className="field-group">
+        <span>Ville</span>
+        <input type="text" name="city" autoComplete={`${prefix} address-level2`} value={values.city} onChange={onChange} required />
+      </label>
+    </div>
+  );
+
+  if (checkoutItems.length === 0) {
     return (
-      <div
-        className="checkout-page"
-        style={{ textAlign: "center", paddingTop: "100px" }}
-      >
-        <h1>Aucun article sélectionné</h1>
-        <button
-          className="validate-btn"
-          style={{ maxWidth: "300px" }}
-          onClick={() => navigate("/configurator")}
-        >
-          Retourner au configurateur
-        </button>
-      </div>
+      <>
+        <Header />
+        <main className="checkout-page checkout-empty">
+          <h1>Aucun article à commander</h1>
+          <p>Sélectionnez les plans à commander depuis votre panier.</p>
+          <Link to="/configurator" className="btn btn-primary">Retour au configurateur</Link>
+        </main>
+      </>
     );
   }
 
+  const shippingLabel =
+    shippingCost === -1 ? "Sur devis" : shippingCost === 0 ? "Offerte" : formatPrice(shippingCost);
+
   return (
-    <div className="checkout-page">
-      <h1>Finalisation de la commande</h1>
+    <>
+      <Helmet>
+        <title>Finaliser la commande — Guegan Shop</title>
+        <meta name="robots" content="noindex" />
+      </Helmet>
+      <Header />
 
-      <div className="checkout-container">
-        <div className="form-column">
-          <form id="checkout-form" onSubmit={handleSubmit}>
-            <section>
-              <h2>📍 Adresse de Facturation</h2>
-              <div className="form-grid">
-                <div className="field-group">
-                  <label>Prénom</label>
-                  <input
-                    type="text"
-                    name="firstName"
-                    placeholder="Jean"
-                    value={billing.firstName}
-                    onChange={handleBillingChange}
-                    required
-                  />
-                </div>
-                <div className="field-group">
-                  <label>Nom</label>
-                  <input
-                    type="text"
-                    name="lastName"
-                    placeholder="Dupont"
-                    value={billing.lastName}
-                    onChange={handleBillingChange}
-                    required
-                  />
-                </div>
-                <div className="field-group">
-                  <label>Nom de l'entreprise</label>
-                  <input
-                    type="text"
-                    name="company"
-                    placeholder="Menuiserie Guegan"
-                    value={billing.company}
-                    onChange={handleBillingChange}
-                  />
-                </div>
-                <div className="field-group full-width">
-                  <label>Adresse</label>
-                  <input
-                    type="text"
-                    name="address"
-                    placeholder="1 Avenue des Champs-Élysées"
-                    value={billing.address}
-                    onChange={handleBillingChange}
-                    required
-                  />
-                </div>
-                <div className="field-group">
-                  <label>Code Postal</label>
-                  <input
-                    type="text"
-                    name="zip"
-                    placeholder="75008"
-                    value={billing.zip}
-                    onChange={handleBillingChange}
-                    required
-                  />
-                </div>
-                <div className="field-group">
-                  <label>Ville</label>
-                  <input
-                    type="text"
-                    name="city"
-                    placeholder="Paris"
-                    value={billing.city}
-                    onChange={handleBillingChange}
-                    required
-                  />
-                </div>
-              </div>
-            </section>
+      <main className="checkout-page">
+        <div className="checkout-head">
+          <Link to="/configurator" className="back-link">← Continuer la configuration</Link>
+          <h1>Finaliser la commande</h1>
+          <ol className="steps" aria-label="Étapes">
+            <li className="done">Panier</li>
+            <li className="current">Adresses & conditions</li>
+            <li>Virement</li>
+          </ol>
+        </div>
 
-            <div className="checkbox-section">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={useSameAddress}
-                  onChange={(e) => setUseSameAddress(e.target.checked)}
-                />
-                Utiliser la même adresse pour la livraison
-              </label>
-            </div>
-
-            {!useSameAddress && (
-              <section className="fade-in">
-                <h2>🚚 Adresse de Livraison</h2>
-                <div className="form-grid">
-                  <div className="field-group">
-                    <label>Prénom</label>
-                    <input
-                      type="text"
-                      name="firstName"
-                      placeholder="Jean"
-                      value={shipping.firstName}
-                      onChange={handleShippingChange}
-                      required
-                    />
-                  </div>
-                  <div className="field-group">
-                    <label>Nom</label>
-                    <input
-                      type="text"
-                      name="lastName"
-                      placeholder="Dupont"
-                      value={shipping.lastName}
-                      onChange={handleShippingChange}
-                      required
-                    />
-                  </div>
-                  <div className="field-group">
-                    <label>Nom de l'entreprise</label>
-                    <input
-                      type="text"
-                      name="company"
-                      placeholder="Menuiserie Guegan"
-                      value={shipping.company}
-                      onChange={handleShippingChange}
-                    />
-                  </div>
-                  <div className="field-group full-width">
-                    <label>Adresse</label>
-                    <input
-                      type="text"
-                      name="address"
-                      placeholder="1 Avenue des Champs-Élysées"
-                      value={shipping.address}
-                      onChange={handleShippingChange}
-                      required
-                    />
-                  </div>
-                  <div className="field-group">
-                    <label>Code Postal</label>
-                    <input
-                      type="text"
-                      name="zip"
-                      placeholder="75008"
-                      value={shipping.zip}
-                      onChange={handleShippingChange}
-                      required
-                    />
-                  </div>
-                  <div className="field-group">
-                    <label>Ville</label>
-                    <input
-                      type="text"
-                      name="city"
-                      placeholder="Paris"
-                      value={shipping.city}
-                      onChange={handleShippingChange}
-                      required
-                    />
-                  </div>
-                </div>
+        <div className="checkout-container">
+          <div className="form-column">
+            {!isAuthenticated ? (
+              <section className="panel-box login-needed">
+                <h2>Connectez-vous pour commander</h2>
+                <p>Les commandes sont réservées aux comptes professionnels. Votre sélection est conservée.</p>
+                <Link to="/login" state={{ from: "/checkout" }} className="btn btn-primary">
+                  Se connecter ou créer un compte
+                </Link>
               </section>
-            )}
+            ) : (
+              <form id="checkout-form" onSubmit={handleSubmit}>
+                <section className="panel-box">
+                  <h2>Adresse de facturation</h2>
+                  {renderAddressFields({ values: billing, onChange: handleBillingChange, prefix: "billing" })}
 
-            <div className="legal-box warning">
-              <h3>⚠️ Renonciation au droit de rétractation</h3>
-              <p>
-                Conformément à l'article{" "}
-                <strong>L.221-28 3° du Code de la consommation</strong>, le
-                droit de rétractation ne peut être exercé pour les contrats de
-                fourniture de biens confectionnés selon les spécifications du
-                consommateur ou nettement personnalisés.
-              </p>
-              <label className="accept-terms">
-                <input
-                  type="checkbox"
-                  required
-                  checked={acceptedTerms}
-                  onChange={(e) => setAcceptedTerms(e.target.checked)}
-                />
-                J'ai lu et j'accepte que ma commande de produits sur-mesure ne
-                soit ni échangeable ni remboursable une fois la fabrication
-                lancée.
-              </label>
+                  <label className="inline-check">
+                    <input type="checkbox" checked={useSameAddress} onChange={(e) => setUseSameAddress(e.target.checked)} />
+                    Livrer à la même adresse
+                  </label>
+                </section>
 
-              <div
-                style={{
-                  marginTop: "15px",
-                  paddingTop: "15px",
-                  borderTop: "1px solid rgba(0,0,0,0.1)",
-                }}
-              >
-                <label className="accept-terms">
-                  <input
-                    type="checkbox"
-                    required
-                    checked={acceptedCGV}
-                    onChange={(e) => setAcceptedCGV(e.target.checked)}
-                  />
-                  <span>
-                    J'ai lu et j'accepte les{" "}
-                    <Link
-                      to="/cgv"
-                      target="_blank"
-                      style={{ color: "#856404", textDecoration: "underline" }}
-                    >
-                      Conditions Générales de Vente
-                    </Link>{" "}
-                    (CGV).
-                  </span>
-                </label>
-              </div>
-            </div>
-          </form>
-        </div>
-
-        <div className="summary-column">
-          <div className="summary-card">
-            <h3>Résumé ({checkoutItems.length} articles)</h3>
-            <div className="items-list">
-              {checkoutItems.map((item, idx) => (
-                <div key={idx} className="summary-item-wrapper">
-                  <div className="mini-item">
-                    <div>
-                      <span style={{ fontWeight: "bold" }}>
-                        {item.quantity}x Plan {item.length}x{item.width}mm
-                      </span>
-                      <button
-                        type="button"
-                        className="details-toggle-btn"
-                        onClick={() => toggleDetails(idx)}
-                      >
-                        {expandedItemIndex === idx ? "Masquer ▴" : "Détails ▾"}
-                      </button>
-                    </div>
-                    <span>{(item.unitPrice * item.quantity).toFixed(2)} €</span>
-                  </div>
-
-                  {expandedItemIndex === idx && (
-                    <div className="mini-item-details">
-                      <ul>
-                        <li>
-                          <strong>Dimensions :</strong> {item.length}x
-                          {item.width}mm
-                        </li>
-                        {item.sinks &&
-                          item.sinks.length > 0 &&
-                          item.sinks[0]?.type !== "Aucune cuve" &&
-                          item.sinks.map((s, sinkIdx) => (
-                            <li
-                              key={sinkIdx}
-                              style={{
-                                marginTop: "8px",
-                                paddingLeft: "10px",
-                                borderLeft: "2px solid #ddd",
-                              }}
-                            >
-                              <strong>Cuve #{sinkIdx + 1} :</strong>{" "}
-                              {s.type
-                                ? s.type.replace("Cuve ", "")
-                                : "Standard"}
-                              <br />
-                              Position :{" "}
-                              {s.position === "center"
-                                ? "Centrée"
-                                : s.position === "left"
-                                  ? "Gauche"
-                                  : s.position === "right"
-                                    ? "Droite"
-                                    : s.position}
-                              {s.position !== "center" && ` (${s.offset}mm)`}
-                              <br />
-                              Robinet :{" "}
-                              {s.hasTapHole ? (
-                                <>
-                                  Oui ({s.tapHolePosition})
-                                  {s.tapHoleOffset && s.tapHoleOffset !== 0
-                                    ? ` [Décalage du centre : ${s.tapHoleOffset}mm]`
-                                    : ""}
-                                </>
-                              ) : (
-                                "Non"
-                              )}
-                              <br />
-                              Egouttoir :{" "}
-                              {s.hasDrainer ? (
-                                <>
-                                  Oui (
-                                  {s.drainerPosition === "left"
-                                    ? "Gauche"
-                                    : s.drainerPosition === "right"
-                                      ? "Droite"
-                                      : s.drainerPosition}
-                                  )
-                                </>
-                              ) : (
-                                "Non"
-                              )}
-                            </li>
-                          ))}
-                        {item.rims && (
-                          <li style={{ marginTop: "5px" }}>
-                            <strong>Dosserets (H{item.rimHeigh}mm) :</strong>{" "}
-                            {[
-                              item.rimLeft && "Gauche",
-                              item.rimBack && "Fond",
-                              item.rimRight && "Droite",
-                            ]
-                              .filter(Boolean)
-                              .join(", ")}
-                          </li>
-                        )}
-                        {item.aprons && (
-                          <li style={{ marginTop: "5px" }}>
-                            <strong>Retombées (H{item.apronHeight}mm) :</strong>{" "}
-                            {[
-                              item.apronFront && "Avant",
-                              item.apronLeft && "Gauche",
-                              item.apronBack && "Fond",
-                              item.apronRight && "Droite",
-                            ]
-                              .filter(Boolean)
-                              .join(", ")}
-                          </li>
-                        )}
-                        {item.splashback && (
-                          <li style={{ marginTop: "5px" }}>
-                            <strong>Anti-Goutte d'eau :</strong> Oui
-                          </li>
-                        )}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "15px",
-                padding: "10px 0",
-                borderBottom: "1px solid #eee",
-                fontSize: "0.95rem",
-                color: "#555",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center" }}>
-                <span>Délai de mise en livraison</span>
-                <div
-                  title="Ce délai correspond au délai entre la réception du paiement et l'expédition des produits"
-                  style={{
-                    display: "inline-flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    width: "16px",
-                    height: "16px",
-                    borderRadius: "50%",
-                    backgroundColor: "#999",
-                    color: "white",
-                    fontSize: "11px",
-                    fontWeight: "bold",
-                    marginLeft: "8px",
-                    cursor: "help",
-                  }}
-                >
-                  ?
-                </div>
-              </div>
-              <span style={{ fontWeight: "600", color: "#333" }}>
-                {leadTime} jours
-              </span>
-            </div>
-
-            <div
-              className="total-row"
-              style={{ fontSize: "0.9rem", marginBottom: "5px" }}
-            >
-              <span>Sous-total HT</span>
-              <span>{itemsTotal.toFixed(2)} €</span>
-            </div>
-
-            <div
-              className="total-row"
-              style={{ fontSize: "0.9rem", marginBottom: "15px" }}
-            >
-              <span>Livraison</span>
-              <span>
-                {shippingCost === -1
-                  ? "Sur Devis"
-                  : shippingCost === 0
-                    ? "Gratuit"
-                    : `${shippingCost.toFixed(2)} €`}
-              </span>
-            </div>
-
-            <div
-              className="total-row"
-              style={{
-                fontSize: "1.2rem",
-                fontWeight: "bold",
-                borderTop: "2px solid #333",
-                paddingTop: "10px",
-                alignItems: "flex-start",
-              }}
-            >
-              <span>Total HT</span>
-              <div style={{ textAlign: "right" }}>
-                <span>{finalTotal.toFixed(2)} €</span>
-                {shippingCost === -1 && (
-                  <span
-                    style={{
-                      display: "block",
-                      fontSize: "0.8rem",
-                      color: "#856404",
-                      fontWeight: "normal",
-                      marginTop: "4px",
-                    }}
-                  >
-                    (+ Livraison sur devis)
-                  </span>
+                {!useSameAddress && (
+                  <section className="panel-box fade-in">
+                    <h2>Adresse de livraison</h2>
+                    {renderAddressFields({ values: shipping, onChange: handleShippingChange, prefix: "shipping" })}
+                  </section>
                 )}
-              </div>
-            </div>
 
-            <button
-              type="submit"
-              form="checkout-form"
-              className="validate-btn"
-              disabled={isSubmitting || !acceptedTerms || !acceptedCGV}
-              style={{ marginTop: "20px" }}
-            >
-              {isSubmitting ? "Validation..." : "Valider la commande"}
-            </button>
+                <section className="panel-box legal-box">
+                  <h2>Conditions</h2>
+                  <p>
+                    Conformément à l'article <strong>L.221-28 3° du Code de la consommation</strong>, le droit de
+                    rétractation ne s'applique pas aux biens confectionnés selon les spécifications du client.
+                  </p>
+                  <label className="inline-check">
+                    <input type="checkbox" required checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} />
+                    <span>
+                      J'accepte que ma commande sur mesure ne soit ni échangeable ni remboursable une fois la
+                      fabrication lancée.
+                    </span>
+                  </label>
+                  <label className="inline-check">
+                    <input type="checkbox" required checked={acceptedCGV} onChange={(e) => setAcceptedCGV(e.target.checked)} />
+                    <span>
+                      J'ai lu et j'accepte les <Link to="/cgv" target="_blank">conditions générales de vente</Link>.
+                    </span>
+                  </label>
+                </section>
+              </form>
+            )}
           </div>
-        </div>
-      </div>
 
-      {/* --- MODALE DE SUCCÈS --- */}
-      {showSuccessModal && (
-        <div className="modal-overlay">
-          <div
-            className="modal-content"
-            style={{
-              maxWidth: "500px",
-              textAlign: "center",
-              height: "auto",
-              padding: "40px",
-            }}
-          >
-            <div style={{ fontSize: "4rem", marginBottom: "15px" }}>🎉</div>
-            <h2 style={{ color: "#27ae60", margin: "0 0 20px 0" }}>
-              Félicitations !
-            </h2>
-            <p
-              style={{
-                fontSize: "1.2rem",
-                color: "#555",
-                marginBottom: "30px",
-                lineHeight: "1.5",
-              }}
-            >
-              Votre commande est validée avec succès.
-              <br />
-              Veuillez consulter votre <strong>boîte mail</strong> pour obtenir
-              les informations de virement.
-            </p>
+          <aside className="summary-column">
+            <div className="summary-card">
+              <h2>
+                Récapitulatif <span>{checkoutItems.reduce((n, i) => n + (i.quantity || 1), 0)} pièce(s)</span>
+              </h2>
 
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "15px" }}
-            >
-              <button
-                onClick={() => navigate("/my-orders")}
-                className="validate-btn"
-                style={{ width: "100%" }}
-              >
-                Voir mes commandes
-              </button>
+              <ul className="items-list">
+                {checkoutItems.map((item, idx) => (
+                  <li key={idx}>
+                    <div className="mini-item">
+                      <div>
+                        <strong>
+                          {item.quantity} × {itemTitle(item, idx)}
+                        </strong>
+                        <span>
+                          {item.length} × {item.width} mm
+                        </span>
+                      </div>
+                      <span className="price">{isAuthenticated ? formatPrice(item.unitPrice * item.quantity) : "–"}</span>
+                    </div>
+                    <button type="button" className="details-toggle-btn" onClick={() => toggleDetails(idx)} aria-expanded={expandedItemIndex === idx}>
+                      {expandedItemIndex === idx ? "Masquer le détail" : "Voir le détail"}
+                    </button>
+                    {expandedItemIndex === idx && <ItemSpecs item={item} />}
+                  </li>
+                ))}
+              </ul>
 
-              <button
-                onClick={() => navigate("/configurator")}
-                style={{
-                  padding: "15px",
-                  background: "transparent",
-                  border: "1px solid #333",
-                  borderRadius: "5px",
-                  color: "#333",
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                  width: "100%",
-                }}
-              >
-                Retourner au configurateur
-              </button>
+              <dl className="totals">
+                <div>
+                  <dt title="Délai entre la réception du paiement et l'expédition">Délai avant expédition</dt>
+                  <dd>{leadTime} jours</dd>
+                </div>
+                <div>
+                  <dt>Sous-total HT</dt>
+                  <dd>{isAuthenticated ? formatPrice(itemsTotal) : "–"}</dd>
+                </div>
+                <div>
+                  <dt>Livraison HT</dt>
+                  <dd>{shippingLabel}</dd>
+                </div>
+                <div className="grand">
+                  <dt>Total HT</dt>
+                  <dd>{isAuthenticated ? formatPrice(finalTotal) : "–"}</dd>
+                </div>
+                {isAuthenticated && (
+                  <div className="ttc">
+                    <dt>soit TTC</dt>
+                    <dd>{formatPrice(finalTotal * 1.2)}</dd>
+                  </div>
+                )}
+              </dl>
+              {shippingCost === -1 && (
+                <p className="shipping-note">Livraison au-delà de 600 km : nous vous contactons pour la chiffrer.</p>
+              )}
+
+              {submitError && <p className="submit-error" role="alert">{submitError}</p>}
+
+              {isAuthenticated && (
+                <button
+                  type="submit"
+                  form="checkout-form"
+                  className="btn btn-primary btn-lg btn-block"
+                  disabled={isSubmitting || !acceptedTerms || !acceptedCGV}
+                >
+                  {isSubmitting ? "Validation…" : "Valider la commande"}
+                </button>
+              )}
+              <p className="pay-note">Paiement par virement bancaire. Les coordonnées s'affichent à l'étape suivante.</p>
             </div>
-          </div>
+          </aside>
         </div>
-      )}
-    </div>
+      </main>
+    </>
   );
 };
 

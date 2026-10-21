@@ -1,398 +1,249 @@
 import React, { useEffect, useState, useContext } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link, useOutletContext } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { AuthContext } from "../contexts/AuthContext";
-import Header from "../components/Header";
-import "../styles/adminOrderDetails.scss";
+import ItemSpecs from "../components/ItemSpecs";
+import useToast from "../components/useToast";
+import { downloadPdf } from "../utils/pdf";
+import { formatPrice, formatDate, formatDateLong, ORDER_STATUS, itemTitle } from "../utils/format";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
-const IconUser = () => (
-  <svg
-    width="18"
-    height="18"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.7"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-    <circle cx="12" cy="7" r="4" />
-  </svg>
-);
-const IconTruck = () => (
-  <svg
-    width="18"
-    height="18"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.7"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <rect x="1" y="3" width="15" height="13" rx="1" />
-    <path d="M16 8h4l3 5v3h-7V8z" />
-    <circle cx="5.5" cy="18.5" r="2.5" />
-    <circle cx="18.5" cy="18.5" r="2.5" />
-  </svg>
-);
-const IconWrench = () => (
-  <svg
-    width="18"
-    height="18"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.7"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-  </svg>
-);
-const IconTrash = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.7"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <polyline points="3 6 5 6 21 6" />
-    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-    <path d="M10 11v6" />
-    <path d="M14 11v6" />
-    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-  </svg>
-);
-const IconDownload = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.7"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-    <polyline points="7 10 12 15 17 10" />
-    <line x1="12" y1="15" x2="12" y2="3" />
-  </svg>
-);
-const IconFile = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.7"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-    <polyline points="14 2 14 8 20 8" />
-  </svg>
-);
+const NEXT = {
+  pending_payment: { status: "paid", label: "Paiement reçu", confirm: "Confirmer la réception du paiement ? Le client sera prévenu par email dans 1 h." },
+  paid: { status: "shipped", label: "Marquer expédiée", confirm: "Marquer la commande comme expédiée ? Le client sera prévenu par email dans 1 h." },
+};
+const PREV_LABEL = { paid: "Remettre en attente de paiement", shipped: "Remettre en fabrication" };
+
+const Address = ({ a }) =>
+  a ? (
+    <>
+      {[a.firstName, a.lastName].filter(Boolean).join(" ")}
+      {a.company && <><br />{a.company}</>}
+      <br />
+      {a.address}
+      <br />
+      {a.zip} {a.city}
+      {a.country && a.country !== "France" && <><br />{a.country}</>}
+    </>
+  ) : (
+    "—"
+  );
 
 const AdminOrderDetails = () => {
   const { id } = useParams();
   const { token } = useContext(AuthContext);
+  const { refreshStats } = useOutletContext();
   const navigate = useNavigate();
-  const [order, setOrder] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [order, setOrder] = useState(undefined);
+  const [busy, setBusy] = useState(false);
+  const [toast, toastNode] = useToast();
+  const headers = { Authorization: `Bearer ${token}` };
 
-  useEffect(() => {
-    const fetchOrderDetails = async () => {
-      try {
-        const response = await fetch(
-          `${API_URL}/api/admin/order-details/${id}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        );
-        if (response.ok) {
-          const data = await response.json();
-          setOrder(data);
-        } else {
-          console.error("Erreur chargement commande");
-        }
-      } catch (error) {
-        console.error("Erreur fetch order:", error);
-      }
-      setLoading(false);
-    };
-    fetchOrderDetails();
-  }, [id, token]);
-
-  const handleOpen3D = (item) => {
-    navigate("/configurator", { state: { loadConfig: item } });
-  };
-
-  const rollbackConfig = {
-    paid: {
-      prevStatus: "pending_payment",
-      label: "← Revenir en attente de paiement",
-    },
-    shipped: { prevStatus: "paid", label: "← Revenir en fabrication" },
-  };
-
-  const handleRollback = async () => {
-    const rb = rollbackConfig[order.status];
-    if (!rb) return;
-    if (
-      !window.confirm(
-        `Repasser la commande #${order.orderNumber} à l'étape précédente ?\nSi un email de notification était planifié, il sera annulé.`,
-      )
-    )
-      return;
-
+  const load = async () => {
     try {
-      const response = await fetch(
-        `${API_URL}/api/admin/order/${id}/rollback`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      if (response.ok) {
-        const updated = await response.json();
-        setOrder(updated.order || { ...order, status: rb.prevStatus });
-      } else {
-        alert("Erreur lors du rollback.");
-      }
-    } catch (error) {
-      alert("Erreur technique lors du rollback.");
+      const res = await fetch(`${API_URL}/api/admin/order-details/${id}`, { headers });
+      setOrder(res.ok ? await res.json() : null);
+    } catch {
+      setOrder(null);
     }
   };
 
-  if (loading) return <div className="loading">Chargement...</div>;
-  if (!order) return <div className="error">Commande introuvable.</div>;
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, token]);
 
-  return (
-    <div style={{ backgroundColor: "#f4f6f8", minHeight: "100vh" }}>
-      <Header />
-      <div className="admin-order-details">
-        <div className="details-header">
-          <button onClick={() => navigate(-1)} className="back-btn">
-            ← Retour
-          </button>
-          <div>
-            <h1>Commande #{order.orderNumber}</h1>
-            <span className="date-creation">
-              Du {new Date(order.createdAt).toLocaleDateString()}
-            </span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            {rollbackConfig[order.status] && (
-              <button
-                onClick={handleRollback}
-                style={{
-                  backgroundColor: "transparent",
-                  border: "1px solid #95a5a6",
-                  color: "#7f8c8d",
-                  cursor: "pointer",
-                  padding: "7px 14px",
-                  borderRadius: "5px",
-                  fontSize: "0.85rem",
-                  fontWeight: "500",
-                }}
-                title={rollbackConfig[order.status].label}
-              >
-                ↩ {rollbackConfig[order.status].label.replace("← ", "")}
-              </button>
-            )}
-            <span className={`status-badge ${order.status}`}>
-              {order.status}
-            </span>
-          </div>
-        </div>
+  const act = async (request, msg) => {
+    setBusy(true);
+    try {
+      const res = await request();
+      if (!res.ok) throw new Error();
+      toast(msg);
+      await load();
+      refreshStats();
+    } catch {
+      toast("L'opération a échoué.", "error");
+    }
+    setBusy(false);
+  };
 
-        <div className="details-grid">
-          {/* INFOS CLIENT */}
-          <div className="info-column">
-            <div className="info-card">
-              <h3>
-                <IconUser /> Client & Facturation
-              </h3>
-              <p>
-                <strong>Société :</strong>{" "}
-                {order.billingAddress.company || "Particulier"}
-              </p>
-              <p>
-                <strong>Numéro SIRET :</strong> {order.userId?.siret || "N/A"}
-              </p>
-              <p>
-                <strong>Numéro de TVA :</strong>{" "}
-                {order.userId?.tvaNumber || "N/A"}
-              </p>
-              <p>
-                <strong>Nom :</strong> {order.billingAddress.firstName}{" "}
-                {order.billingAddress.lastName}
-              </p>
-              <p>
-                <strong>Email :</strong>{" "}
-                {order.userId?.email || order.billingAddress.email}
-              </p>
-              <p>
-                <strong>Tel :</strong> {order.userId?.phone || "N/A"}
-              </p>
-              <p>
-                <strong>Adresse :</strong>{" "}
-                {order.billingAddress.address || "N/A"}
-              </p>
-              <p>
-                <strong>Ville :</strong> {order.billingAddress.city || "N/A"}
-              </p>
-              <p>
-                <strong>Code Postal :</strong>{" "}
-                {order.billingAddress.zip || "N/A"}
-              </p>
-              <p>
-                <strong>Pays :</strong> {order.billingAddress.country || "N/A"}
-              </p>
-            </div>
-            <div className="info-card">
-              <h3>
-                <IconTruck /> Livraison
-              </h3>
-              <p>{order.shippingAddress.address}</p>
-              <p>
-                {order.shippingAddress.zip} {order.shippingAddress.city}
-              </p>
-              <p>{order.shippingAddress.country}</p>
-            </div>
-          </div>
+  const advance = () => {
+    const next = NEXT[order.status];
+    if (!next || !window.confirm(next.confirm)) return;
+    act(
+      () =>
+        fetch(`${API_URL}/api/admin/order/${id}`, {
+          method: "PUT",
+          headers: { ...headers, "Content-Type": "application/json" },
+          body: JSON.stringify({ status: next.status }),
+        }),
+      "Statut mis à jour.",
+    );
+  };
 
-          {/* LISTE DES PLANS */}
-          <div className="items-column">
-            <h3>
-              <IconWrench /> Plans à produire ({order.items.length})
-            </h3>
-            <div className="items-list">
-              {order.items.map((item, index) => (
-                <div key={index} className="item-card-detail">
-                  <div className="item-header-row">
-                    <h4>
-                      {item.roomName ? item.roomName : `Plan #${index + 1}`} —{" "}
-                      {item.length}x{item.width}mm
-                    </h4>
-                    <div className="item-actions">
-                      <span className="qty-badge">Qté: {item.quantity}</span>
-                      <button
-                        className="btn-3d"
-                        onClick={() => handleOpen3D(item)}
-                      >
-                        Voir en 3D
-                      </button>
-                    </div>
-                  </div>
+  const rollback = () => {
+    if (!window.confirm(`${PREV_LABEL[order.status]} ?\nL'email prévu au client sera annulé s'il n'est pas encore parti.`)) return;
+    act(() => fetch(`${API_URL}/api/admin/order/${id}/rollback`, { method: "PUT", headers }), "Étape annulée.");
+  };
 
-                  <div className="item-specs">
-                    <ul>
-                      {/* CUVES : Masqué si "Aucune cuve" */}
-                      {item.sinks &&
-                        item.sinks.length > 0 &&
-                        item.sinks[0]?.type !== "Aucune cuve" &&
-                        item.sinks.map((s, idx) => (
-                          <li
-                            key={idx}
-                            className="sub-spec"
-                            style={{
-                              borderLeft: "3px solid #ddd",
-                              paddingLeft: "10px",
-                            }}
-                          >
-                            <strong>Cuve {idx + 1} :</strong>{" "}
-                            {s.type ? s.type.replace("Cuve ", "") : "Standard"}
-                            <br />
-                            Position :{" "}
-                            {s.position === "left"
-                              ? "Gauche"
-                              : s.position === "right"
-                                ? "Droite"
-                                : "Centrée"}
-                            {s.position !== "center" && ` (${s.offset}mm)`}
-                            <br />
-                            Robinet :{" "}
-                            {s.hasTapHole ? (
-                              <>
-                                Oui (
-                                {s.tapHolePosition === "Gauche"
-                                  ? "Gauche"
-                                  : s.tapHolePosition === "Droite"
-                                    ? "Droite"
-                                    : "Centré"}
-                                )
-                                {s.tapHoleOffset && s.tapHoleOffset !== 0
-                                  ? ` [Décalage du centre : ${s.tapHoleOffset}mm]`
-                                  : ""}
-                              </>
-                            ) : (
-                              "Non"
-                            )}
-                            <br />
-                            Egouttoir :{" "}
-                            {s.hasDrainer
-                              ? `Oui (${s.drainerPosition === "left" ? "Gauche" : "Droite"})`
-                              : "Non"}
-                          </li>
-                        ))}
+  const remove = async () => {
+    if (!window.confirm(`Supprimer définitivement la commande #${order.orderNumber} ?`)) return;
+    setBusy(true);
+    const res = await fetch(`${API_URL}/api/admin/order/${id}`, { method: "DELETE", headers }).catch(() => null);
+    setBusy(false);
+    if (res?.ok) {
+      refreshStats();
+      navigate(`/admin/orders/${order.status}`);
+    } else toast("Suppression impossible.", "error");
+  };
 
-                      {/* DOSSERETS */}
-                      {item.rims && (
-                        <li className="sub-spec">
-                          <strong>Dosserets (H{item.rimHeigh}mm) :</strong>{" "}
-                          {[
-                            item.rimLeft && "Gauche",
-                            item.rimBack && "Fond",
-                            item.rimRight && "Droite",
-                          ]
-                            .filter(Boolean)
-                            .join(", ") || "Aucun"}
-                        </li>
-                      )}
+  const deliveryNote = async () => {
+    setBusy(true);
+    try {
+      await downloadPdf(async () => {
+        const { default: DeliveryNote } = await import("../components/DeliveryNote");
+        return <DeliveryNote order={order} />;
+      }, `BL-${order.orderNumber}.pdf`);
+    } catch {
+      toast("Génération du bon de livraison impossible.", "error");
+    }
+    setBusy(false);
+  };
 
-                      {/* RETOMBÉES */}
-                      {item.aprons && (
-                        <li className="sub-spec">
-                          <strong>Retombées (H{item.apronHeight}mm) :</strong>{" "}
-                          {[
-                            item.apronFront && "Avant",
-                            item.apronLeft && "Gauche",
-                            item.apronBack && "Fond",
-                            item.apronRight && "Droite",
-                          ]
-                            .filter(Boolean)
-                            .join(", ") || "Aucune"}
-                        </li>
-                      )}
-
-                      {/* GOUTTE D'EAU */}
-                      {item.splashback && (
-                        <li>
-                          <strong>Anti-Goutte d'eau :</strong> Oui
-                        </li>
-                      )}
-                    </ul>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+  if (order === undefined) return <div className="loading-state" />;
+  if (order === null)
+    return (
+      <div className="admin-page">
+        <div className="empty-state">
+          <strong>Commande introuvable</strong>
+          <Link to="/admin">Retour au tableau de bord</Link>
         </div>
       </div>
+    );
+
+  const st = ORDER_STATUS[order.status] || { label: order.status, tone: "is-neutral" };
+  const client = order.userId || {};
+  const itemsTotal = order.items.reduce((s, i) => s + (i.unitPrice || 0) * (i.quantity || 1), 0);
+  // Les anciennes commandes n'ont pas de champ shippingCost : la livraison était incluse dans le total
+  const shipping =
+    order.shippingCost === undefined
+      ? Math.max(0, Math.round((order.totalAmount - itemsTotal) * 100) / 100)
+      : Math.max(0, order.shippingCost);
+
+  return (
+    <div className="admin-page">
+      <Helmet>
+        <title>Commande #{order.orderNumber} — Administration</title>
+      </Helmet>
+
+      <div className="page-head">
+        <div>
+          <Link to={`/admin/orders/${order.status}`} className="back-link">
+            ← {ORDER_STATUS[order.status]?.short || "Commandes"}
+          </Link>
+          <h1>Commande #{order.orderNumber}</h1>
+          <p className="sub">
+            Passée le {formatDateLong(order.createdAt)} ·{" "}
+            <span className={`status-badge ${st.tone}`}>{st.label}</span>
+          </p>
+        </div>
+        <div className="actions">
+          {order.status === "shipped" && (
+            <button className="btn btn-outline" disabled={busy} onClick={deliveryNote}>
+              Bon de livraison (PDF)
+            </button>
+          )}
+          {PREV_LABEL[order.status] && (
+            <button className="btn btn-ghost" disabled={busy} onClick={rollback}>
+              Annuler l'étape
+            </button>
+          )}
+          {NEXT[order.status] && (
+            <button className="btn btn-primary" disabled={busy} onClick={advance}>
+              {NEXT[order.status].label}
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="detail-grid">
+        <div>
+          <section className="panel">
+            <div className="panel-head">
+              <h2>Client</h2>
+            </div>
+            <div className="panel-body">
+              <dl className="info-list">
+                <div><dt>Société</dt><dd>{client.companyName || order.billingAddress?.company || "—"}</dd></div>
+                <div><dt>Contact</dt><dd>{[client.firstName, client.lastName].filter(Boolean).join(" ") || "—"}</dd></div>
+                <div><dt>Email</dt><dd>{client.email ? <a href={`mailto:${client.email}`}>{client.email}</a> : "—"}</dd></div>
+                <div><dt>Téléphone</dt><dd>{client.phone ? <a href={`tel:${client.phone}`}>{client.phone}</a> : "—"}</dd></div>
+                <div><dt>SIRET</dt><dd>{client.siret || "—"}</dd></div>
+                <div><dt>N° TVA</dt><dd>{client.tvaNumber || "—"}</dd></div>
+              </dl>
+            </div>
+          </section>
+
+          <section className="panel">
+            <div className="panel-head">
+              <h2>Adresses</h2>
+            </div>
+            <div className="panel-body">
+              <dl className="info-list">
+                <div><dt>Facturation</dt><dd><Address a={order.billingAddress} /></dd></div>
+                <div><dt>Livraison</dt><dd><Address a={order.shippingAddress} /></dd></div>
+                {order.status === "pending_payment" && (
+                  <div><dt>Échéance</dt><dd>{formatDate(order.paymentDeadline)}</dd></div>
+                )}
+              </dl>
+            </div>
+          </section>
+
+          <button className="btn btn-danger btn-sm" style={{ marginTop: 16 }} disabled={busy} onClick={remove}>
+            Supprimer la commande
+          </button>
+        </div>
+
+        <section className="panel">
+          <div className="panel-head">
+            <h2>Plans à produire</h2>
+            <span className="hint">{order.items.reduce((n, i) => n + (i.quantity || 1), 0)} pièce(s)</span>
+          </div>
+
+          {order.items.map((item, index) => (
+            <div key={index} className="line-item">
+              <div className="line-head">
+                <div>
+                  <h3>{itemTitle(item, index)}</h3>
+                </div>
+                <div className="line-side">
+                  <span className="qty">× {item.quantity}</span>
+                  <span className="price">{formatPrice((item.unitPrice || 0) * (item.quantity || 1))}</span>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    onClick={() => navigate("/configurator", { state: { loadConfig: item } })}
+                  >
+                    Voir en 3D
+                  </button>
+                </div>
+              </div>
+              <ItemSpecs item={item} />
+            </div>
+          ))}
+
+          <dl className="totals">
+            <div><dt>Sous-total HT</dt><dd>{formatPrice(itemsTotal)}</dd></div>
+            <div>
+              <dt>Livraison HT</dt>
+              <dd>{order.shippingCost === -1 ? "Sur devis" : shipping ? formatPrice(shipping) : "Offerte"}</dd>
+            </div>
+            <div><dt>TVA 20 %</dt><dd>{formatPrice(order.totalAmount * 0.2)}</dd></div>
+            <div className="grand"><dt>Total TTC</dt><dd>{formatPrice(order.totalAmount * 1.2)}</dd></div>
+          </dl>
+        </section>
+      </div>
+      {toastNode}
     </div>
   );
 };

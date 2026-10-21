@@ -294,7 +294,7 @@ const MyAccount = () => {
   };
 
   return (
-    <div className="layout">
+    <div className="account-shell">
       <Header />
       <div className="account-page">
         <div className="account-container">
@@ -625,19 +625,20 @@ const MyAccount = () => {
 };
 
 const PasswordStrength = ({ value }) => {
+  // Mêmes règles que l'inscription et le serveur
   const checks = [
-    { label: "8 caractères", ok: value.length >= 8 },
-    { label: "Majuscule", ok: /[A-Z]/.test(value) },
-    { label: "Minuscule", ok: /[a-z]/.test(value) },,
+    { label: "8 caractères minimum", ok: value.length >= 8 },
+    { label: "une majuscule", ok: /[A-Z]/.test(value) },
+    { label: "sans espace", ok: value.length > 0 && !/\s/.test(value) },
   ];
   const score = checks.filter((c) => c.ok).length;
-  const levels = ["", "Très faible", "Faible", "Moyen", "Fort", "Très fort"];
-  const colors = ["", "#e74c3c", "#e67e22", "#f1c40f", "#2ecc71", "#27ae60"];
+  const levels = ["", "Insuffisant", "Insuffisant", "Valide"];
+  const colors = ["", "#b3261e", "#9a6a00", "#2e7d4f"];
 
   return (
     <div className="password-strength">
       <div className="strength-bar">
-        {[1, 2, 3, 4, 5].map((i) => (
+        {[1, 2, 3].map((i) => (
           <div
             key={i}
             className="strength-segment"
@@ -651,7 +652,7 @@ const PasswordStrength = ({ value }) => {
       <ul className="strength-checks">
         {checks.map((c) => (
           <li key={c.label} className={c.ok ? "ok" : "nok"}>
-            {c.ok ? "✓" : "○"} {c.label}
+            {c.ok ? "●" : "○"} {c.label}
           </li>
         ))}
       </ul>

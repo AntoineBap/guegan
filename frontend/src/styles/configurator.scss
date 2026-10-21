@@ -1,67 +1,53 @@
-@use "sass:color";
+@use "tokens" as *;
 
-$gold: #d4af37;
-$gold-light: rgba($gold, 0.1);
-$black: #1a1a1a;
-$grey-light: #f4f4f6;
-$white: #ffffff;
-$text: #2c2c2c;
-$border-color: #e0e0e0;
-
-// --- LAYOUT GLOBAL ---
+// =============================================================
+// Mise en page : formulaire à gauche, 3D à droite (empilés sur mobile)
+// =============================================================
 .layout {
+  position: fixed;
+  inset: 0;
   display: flex;
   flex-direction: column;
-
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
   height: 100dvh;
   overflow: hidden;
-  background-color: $white;
+  background: $paper;
 
-  @media (max-width: 1024px) {
+  @media (max-width: $bp-lg) {
     position: relative;
     height: auto;
-    overflow: visible;
     min-height: 100vh;
-    padding-top: 0;
-  }
-}
-
-// --- MAIN CONTENT ---
-.main-content {
-  display: flex;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  position: relative;
-
-  @media (max-width: 1024px) {
-    flex-direction: column;
-    height: auto;
     overflow: visible;
   }
 }
 
-// --- ZONE 3D ---
+.main-content {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+
+  @media (max-width: $bp-lg) {
+    flex-direction: column;
+  }
+}
+
+// --- Zone 3D ---
 .visualizer-area {
-  flex: 0 0 50%;
-  max-width: 50%;
-  height: 100%;
-  background-color: #eef0f2;
-  border-left: 1px solid $border-color;
   position: relative;
   order: 2;
-
   display: flex;
   flex-direction: column;
+  flex: 0 0 52%;
+  max-width: 52%;
+  height: 100%;
+  background: #eceae4;
+  border-left: 1px solid $line;
 
   .canvas-wrapper {
-    width: 100%;
     flex: 1;
     min-height: 0;
+    width: 100%;
 
     > div,
     canvas {
@@ -73,32 +59,22 @@ $border-color: #e0e0e0;
 
   .desktop-carousel-wrapper {
     width: 100%;
-    background: $white;
-    border-top: 1px solid $border-color;
-    display: block;
+    border-top: 1px solid $line;
+    background: $paper;
   }
 
-  // Mobile
-  @media (max-width: 1024px) {
+  @media (max-width: $bp-lg) {
+    position: sticky;
+    top: 58px; // hauteur du header mobile
+    z-index: 10;
+    order: 1;
     flex: none;
     max-width: 100%;
     width: 100%;
-    height: 25vh;
-    order: 1;
+    height: 34vh;
+    min-height: 220px;
     border-left: none;
-    border-bottom: 1px solid $border-color;
-    display: block;
-
-    position: sticky;
-    top: 70px;
-    z-index: 10;
-    background-color: #eef0f2;
-
-    .canvas-wrapper {
-      height: 100%;
-      width: 100%;
-      overflow: hidden;
-    }
+    border-bottom: 1px solid $line;
 
     .desktop-carousel-wrapper {
       display: none;
@@ -106,282 +82,251 @@ $border-color: #e0e0e0;
   }
 }
 
-// --- ZONE SCROLLABLE (CONFIG + CAROUSEL) ---
+// --- Zone formulaire ---
 .scrollable-area {
-  flex: 0 0 50%;
-  max-width: 50%;
-  height: 100%;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
   order: 1;
   display: flex;
   flex-direction: column;
+  flex: 0 0 48%;
+  max-width: 48%;
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
 
-  @media (max-width: 1024px) {
+  @media (max-width: $bp-lg) {
+    position: relative;
+    z-index: 5;
+    order: 2;
     flex: none;
     max-width: 100%;
     width: 100%;
-    order: 2;
-    background: white;
-    position: relative;
-    z-index: 5;
-
     height: auto;
     overflow-y: visible;
+    background: $paper;
   }
 }
 
-// --- CONFIG PANEL ---
 .config-panel {
-  padding: 3rem 4rem;
-  background-color: $white;
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 40px 48px 64px;
+
+  @media (max-width: $bp-lg) {
+    padding: 24px 20px 40px;
+  }
+}
+
+.config-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 28px;
+
+  .config-eyebrow {
+    @include eyebrow;
+    margin: 0 0 6px;
+    color: $gold-dark;
+  }
 
   h1 {
-    font-size: 2.2rem;
-    margin-bottom: 2rem;
-    margin-top: 0;
-  }
-
-  @media (max-width: 1024px) {
-    padding: 2rem 1.5rem;
-    border-right: none;
-    padding-top: 1.5rem;
-  }
-}
-
-// --- CAROUSEL ---
-.carousel-area {
-  padding: 0;
-  background: $white;
-  border-top: 1px solid $border-color;
-  padding-bottom: env(safe-area-inset-bottom);
-
-  &.mobile-only {
-    display: none;
-    @media (max-width: 1024px) {
-      display: block;
-    }
-  }
-}
-
-// --- STYLES EMBLA (CAROUSEL) ---
-.embla {
-  max-width: 100%;
-  margin: auto;
-  position: relative;
-  --slide-spacing: 0rem;
-  --slide-size: 100%;
-  .embla__viewport {
-    overflow: hidden;
-    position: relative;
-  }
-  .embla__container {
-    display: flex;
-    touch-action: pan-y pinch-zoom;
-    margin-left: calc(var(--slide-spacing) * -1);
-  }
-  .embla__slide {
-    transform: translate3d(0, 0, 0);
-    flex: 0 0 var(--slide-size);
-    min-width: 0;
-    padding-left: var(--slide-spacing);
-  }
-  .embla__slide__inner {
-    position: relative;
-    overflow: hidden;
-    background-color: $black;
-    aspect-ratio: 2.4 / 1;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-  }
-  .embla__buttons {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    padding: 0 10px;
-    pointer-events: none;
-  }
-  .embla__button {
-    pointer-events: auto;
-    appearance: none;
-    background-color: rgba($white, 0.7);
-    border: none;
-    padding: 0;
     margin: 0;
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 50%;
-    color: $black;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    cursor: pointer;
-    &:hover:not(:disabled) {
-      background-color: $white;
-      color: $gold;
-      transform: scale(1.1);
-    }
-    &:disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
-    }
-    .embla__button__svg {
-      width: 50%;
-      height: 50%;
-    }
+    font-size: 1.9rem;
+    font-weight: 750;
+    line-height: 1.15;
   }
-  .embla__controls {
-    position: absolute;
-    bottom: 10px;
-    left: 0;
-    right: 0;
-    display: flex;
-    justify-content: center;
-    pointer-events: none;
+
+  .reset-btn {
+    flex-shrink: 0;
   }
-  .embla__dots {
-    display: flex;
-    gap: 0.5rem;
-    background: rgba($black, 0.3);
-    padding: 5px 10px;
-    border-radius: 20px;
-    pointer-events: auto;
-  }
-  .embla__dot {
-    appearance: none;
-    background-color: transparent;
-    border: 0;
-    padding: 0;
-    width: 10px;
-    height: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    cursor: pointer;
-    &:after {
-      content: "";
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background-color: rgba($white, 0.5);
-      transition: all 0.3s;
-    }
-    &.embla__dot--selected:after {
-      background-color: $white;
-      transform: scale(1.3);
+
+  @media (max-width: $bp-sm) {
+    h1 {
+      font-size: 1.5rem;
     }
   }
 }
 
-// --- UI FORM ---
+.config-note {
+  margin: 0 0 20px;
+  color: $muted;
+  font-size: 0.9rem;
+  text-align: center;
+
+  a {
+    font-weight: 700;
+  }
+}
+
+.config-panel {
+// =============================================================
+// Blocs du formulaire
+// =============================================================
 .form-group {
   margin-bottom: 0.5rem;
+
   label {
     display: block;
-    margin-bottom: 0.8rem;
-    font-weight: 700;
+    margin-bottom: 0.7rem;
+    color: $ink;
     font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: $black;
+    font-weight: 700;
   }
+
   &.section-box {
-    background: $white;
-    border: 1px solid $border-color;
-    border-radius: 8px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
+    margin-bottom: 16px;
+    padding: 20px 22px;
+    background: $paper;
+    border: 1px solid $line;
+    border-radius: $radius-lg;
+
     .section-title {
-      font-size: 1.1rem;
-      text-transform: none;
-      letter-spacing: 0;
-      margin-bottom: 1.2rem;
-      border-bottom: 1px solid $grey-light;
-      padding-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .optional {
+      color: $faint;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    input[type="text"] {
+      margin-bottom: 0;
     }
   }
 }
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  .section-title {
+    margin-bottom: 14px;
+  }
+
+  .remove-sink {
+    margin-top: -14px;
+    color: $danger;
+
+    &:hover {
+      background: $danger-soft;
+      color: $danger;
+    }
+  }
+}
+
+.sink-box.is-anchor {
+  border-color: rgba($gold, 0.6);
+  box-shadow: inset 3px 0 0 $gold;
+}
+
+.anchor-tag {
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: $gold-soft;
+  color: $gold-dark;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.section-sep {
+  height: 1px;
+  margin: 18px 0;
+  background: $line;
+}
+
 .inputs-row {
   display: flex;
-  gap: 20px;
   flex-wrap: wrap;
+  gap: 16px;
+
   > * {
     flex: 1;
     min-width: 140px;
   }
+
   span {
-    font-size: 0.8rem;
-    color: #666;
     display: block;
-    margin-bottom: 5px;
+    margin-bottom: 6px;
+    color: $text;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  input {
+    margin-bottom: 4px;
   }
 }
 
-// --- STYLES DES BOUTONS DE SELECTION ---
+.limit-label {
+  color: $faint;
+  font-size: 0.78rem;
+}
+
+.input-wrapper > span {
+  color: $text;
+  font-size: 0.85rem !important;
+  font-weight: 600;
+}
+
+.small-input {
+  max-width: 160px;
+}
+
+// --- Boutons de choix (cuve, côtés, positions) ---
 .corian-color button,
 .drilling-options button,
 .sink-options-list button {
   flex: 1;
-  padding: 12px 10px;
-  border: 1px solid $gold;
-  border-radius: 6px;
-  background: $gold-light;
-  color: $black;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-family: "Manrope";
-  font-weight: 500;
-  font-size: 0.95rem;
   min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid $line-strong;
+  border-radius: $radius;
+  background: $paper;
+  color: $ink;
+  font-size: 0.9rem;
+  font-weight: 550;
+  line-height: 1.3;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
 
-  // Hover si PAS désactivé
   &:hover:not(:disabled) {
-    background: rgba($gold, 0.2);
+    border-color: $ink;
   }
 
-  // --- BOUTON ACTIF (Sélectionné) ---
   &.active,
   &.active-small {
-    background: $black;
-    color: $white;
-    border-color: $black;
-    font-weight: 600;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    background: $ink;
+    border-color: $ink;
+    color: $paper;
+    font-weight: 650;
 
-    // Si un bouton est ACTIF mais DISABLED (ex: Retombée Avant Obligatoire)
-    // On force le style ACTIF (Noir) au lieu du gris
     &:disabled {
       opacity: 1;
-      background: $black;
-      color: $white;
-      border-color: $black;
-      cursor: not-allowed; // Montre qu'on ne peut pas changer, mais le style reste "sélectionné"
+      background: $ink;
+      border-color: $ink;
+      color: $paper;
+      cursor: not-allowed;
     }
   }
 
-  // --- BOUTON DÉSACTIVÉ CLASSIQUE (Non sélectionné) ---
-  // S'applique uniquement si le bouton n'est PAS actif
   &:disabled:not(.active):not(.active-small) {
-    opacity: 0.5;
+    background: $canvas;
+    border-color: $line;
+    color: $faint;
     cursor: not-allowed;
-    background: #eee;
-    border-color: #ddd;
-    color: #999;
   }
 }
 
@@ -389,153 +334,343 @@ $border-color: #e0e0e0;
 .drilling-options,
 .sink-options-list {
   display: flex;
-  gap: 10px;
   flex-wrap: wrap;
+  gap: 8px;
 }
+
 .sink-options-list {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  @media (max-width: 480px) {
+
+  @media (max-width: $bp-sm) {
     grid-template-columns: 1fr;
   }
 }
+
+.rims-options-container {
+  width: 100%;
+}
+
+// --- Cases à cocher (dosserets, retombées, anti-goutte) ---
 .checkbox-group {
-  background: $white;
-  border: 1px solid $border-color;
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 1rem;
-  label {
-    margin: 0;
+  align-items: stretch;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding: 18px 22px;
+  background: $paper;
+  border: 1px solid $line;
+  border-radius: $radius-lg;
+
+  > label {
     display: flex;
     align-items: center;
-    cursor: pointer;
-    text-transform: none;
-    font-weight: 400;
+    margin: 0;
+    color: $ink;
     font-size: 1rem;
+    font-weight: 650;
+    cursor: pointer;
   }
+
   input[type="checkbox"] {
     appearance: none;
     -webkit-appearance: none;
-    width: 24px;
-    height: 24px;
-    border: 1px solid $black;
-    border-radius: 4px;
-    margin-right: 15px;
     display: grid;
     place-content: center;
-    transition: all 0.2s ease;
-    background-color: transparent;
-    margin-bottom: 0;
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    margin: 0 12px 0 0;
+    border: 1.5px solid $line-strong;
+    border-radius: $radius-sm;
+    background: $paper;
+    transition:
+      background-color 0.12s,
+      border-color 0.12s;
+
     &::before {
       content: "";
-      width: 14px;
-      height: 14px;
+      width: 12px;
+      height: 12px;
       transform: scale(0);
-      transition: 120ms transform ease-in-out;
+      transition: transform 0.12s ease-in-out;
       box-shadow: inset 1em 1em $gold;
-      transform-origin: center;
       clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
     }
+
     &:checked {
-      background-color: $black;
-      border-color: $black;
+      background: $ink;
+      border-color: $ink;
+
       &::before {
         transform: scale(1);
       }
     }
+
+    &:disabled {
+      cursor: not-allowed;
+    }
   }
 }
+
+// --- Ajout de cuve ---
+.add-sink {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 4px 0 20px;
+  padding: 14px 18px;
+  border: 1px dashed $line-strong;
+  border-radius: $radius-lg;
+
+  > span {
+    color: $ink;
+    font-size: 0.92rem;
+    font-weight: 650;
+  }
+
+  > div {
+    display: flex;
+    gap: 8px;
+  }
+}
+
 .actions {
   display: flex;
   gap: 1rem;
   margin-top: 1rem;
-  // Le .btn-secondary a été déplacé ci-dessous
 }
 
 .btn-secondary {
   width: 100%;
-  
-  /* --- MODIFICATIONS DEMANDÉES --- */
-  padding: 18px 25px;      /* Plus de padding (était 15px) */
-  font-size: 1.1rem;       /* Texte plus grand (défaut ~1rem) */
-  /* ------------------------------- */
-  
+  min-height: 46px;
+  padding: 12px 20px;
+  border: 1px solid $ink;
+  border-radius: $radius;
   background: transparent;
-  border: 1px solid $black;
-  border-radius: 6px;
-  color: $black;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  min-height: 44px;
-  
+  color: $ink;
+  font-size: 0.95rem;
+  font-weight: 650;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+
   &:hover:not(:disabled) {
-    background: $black;
-    color: $white;         /* Effet inversé au survol pour plus de style */
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    background: $ink;
+    color: $paper;
   }
 
   &:disabled {
-    opacity: 0.5;
+    border-color: $line;
+    background: $canvas;
+    color: $faint;
     cursor: not-allowed;
-    border-color: #ccc;
-    color: #999;
-    background: #f9f9f9;
   }
 }
+
+}
+
+// =============================================================
+// Carrousel de réalisations
+// =============================================================
+.carousel-area {
+  padding-bottom: env(safe-area-inset-bottom);
+  border-top: 1px solid $line;
+  background: $paper;
+
+  &.mobile-only {
+    display: none;
+
+    @media (max-width: $bp-lg) {
+      display: block;
+    }
+  }
+}
+
+.embla {
+  position: relative;
+  max-width: 100%;
+  margin: auto;
+  --slide-spacing: 0rem;
+  --slide-size: 100%;
+
+  .embla__viewport {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .embla__container {
+    display: flex;
+    margin-left: calc(var(--slide-spacing) * -1);
+    touch-action: pan-y pinch-zoom;
+  }
+
+  .embla__slide {
+    flex: 0 0 var(--slide-size);
+    min-width: 0;
+    padding-left: var(--slide-spacing);
+    transform: translate3d(0, 0, 0);
+  }
+
+  .embla__slide__inner {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    aspect-ratio: 2.4 / 1;
+    overflow: hidden;
+    background: $ink;
+
+    img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  .embla__buttons {
+    position: absolute;
+    top: 50%;
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0 12px;
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+
+  .embla__button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    margin: 0;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: rgba($paper, 0.85);
+    color: $ink;
+    box-shadow: $shadow-sm;
+    pointer-events: auto;
+    appearance: none;
+    transition: background-color 0.15s;
+
+    &:hover:not(:disabled) {
+      background: $paper;
+    }
+
+    &:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .embla__button__svg {
+      width: 45%;
+      height: 45%;
+    }
+  }
+
+  .embla__controls {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 10px;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+  }
+
+  .embla__dots {
+    display: flex;
+    gap: 0.4rem;
+    padding: 5px 9px;
+    border-radius: 20px;
+    background: rgba($ink, 0.35);
+    pointer-events: auto;
+  }
+
+  .embla__dot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 12px;
+    height: 12px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    appearance: none;
+
+    &::after {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba($paper, 0.5);
+      transition: background-color 0.2s;
+    }
+
+    &.embla__dot--selected::after {
+      background: $paper;
+    }
+  }
+}
+
+.layout {
+// =============================================================
+// Modale 3D
+// =============================================================
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  inset: 0;
   z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 20px;
+  background: rgba($ink, 0.8);
 }
+
 .modal-content {
-  background: white;
-  width: 90vw;
-  max-width: 500px;
-  height: auto;
-  max-height: 90vh;
-  overflow-y: auto;
   position: relative;
   display: flex;
   flex-direction: column;
+  width: 90vw;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
   padding: 2rem;
-  border-radius: 12px;
+  background: $paper;
+  border-radius: $radius-lg;
+
   .close-btn {
     position: absolute;
     top: 1rem;
     right: 1rem;
-    background: none;
-    border: none;
-    font-size: 2rem;
-    cursor: pointer;
-    padding: 10px;
     width: auto;
+    padding: 10px;
+    border: none;
+    background: none;
+    font-size: 2rem;
+
     &:hover {
-      background: none;
-      color: $gold;
+      color: $gold-dark;
     }
   }
+
   .canvas-container {
     flex: 1;
-    background: $grey-light;
-    margin: 1rem 0;
-    border-radius: 8px;
-    overflow: hidden;
     min-height: 200px;
+    margin: 1rem 0;
+    overflow: hidden;
+    border-radius: $radius;
+    background: $canvas;
   }
+}
 }

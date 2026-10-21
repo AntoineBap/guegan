@@ -1,30 +1,22 @@
 @use "sass:color";
 
-// ── Variables (reprises de home.scss) ─────────────────────────────────────
-$gold: #d4af37;
-$gold-light: rgba($gold, 0.08);
-$black: #1a1a1a;
-$grey-light: #f4f4f6;
-$grey-mid: #e0e0e0;
-$white: #ffffff;
-$text: #2c2c2c;
-$text-muted: #888;
-$danger: #c0392b;
-$danger-light: rgba($danger, 0.07);
-$success: #27ae60;
-$radius: 10px;
+@use "tokens" as t;
 
-@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap");
+$gold: t.$gold;
+$gold-light: rgba(t.$gold, 0.08);
+$black: t.$ink;
+$grey-light: t.$canvas;
+$grey-mid: t.$line;
+$white: t.$paper;
+$text: t.$text;
+$text-muted: t.$muted;
+$danger: t.$danger;
+$danger-light: t.$danger-soft;
+$success: t.$success;
+$radius: t.$radius-lg;
 
+.account-shell {
 // ── Layout ─────────────────────────────────────────────────────────────────
-// FIX: .layout must not clip its children. Ensure it can grow and scroll.
-.layout {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  // Remove any overflow: hidden that may have been set globally
-  overflow: visible;
-}
 
 .account-page {
   // FIX: use min-height + overflow-y auto so the page scrolls when content overflows
@@ -33,7 +25,7 @@ $radius: 10px;
   overflow-y: auto;
   background: $grey-light;
   padding: 48px 24px 80px;
-  font-family: "Manrope", sans-serif;
+  font-family: inherit;
 }
 
 .account-container {
@@ -86,7 +78,7 @@ $radius: 10px;
   border: none;
   background: transparent;
   border-radius: 7px;
-  font-family: "Manrope", sans-serif;
+  font-family: inherit;
   font-size: 0.85rem;
   font-weight: 500;
   color: $text-muted;
@@ -179,8 +171,6 @@ $radius: 10px;
     font-size: 0.8rem;
     font-weight: 600;
     color: $text;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
     display: flex;
     align-items: center;
     gap: 6px;
@@ -210,7 +200,7 @@ $radius: 10px;
     padding: 11px 14px;
     border: 1px solid $grey-mid;
     border-radius: 8px;
-    font-family: "Manrope", sans-serif;
+    font-family: inherit;
     font-size: 0.9rem;
     color: $text;
     background: $white;
@@ -382,14 +372,12 @@ $radius: 10px;
   background: $black;
   color: $white;
   border: none;
-  border-radius: 50px;
-  font-family: "Manrope", sans-serif;
+  border-radius: t.$radius;
+  font-family: inherit;
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
 
   &:hover:not(:disabled) {
     background: color.adjust($black, $lightness: 12%);
@@ -425,7 +413,7 @@ $radius: 10px;
     padding: 11px 14px;
     border: 1px solid rgba($danger, 0.3);
     border-radius: 8px;
-    font-family: "Manrope", sans-serif;
+    font-family: inherit;
     font-size: 0.9rem;
     background: $white;
     outline: none;
@@ -448,14 +436,12 @@ $radius: 10px;
   background: $danger;
   color: $white;
   border: none;
-  border-radius: 50px;
-  font-family: "Manrope", sans-serif;
+  border-radius: t.$radius;
+  font-family: inherit;
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
 
   &:hover:not(:disabled) {
     background: color.adjust($danger, $lightness: -6%);
@@ -466,4 +452,5 @@ $radius: 10px;
     opacity: 0.4;
     cursor: not-allowed;
   }
+}
 }

@@ -1,193 +1,241 @@
-import React, { useContext, useState, useEffect } from 'react';
-import { SettingsContext } from '../contexts/SettingsContext';
-import { AuthContext } from '../contexts/AuthContext';
-import Header from '../components/Header';
-import { useNavigate } from 'react-router-dom';
-import '../styles/adminVariables.scss'; // <--- NOUVEL IMPORT CSS
+import React, { useContext, useState, useEffect, useMemo } from "react";
+import { Helmet } from "react-helmet-async";
+import { SettingsContext } from "../contexts/SettingsContext";
+import { AuthContext } from "../contexts/AuthContext";
+import useToast from "../components/useToast";
+import { formatPrice } from "../utils/format";
 
-const AdminVariables = () => {
-    const { settings, setSettings, saveSettings } = useContext(SettingsContext);
-    const { token } = useContext(AuthContext);
-    const [localSettings, setLocalSettings] = useState(null);
-    const navigate = useNavigate();
+const clone = (o) => JSON.parse(JSON.stringify(o));
 
-    // Initialisation
-    useEffect(() => {
-        if (settings) {
-            setLocalSettings(JSON.parse(JSON.stringify(settings)));
-        }
-    }, [settings]);
+// Même formule que le configurateur et le serveur : A × ln(h − B) − C (€/ml)
+const pricePerMeter = (f, h) => (h > f.b ? Math.max(0, f.a * Math.log(h - f.b) - f.c) : 0);
 
-    // Helpers
-    const updateSinkPrice = (name, val) => {
-        setLocalSettings(prev => ({
-            ...prev,
-            sinkPrices: { ...prev.sinkPrices, [name]: Number(val) }
-        }));
-    };
+const Field = ({ label, hint, unit, value, original, onChange, step = 1 }) => (
+  <div className={`field-row ${Number(value) !== Number(original) ? "is-changed" : ""}`}>
+    <label>
+      {label}
+      {hint && <small>{hint}</small>}
+    </label>
+    <div className="input-unit">
+      <input
+        type="number"
+        inputMode="decimal"
+        min="0"
+        step={step}
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value === "" ? "" : Number(e.target.value))}
+        onWheel={(e) => e.target.blur()}
+      />
+      {unit && <span>{unit}</span>}
+    </div>
+  </div>
+);
 
-    const updatePrice = (key, val) => {
-        setLocalSettings(prev => ({
-            ...prev,
-            prices: { ...prev.prices, [key]: Number(val) }
-        }));
-    };
-
-    const updateConstraint = (key, val) => {
-        setLocalSettings(prev => ({
-            ...prev,
-            constraints: { ...prev.constraints, [key]: Number(val) }
-        }));
-    };
-
-    const updateFormula = (type, param, val) => {
-        setLocalSettings(prev => ({
-            ...prev,
-            linearFormula: {
-                ...prev.linearFormula,
-                [type]: { ...prev.linearFormula[type], [param]: Number(val) }
-            }
-        }));
-    };
-
-    const handleSave = async () => {
-        if (!window.confirm("Êtes-vous sûr de vouloir appliquer ces changements sur le site ?")) return;
-
-        const success = await saveSettings(localSettings, token);
-        if (success) {
-            setSettings(localSettings);
-            alert("Configuration mise à jour avec succès !");
-        } else {
-            alert("Erreur lors de la sauvegarde.");
-        }
-    };
-
-    if (!localSettings) return <div style={{ padding: '40px' }}>Chargement...</div>;
-
-    return (
-        <div className="admin-variables-page">
-            <Header />
-            <div className="content-wrapper"> {/* Ajout d'une classe wrapper pour le CSS */}
-                
-                {/* --- LE BOUTON EXACTEMENT COMME DANS ADMINUSERS --- */}
-                <button className="back-btn" onClick={() => navigate('/admin')}>
-                    ← Retour Dashboard
-                </button>
-
-                <h2 style={{ marginBottom: '30px' }}>Configuration Globale</h2>
-                
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '20px' }}>
-                    
-                    {/* --- BLOC 1 : PRIX DES CUVES --- */}
-                    <div style={cardStyle}>
-                        <h3 style={titleStyle}>📦 Prix des Cuves (HT)</h3>
-                        {Object.entries(localSettings.sinkPrices).map(([name, price]) => (
-                            <div key={name} style={rowStyle}>
-                                <label>{name}</label>
-                                <input type="number" value={price} onChange={(e) => updateSinkPrice(name, e.target.value)} style={inputStyle} />
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* --- BLOC 2 : OPTIONS & DIVERS --- */}
-                    <div style={cardStyle}>
-                        <h3 style={titleStyle}>🛠️ Options & Accessoires</h3>
-                        <div style={rowStyle}>
-                            <label>Perçage Robinetterie (€)</label>
-                            <input type="number" value={localSettings.prices.tapHole} onChange={(e) => updatePrice('tapHole', e.target.value)} style={inputStyle} />
-                        </div>
-                        <div style={rowStyle}>
-                            <label>Rainurage Égouttoir (€)</label>
-                            <input type="number" value={localSettings.prices.drainer} onChange={(e) => updatePrice('drainer', e.target.value)} style={inputStyle} />
-                        </div>
-                        <div style={rowStyle}>
-                            <label>Anti-goutte /ml (€/m)</label>
-                            <input type="number" value={localSettings.prices.waterDrip} onChange={(e) => updatePrice('waterDrip', e.target.value)} style={inputStyle} />
-                        </div>
-                    </div>
-
-                    {/* --- BLOC 3 : CONTRAINTES & DÉLAIS --- */}
-                    <div style={cardStyle}>
-                        <h3 style={titleStyle}>📏 Contraintes & Délais</h3>
-                        <div style={rowStyle}>
-                            <label>Longueur Max Plan (mm)</label>
-                            <input type="number" value={localSettings.constraints.maxLength} onChange={(e) => updateConstraint('maxLength', e.target.value)} style={inputStyle} />
-                        </div>
-                        <div style={rowStyle}>
-                            <label>Profondeur Max Plan (mm)</label>
-                            <input type="number" value={localSettings.constraints.maxDepth} onChange={(e) => updateConstraint('maxDepth', e.target.value)} style={inputStyle} />
-                        </div>
-                        <div style={{...rowStyle, borderTop: '1px solid #eee', paddingTop: '15px', marginTop: '15px'}}>
-                            <label style={{fontWeight: 'bold', color: '#d4af37'}}>Délai Livraison (jours)</label>
-                            <input 
-                                type="number" 
-                                value={localSettings.constraints.leadTime || 15} 
-                                onChange={(e) => updateConstraint('leadTime', e.target.value)} 
-                                style={inputStyle} 
-                            />
-                        </div>
-                    </div>
-
-                    {/* --- BLOC 4 : FORMULES DOSSERETS/RETOMBÉES --- */}
-                    <div style={{...cardStyle, gridColumn: '1 / -1'}}>
-                        <h3 style={titleStyle}>🧮 Formules de Calcul Linéaire</h3>
-                        <p style={{fontSize: '0.8em', color: '#666', marginBottom: '15px'}}>
-                            Formule : <code>Prix = A * ln(Hauteur - B) - C</code>. Attention : modifier ces valeurs change la courbe de prix.
-                        </p>
-                        
-                        <div style={{display: 'flex', gap: '40px', flexWrap: 'wrap'}}>
-                            <div style={{flex: 1}}>
-                                <h4 style={{marginBottom: '10px', color: '#d4af37'}}>Dosserets (Rims)</h4>
-                                <div style={rowStyle}>
-                                    <label>Coeff A (Multiplicateur)</label>
-                                    <input type="number" step="0.1" value={localSettings.linearFormula.rims.a} onChange={(e) => updateFormula('rims', 'a', e.target.value)} style={inputStyle} />
-                                </div>
-                                <div style={rowStyle}>
-                                    <label>Offset B (Seuil min)</label>
-                                    <input type="number" step="0.1" value={localSettings.linearFormula.rims.b} onChange={(e) => updateFormula('rims', 'b', e.target.value)} style={inputStyle} />
-                                </div>
-                                <div style={rowStyle}>
-                                    <label>Coeff C (Ajustement)</label>
-                                    <input type="number" step="0.1" value={localSettings.linearFormula.rims.c} onChange={(e) => updateFormula('rims', 'c', e.target.value)} style={inputStyle} />
-                                </div>
-                            </div>
-
-                            <div style={{flex: 1}}>
-                                <h4 style={{marginBottom: '10px', color: '#d4af37'}}>Retombées (Aprons)</h4>
-                                <div style={rowStyle}>
-                                    <label>Coeff A (Multiplicateur)</label>
-                                    <input type="number" step="0.1" value={localSettings.linearFormula.aprons.a} onChange={(e) => updateFormula('aprons', 'a', e.target.value)} style={inputStyle} />
-                                </div>
-                                <div style={rowStyle}>
-                                    <label>Offset B (Seuil min)</label>
-                                    <input type="number" step="0.1" value={localSettings.linearFormula.aprons.b} onChange={(e) => updateFormula('aprons', 'b', e.target.value)} style={inputStyle} />
-                                </div>
-                                <div style={rowStyle}>
-                                    <label>Coeff C (Ajustement)</label>
-                                    <input type="number" step="0.1" value={localSettings.linearFormula.aprons.c} onChange={(e) => updateFormula('aprons', 'c', e.target.value)} style={inputStyle} />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div style={{ marginTop: '30px', textAlign: 'center' }}>
-                    <button 
-                        onClick={handleSave}
-                        style={{ padding: '15px 40px', background: '#27ae60', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '18px', fontWeight: 'bold' }}
-                    >
-                        Enregistrer toute la configuration
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
+const FormulaBlock = ({ title, type, local, original, update }) => {
+  const f = local.linearFormula[type];
+  const heights = type === "rims" ? [100, 200, 350, 550] : [60, 100, 150, 200];
+  return (
+    <div>
+      <h3 style={{ fontSize: "0.95rem", margin: "0 0 4px" }}>{title}</h3>
+      {["a", "b", "c"].map((k) => (
+        <Field
+          key={k}
+          label={{ a: "Coefficient A", b: "Seuil B", c: "Ajustement C" }[k]}
+          hint={{ a: "multiplicateur", b: "hauteur minimale facturée (mm)", c: "valeur soustraite" }[k]}
+          step="0.1"
+          value={f[k]}
+          original={original.linearFormula[type][k]}
+          onChange={(v) => update(["linearFormula", type, k], v)}
+        />
+      ))}
+      <table className="formula-preview">
+        <thead>
+          <tr>
+            <th>Hauteur</th>
+            {heights.map((h) => (
+              <th key={h}>{h} mm</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Prix / mètre</td>
+            {heights.map((h) => (
+              <td key={h}>{formatPrice(pricePerMeter(f, h))}</td>
+            ))}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
 };
 
-// Styles inline conservés pour le layout interne
-const cardStyle = { background: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' };
-const titleStyle = { marginTop: 0, borderBottom: '2px solid #eee', paddingBottom: '10px', marginBottom: '15px' };
-const rowStyle = { marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' };
-const inputStyle = { padding: '8px', width: '100px', border: '1px solid #ddd', borderRadius: '4px', textAlign: 'right' };
+const AdminVariables = () => {
+  const { settings, setSettings, saveSettings } = useContext(SettingsContext);
+  const { token } = useContext(AuthContext);
+  const [local, setLocal] = useState(null);
+  const [original, setOriginal] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [toast, toastNode] = useToast();
+
+  useEffect(() => {
+    if (settings) {
+      setLocal(clone(settings));
+      setOriginal(clone(settings));
+    }
+  }, [settings]);
+
+  const dirty = useMemo(() => local && original && JSON.stringify(local) !== JSON.stringify(original), [local, original]);
+
+  // Prévient avant de quitter la page avec des changements non enregistrés
+  useEffect(() => {
+    if (!dirty) return;
+    const onBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [dirty]);
+
+  const update = (path, value) =>
+    setLocal((prev) => {
+      const next = clone(prev);
+      let o = next;
+      path.slice(0, -1).forEach((k) => {
+        o[k] = o[k] || {};
+        o = o[k];
+      });
+      o[path[path.length - 1]] = value;
+      return next;
+    });
+
+  const invalid = useMemo(() => {
+    if (!local) return false;
+    const nums = [
+      ...Object.values(local.sinkPrices),
+      ...Object.values(local.prices),
+      local.constraints.maxLength,
+      local.constraints.maxDepth,
+      ...["rims", "aprons"].flatMap((t) => Object.values(local.linearFormula[t])),
+    ];
+    return nums.some((n) => n === "" || !Number.isFinite(Number(n)) || Number(n) < 0);
+  }, [local]);
+
+  const handleSave = async () => {
+    if (invalid) return toast("Certaines valeurs sont vides ou négatives.", "error");
+    if (!window.confirm("Appliquer ces tarifs sur le site ? Les nouveaux prix s'appliquent immédiatement aux commandes.")) return;
+    setSaving(true);
+    const ok = await saveSettings(local, token);
+    setSaving(false);
+    if (ok) {
+      setSettings(clone(local));
+      setOriginal(clone(local));
+      toast("Tarifs enregistrés.");
+    } else {
+      toast("Erreur lors de l'enregistrement.", "error");
+    }
+  };
+
+  if (!local) return <div className="loading-state" />;
+
+  return (
+    <div className="admin-page">
+      <Helmet>
+        <title>Tarifs & paramètres — Administration</title>
+      </Helmet>
+
+      <div className="page-head">
+        <div>
+          <p className="eyebrow">Boutique</p>
+          <h1>Tarifs & paramètres</h1>
+          <p className="sub">Prix HT utilisés par le configurateur et recalculés par le serveur à chaque commande.</p>
+        </div>
+      </div>
+
+      <div className="settings-grid">
+        <section className="panel">
+          <div className="panel-head">
+            <h2>Cuves</h2>
+            <span className="hint">prix unitaire HT</span>
+          </div>
+          <div className="panel-body">
+            {Object.entries(local.sinkPrices).map(([name, price]) => (
+              <Field
+                key={name}
+                label={name.replace("Cuve ", "")}
+                unit="€"
+                value={price}
+                original={original.sinkPrices[name]}
+                onChange={(v) => update(["sinkPrices", name], v)}
+              />
+            ))}
+          </div>
+        </section>
+
+        <section className="panel">
+          <div className="panel-head">
+            <h2>Options</h2>
+            <span className="hint">HT</span>
+          </div>
+          <div className="panel-body">
+            <Field label="Perçage robinetterie" hint="par cuve" unit="€" value={local.prices.tapHole} original={original.prices.tapHole} onChange={(v) => update(["prices", "tapHole"], v)} />
+            <Field label="Rainurage égouttoir" hint="par cuve" unit="€" value={local.prices.drainer} original={original.prices.drainer} onChange={(v) => update(["prices", "drainer"], v)} />
+            <Field label="Anti-goutte" hint="au mètre linéaire" unit="€/m" value={local.prices.waterDrip} original={original.prices.waterDrip} onChange={(v) => update(["prices", "waterDrip"], v)} />
+          </div>
+        </section>
+
+        <section className="panel">
+          <div className="panel-head">
+            <h2>Contraintes & délais</h2>
+          </div>
+          <div className="panel-body">
+            <Field label="Largeur maximale" unit="mm" value={local.constraints.maxLength} original={original.constraints.maxLength} onChange={(v) => update(["constraints", "maxLength"], v)} />
+            <Field label="Profondeur maximale" unit="mm" value={local.constraints.maxDepth} original={original.constraints.maxDepth} onChange={(v) => update(["constraints", "maxDepth"], v)} />
+            <Field
+              label="Délai de fabrication"
+              hint="affiché au client"
+              unit="jours"
+              value={local.constraints.leadTime ?? 15}
+              original={original.constraints.leadTime ?? 15}
+              onChange={(v) => update(["constraints", "leadTime"], v)}
+            />
+          </div>
+        </section>
+      </div>
+
+      <section className="panel" style={{ marginTop: 20 }}>
+        <div className="panel-head">
+          <h2>Dosserets et retombées</h2>
+          <span className="hint">prix au mètre selon la hauteur</span>
+        </div>
+        <div className="panel-body">
+          <p className="formula-note">
+            Prix par mètre linéaire = <code>A × ln(hauteur − B) − C</code>. Le tableau sous chaque bloc montre l'effet des valeurs saisies avant enregistrement.
+          </p>
+          <div className="settings-grid">
+            <FormulaBlock title="Dosserets" type="rims" local={local} original={original} update={update} />
+            <FormulaBlock title="Retombées" type="aprons" local={local} original={original} update={update} />
+          </div>
+        </div>
+      </section>
+
+      {dirty && (
+        <div className="save-bar">
+          <span>Modifications non enregistrées</span>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="btn btn-outline btn-sm" onClick={() => setLocal(clone(original))} disabled={saving}>
+              Annuler
+            </button>
+            <button className="btn btn-gold btn-sm" onClick={handleSave} disabled={saving}>
+              {saving ? "Enregistrement…" : "Enregistrer"}
+            </button>
+          </div>
+        </div>
+      )}
+      {toastNode}
+    </div>
+  );
+};
 
 export default AdminVariables;

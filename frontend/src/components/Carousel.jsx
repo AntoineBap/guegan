@@ -29,7 +29,14 @@ const Carousel = (props) => {
           {slides.map((imageSrc, index) => (
             <div className="embla__slide" key={index}>
               <div className="embla__slide__inner">
-                <img src={imageSrc} alt={`Slide ${index}`} />
+                <img
+                  src={`${imageSrc}-1000.webp`}
+                  srcSet={`${imageSrc}-1000.webp 1000w, ${imageSrc}-2000.webp 2000w`}
+                  sizes="(max-width: 900px) 100vw, 50vw"
+                  alt={`Réalisation Guegan ${index + 1}`}
+                  loading={index === 0 ? "eager" : "lazy"}
+                  decoding="async"
+                />
               </div>
             </div>
           ))}

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import "../styles/verifyEmail.scss"; // Import du fichier SCSS
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
+import "../styles/login.scss";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
@@ -9,77 +10,79 @@ const VerifyEmail = () => {
   const navigate = useNavigate();
   const [status, setStatus] = useState("loading");
 
-  // Création d'un verrou pour empêcher la double exécution
+  // Évite la double exécution en mode strict (le lien n'est valable qu'une fois)
   const hasCalledAPI = useRef(false);
 
   useEffect(() => {
-    if (hasCalledAPI.current) return;
-
+    if (hasCalledAPI.current || !token) return;
     hasCalledAPI.current = true;
 
-    const verifyAccount = async () => {
-      try {
-        const response = await fetch(`${API_URL}/api/auth/verify/${token}`);
-
+    fetch(`${API_URL}/api/auth/verify/${encodeURIComponent(token)}`)
+      .then((response) => {
         if (response.ok) {
           setStatus("success");
-          setTimeout(() => navigate("/login"), 3000);
+          setTimeout(() => navigate("/login"), 4000);
         } else {
           setStatus("error");
         }
-      } catch (error) {
-        setStatus("error");
-      }
-    };
-
-    if (token) verifyAccount();
+      })
+      .catch(() => setStatus("error"));
   }, [token, navigate]);
 
   return (
-    <div className="verify-email-page">
-      <div className="verify-card">
-        {status === "loading" && (
-          <div className="loading-content">
-            <h2>🔄 Validation en cours...</h2>
-            <p>Veuillez patienter quelques instants.</p>
-          </div>
-        )}
+    <div className="login-page">
+      <Helmet>
+        <title>Activation du compte — Guegan Shop</title>
+        <meta name="robots" content="noindex" />
+      </Helmet>
+      <aside className="login-aside">
+        <Link to="/" className="logo">
+          GUEGAN <span>Shop</span>
+        </Link>
+        <div />
+        <p>
+          Une question ? <a href="tel:0148400505">01 48 40 05 05</a>
+        </p>
+      </aside>
 
-        {status === "success" && (
-          <div className="success-content">
-            <h1>Compte validé !</h1>
-            <p>Votre compte professionnel est désormais actif.</p>
-            <p style={{ fontSize: "0.9rem", marginTop: "10px" }}>
-              Redirection automatique vers la connexion...
-            </p>
-            <button onClick={() => navigate("/login")} className="btn-primary">
-              Se connecter maintenant
-            </button>
-          </div>
-        )}
+      <main className="login-main">
+        <div className="login-card" aria-live="polite">
+          {status === "loading" && (
+            <>
+              <p className="eyebrow">Activation</p>
+              <h1>Validation en cours…</h1>
+              <p className="lead">Merci de patienter quelques instants.</p>
+            </>
+          )}
 
-        {status === "error" && (
-          <div className="error-content">
-            <h1>Une erreur est survenue</h1>
-            <div className="error-box">
-              <p>
-                Le lien est invalide ou a peut-être{" "}
-                <strong>déjà été utilisé</strong>.
+          {status === "success" && (
+            <>
+              <p className="eyebrow">Compte activé</p>
+              <h1>Bienvenue chez Guegan Shop</h1>
+              <p className="lead">
+                Votre compte professionnel est actif. Vous allez être redirigé vers la page de connexion.
               </p>
-            </div>
-            <p>
-              Essayez de vous connecter directement, votre compte est peut-être
-              déjà actif.
-            </p>
-            <button
-              onClick={() => navigate("/login")}
-              className="btn-secondary"
-            >
-              Retour à la connexion
-            </button>
-          </div>
-        )}
-      </div>
+              <Link to="/login" className="btn btn-primary btn-lg btn-block">
+                Se connecter
+              </Link>
+            </>
+          )}
+
+          {status === "error" && (
+            <>
+              <p className="eyebrow">Lien expiré</p>
+              <h1>Ce lien n'est plus valable</h1>
+              <p className="lead">
+                Il a peut-être déjà été utilisé : dans ce cas votre compte est déjà actif et vous pouvez
+                vous connecter directement.
+              </p>
+              <Link to="/login" className="btn btn-primary btn-lg btn-block">
+                Aller à la connexion
+              </Link>
+            </>
+          )}
+        </div>
+      </main>
     </div>
   );
 };

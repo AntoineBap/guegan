@@ -1,274 +1,344 @@
+@use "tokens" as *;
+
 .header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-
-  /* Padding par défaut desktop */
-  padding: 15px 30px;
-
-  background-color: white;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  position: sticky; /* Sticky pour rester visible mais respecter le scroll si nécessaire */
+  position: sticky;
   top: 0;
   z-index: 100;
-  transition: all 0.3s ease;
+  background: rgba($paper, 0.96);
+  backdrop-filter: saturate(1.4) blur(8px);
+  border-bottom: 1px solid $line;
 
-  .social-links {
+  .header-inner {
     display: flex;
-    gap: 10px;
-    margin-right: auto;
-    padding-right: 20px;
-
-    .social-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 32px;
-      height: 32px;
-      background-color: #d4af37;
-      border: 1.5px solid #111;
-      border-radius: 6px;
-      transition: all 0.2s ease;
-      text-decoration: none;
-
-      svg {
-        width: 18px;
-        height: 18px;
-        fill: #111;
-      }
-      &.instagram svg {
-        fill: none;
-        stroke: #111;
-      }
-      &:hover {
-        transform: translateY(-2px);
-        background-color: #c5a028;
-      }
-    }
-
-    @media (max-width: 768px) {
-      display: none;
-    }
+    align-items: center;
+    gap: 32px;
+    height: 64px;
+    padding: 0 28px;
+    max-width: 1600px;
+    margin: 0 auto;
   }
 
   .logo {
-    font-size: 1.5rem;
-    font-weight: 800;
-    cursor: pointer;
-    color: #111;
     display: flex;
     align-items: baseline;
     gap: 6px;
-    transition:
-      transform 0.2s,
-      font-size 0.3s;
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-
-    &:hover {
-      transform: translateX(-50%) translateY(-1px);
-    }
+    font-size: 1.3rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: $ink;
+    text-decoration: none;
+    flex-shrink: 0;
 
     .subtitle {
-      font-size: 0.8rem;
-      color: #888;
-      font-weight: 400;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: $gold-dark;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 0.14em;
+    }
+  }
+
+  .main-nav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+
+    > a {
+      position: relative;
+      padding: 8px 12px;
+      color: $muted;
+      font-size: 0.92rem;
+      font-weight: 600;
+      text-decoration: none;
+      border-radius: $radius;
+      transition: color 0.15s;
+
+      &:hover {
+        color: $ink;
+      }
+
+      &.active {
+        color: $ink;
+
+        &::after {
+          content: "";
+          position: absolute;
+          left: 12px;
+          right: 12px;
+          bottom: -13px;
+          height: 2px;
+          background: $gold;
+        }
+      }
     }
 
-    @media (max-width: 768px) {
-      position: static;
-      transform: none;
-      margin-right: auto;
-      font-size: 1.3rem; /* Logo plus petit sur mobile */
+    .nav-admin {
+      color: $gold-dark;
+    }
+
+    .social-links {
+      display: flex;
+      gap: 2px;
+      margin-left: auto;
+
+      a {
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        color: $faint;
+        border-radius: $radius;
+        transition: color 0.15s;
+
+        &:hover {
+          color: $ink;
+        }
+      }
     }
   }
 
   .header-actions {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 8px;
+  }
 
-    /* Styles de base des boutons */
-    button {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 16px;
-      border-radius: 6px;
-      border: 1px solid #ddd;
-      background-color: white;
-      cursor: pointer;
-      font-weight: 600;
-      transition: all 0.2s;
-      min-height: 40px;
-      font-family: "Manrope", sans-serif;
+  .login-link,
+  .account-btn,
+  .cart-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 14px;
+    border-radius: $radius;
+    font-size: 0.9rem;
+    font-weight: 650;
+    text-decoration: none;
+    white-space: nowrap;
+    transition:
+      background-color 0.15s,
+      border-color 0.15s;
+  }
 
-      .icon {
-        font-size: 1.2rem;
-      }
-      .text {
-        display: block;
-      }
-      .btn-icon {
-        display: none;
-        flex-shrink: 0;
-      }
+  .login-link,
+  .account-btn {
+    color: $ink;
+    background: transparent;
+    border: 1px solid $line;
 
-      &:hover {
-        background-color: #f5f5f5;
-        border-color: #bbb;
-      }
+    &:hover,
+    &.active {
+      border-color: $line-strong;
+      background: $canvas;
+    }
+  }
+
+  .account-btn {
+    padding-left: 5px;
+
+    .avatar {
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: $ink;
+      color: $gold;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
     }
 
-    .admin-btn {
-      background-color: #111;
-      color: white;
-      border: 1px solid #111;
-      &:hover {
-        background-color: #333;
-      }
+    svg:last-child {
+      color: $muted;
+    }
+  }
+
+  .cart-btn {
+    position: relative;
+    background: $ink;
+    color: $paper;
+    border: 1px solid $ink;
+
+    &:hover {
+      background: #2b2b29;
     }
 
-    .config-btn {
-      background-color: white;
-      color: #111;
-      border: 1px solid #ddd;
-      &:hover {
-        background-color: #f5f5f5;
-        border-color: #bbb;
-      }
+    .count {
+      display: grid;
+      place-items: center;
+      min-width: 20px;
+      height: 20px;
+      padding: 0 5px;
+      border-radius: 10px;
+      background: $gold;
+      color: $ink;
+      font-size: 0.72rem;
+      font-weight: 800;
     }
+  }
 
-    .cart-btn {
-      position: relative;
-      background-color: #111;
-      color: white;
-      border: 1px solid #111;
-      &:hover {
-        background-color: #333;
-        transform: translateY(-1px);
-      }
-      .badge {
-        position: absolute;
-        top: -5px;
-        right: -5px;
-        background-color: #e74c3c;
-        color: white;
-        font-size: 0.75rem;
-        font-weight: 700;
-        min-width: 18px;
-        height: 18px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: 2px solid white;
-      }
-    }
+  .account-menu {
+    position: relative;
 
-    .profile-container {
-      position: relative;
-      .dropdown-content {
-        position: absolute;
-        top: 100%;
-        right: 0;
-        background-color: white;
-        min-width: 180px;
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-        border: 1px solid #eee;
-        border-radius: 8px;
-        padding: 8px;
+    .dropdown {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      min-width: 230px;
+      padding: 6px;
+      background: $paper;
+      border: 1px solid $line;
+      border-radius: $radius-lg;
+      box-shadow: $shadow;
+      animation: dropIn 0.14s ease-out;
+
+      .dropdown-head {
         display: flex;
         flex-direction: column;
-        gap: 4px;
-        visibility: hidden;
-        opacity: 0;
-        transform: translateY(10px);
-        transition: all 0.2s ease;
-        z-index: 10;
-        margin-top: 5px;
-        &.visible {
-          visibility: visible;
-          opacity: 1;
-          transform: translateY(0);
-        }
-        .menu-item,
-        .logout-item {
-          width: 100%;
-          text-align: left;
-          background: none;
-          border: none;
-          padding: 10px 15px;
-          border-radius: 4px;
-          font-weight: 500;
-          transition: background 0.2s;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          
-          svg {
-            flex-shrink: 0;
-            opacity: 0.65;
-          }
+        padding: 10px 12px 12px;
+        border-bottom: 1px solid $line;
+        margin-bottom: 6px;
 
-          &:hover {
-            background-color: #f5f5f5;
-            svg {
-              opacity: 1;
-            }
-          }
+        strong {
+          color: $ink;
+          font-size: 0.92rem;
         }
-        .logout-item {
-          color: #e74c3c;
-          &:hover {
-            background-color: #fee2e2;
-            color: #991b1b;
-          }
+
+        span {
+          color: $muted;
+          font-size: 0.82rem;
         }
-        .dropdown-divider {
-          height: 1px;
-          background: #f0f0f0;
-          margin: 4px 0;
+      }
+
+      a,
+      button {
+        display: block;
+        width: 100%;
+        padding: 9px 12px;
+        border: none;
+        border-radius: $radius-sm;
+        background: none;
+        color: $text;
+        font-size: 0.9rem;
+        font-weight: 550;
+        text-align: left;
+        text-decoration: none;
+
+        &:hover {
+          background: $canvas;
+          color: $ink;
+        }
+      }
+
+      hr {
+        border: none;
+        border-top: 1px solid $line;
+        margin: 6px 0;
+      }
+
+      .logout {
+        color: $danger;
+
+        &:hover {
+          background: $danger-soft;
+          color: $danger;
         }
       }
     }
+  }
 
-    /* --- RESPONSIVE MOBILE : Header affiné --- */
-    @media (max-width: 768px) {
+  .nav-toggle {
+    display: none;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    margin-left: -8px;
+    border: none;
+    background: none;
+    color: $ink;
+    border-radius: $radius;
+  }
+
+  // --- TABLETTE / MOBILE ---
+  @media (max-width: 900px) {
+    .header-inner {
       gap: 8px;
+      height: 58px;
+      padding: 0 16px;
+    }
 
-      /* On force les boutons à être plus petits et carrés (sans texte) */
-      button {
-        padding: 8px;
-        width: 38px;
-        height: 38px;
-        justify-content: center;
+    .nav-toggle {
+      display: grid;
+    }
 
-        .text {
+    .logo {
+      margin-right: auto;
+      font-size: 1.15rem;
+    }
+
+    .main-nav {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0;
+      padding: 8px 16px 16px;
+      background: $paper;
+      border-bottom: 1px solid $line;
+      box-shadow: $shadow;
+
+      &.open {
+        display: flex;
+      }
+
+      > a {
+        padding: 14px 4px;
+        font-size: 1rem;
+        border-bottom: 1px solid $line;
+        border-radius: 0;
+
+        &.active::after {
           display: none;
         }
-        .icon {
-          font-size: 1.1rem;
-        }
-        .btn-icon {
-          display: block;
-        }
       }
 
-      /* Le bouton profil peut garder un style spécifique si besoin */
-      .profile-container .profile-btn {
-        width: 38px;
-        height: 38px;
-      }
-
-      /* Ajustement du bouton panier */
-      .cart-btn {
-        width: 38px;
-        height: 38px;
+      .social-links {
+        margin: 12px 0 0;
       }
     }
+
+    .label {
+      display: none;
+    }
+
+    .login-link,
+    .cart-btn {
+      padding: 0 11px;
+    }
+
+    .account-btn {
+      padding: 0 5px;
+
+      svg:last-child {
+        display: none;
+      }
+    }
+  }
+}
+
+@keyframes dropIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }

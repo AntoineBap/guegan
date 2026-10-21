@@ -1,25 +1,21 @@
 import React, { useContext } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
 
 const ProtectedRoute = ({ children, adminOnly = false }) => {
-  const { isAuthenticated, isAdmin, loading } = useContext(AuthContext);
+  const { isAuthenticated, isAdmin } = useContext(AuthContext);
+  const location = useLocation();
 
-  if (loading) {
-    return <div>Chargement...</div>; // Ou un spinner
-  }
-
-  // 1. Si pas connecté -> Hop, page de login
+  // Pas connecté : page de connexion, puis retour ici une fois connecté
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
 
-  // 2. Si la page est réservée aux admins et que l'user n'est pas admin -> Hop, accueil
+  // Page réservée aux admins
   if (adminOnly && !isAdmin) {
     return <Navigate to="/" replace />;
   }
 
-  // 3. Sinon, on laisse passer (on affiche la page demandée)
   return children;
 };
 

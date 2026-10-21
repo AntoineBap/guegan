@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useContext } from "react";
+import { Link } from "react-router-dom";
 import { useCart } from "../contexts/CartContext";
 import { AuthContext } from "../contexts/AuthContext";
 import "../styles/configResume.scss";
@@ -459,7 +460,7 @@ const ConfigResume = ({ config, onReset, sinkSpecs, settings, editIndex = null, 
         {/* --- FOOTER --- */}
         <div className="summary-footer">
           <div className="unit-price-row">
-            <span>Prix Unitaire HT</span>
+            <span>Prix unitaire HT</span>
             {isAuthenticated ? (
               <span>{fmt(unitTotalPrice)}</span>
             ) : (
@@ -473,10 +474,12 @@ const ConfigResume = ({ config, onReset, sinkSpecs, settings, editIndex = null, 
               <input
                 type="number"
                 min="1"
+                max="100"
+                inputMode="numeric"
                 value={quantity}
                 onChange={(e) => {
-                  const val = parseInt(e.target.value);
-                  setQuantity(val > 0 ? val : 1);
+                  const val = parseInt(e.target.value, 10);
+                  setQuantity(val > 0 ? Math.min(val, 100) : 1);
                 }}
               />
             </div>
@@ -493,15 +496,14 @@ const ConfigResume = ({ config, onReset, sinkSpecs, settings, editIndex = null, 
 
           {!isAuthenticated && (
             <div className="lock-msg">
-              🔒 Connectez-vous pour voir les tarifs
+              Tarifs réservés aux professionnels : <Link to="/login" state={{ from: "/configurator" }}>se connecter</Link>
             </div>
           )}
         </div>
 
         {/* --- POIDS --- */}
         <div className={`weight-alert ${isHeavy ? "heavy" : "light"}`}>
-          {isHeavy && <span style={{ marginRight: "5px" }}>⚠️</span>}
-          Poids estimé : <strong>{totalWeight} kg</strong>
+          Poids estimé : <strong>{totalWeight.toLocaleString("fr-FR")} kg</strong>
           {isHeavy && (
             <span className="sub-text">
               Attention, charge lourde (prévoir manutention).
@@ -510,17 +512,10 @@ const ConfigResume = ({ config, onReset, sinkSpecs, settings, editIndex = null, 
         </div>
 
         <button
-          className="btn-add-cart"
+          className={`btn-add-cart ${isEditMode ? "is-edit" : ""}`}
           onClick={performAddToCart}
-          style={isEditMode ? {
-            backgroundColor: "#b8860b",
-            borderColor: "#b8860b",
-          } : {}}
         >
-          {isEditMode
-            ? "✓ Valider les modifications"
-            : `Ajouter au panier (${quantity})`
-          }
+          {isEditMode ? "Enregistrer les modifications" : `Ajouter au panier${quantity > 1 ? ` (${quantity})` : ""}`}
         </button>
       </div>
     </div>

@@ -1,0 +1,57 @@
+// Palette et mesures communes à tout le site.
+// Les couleurs de la marque (noir / or) sont conservées ; le reste est resserré
+// autour de quelques neutres chauds pour éviter le patchwork de gris et de bleus.
+
+// Marque
+$gold: #d4af37;
+$gold-dark: #a8862a; // texte or lisible sur fond clair
+$gold-soft: #f7f1de;
+$ink: #111111;
+$ink-2: #1d1d1b;
+
+// Neutres
+$paper: #ffffff;
+$canvas: #f5f4f0;
+$line: #e4e1d9;
+$line-strong: #cfcabe;
+$text: #1d1d1b;
+$muted: #6d6a63;
+$faint: #9a968c;
+
+// États
+$success: #2e7d4f;
+$success-soft: #e8f3ec;
+$danger: #b3261e;
+$danger-soft: #fbeceb;
+$warning: #9a6a00;
+$warning-soft: #fbf3dc;
+$info: #2d5b86;
+$info-soft: #e9f0f7;
+
+// Formes
+$radius-sm: 4px;
+$radius: 6px;
+$radius-lg: 10px;
+$shadow-sm: 0 1px 2px rgba(17, 17, 17, 0.06);
+$shadow: 0 1px 2px rgba(17, 17, 17, 0.05), 0 6px 20px rgba(17, 17, 17, 0.06);
+$shadow-lg: 0 20px 50px rgba(17, 17, 17, 0.18);
+
+$font: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+$mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+$bp-sm: 480px;
+$bp-md: 768px;
+$bp-lg: 1024px;
+
+@mixin focus-ring {
+  outline: 2px solid $gold;
+  outline-offset: 2px;
+}
+
+@mixin eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: $muted;
+}

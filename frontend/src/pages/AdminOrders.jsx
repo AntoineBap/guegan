@@ -1,360 +1,295 @@
-import React, { useEffect, useState, useContext } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import React, { useEffect, useState, useContext, useMemo, useCallback } from "react";
+import { useParams, useNavigate, useOutletContext } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { AuthContext } from "../contexts/AuthContext";
-import Header from "../components/Header";
-import "../styles/adminOrders.scss";
-// 👇 IMPORT POUR LE PDF
-import { PDFDownloadLink } from "@react-pdf/renderer";
-import DeliveryNote from "../components/DeliveryNote";
+import { formatPrice, formatDate, ORDER_STATUS, itemTitle } from "../utils/format";
+import { downloadPdf } from "../utils/pdf";
+import useToast from "../components/useToast";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
+const PAGE = {
+  pending_payment: {
+    title: "À encaisser",
+    sub: "Commandes en attente du virement. Validez le paiement dès réception pour lancer la fabrication.",
+    action: "Paiement reçu",
+    confirm: "Confirmer la réception du paiement ? Le client sera prévenu par email dans 1 h.",
+    nextStatus: "paid",
+  },
+  paid: {
+    title: "En fabrication",
+    sub: "Commandes payées, à produire en atelier.",
+    action: "Marquer expédiée",
+    confirm: "Marquer cette commande comme expédiée ? Le client sera prévenu par email dans 1 h.",
+    nextStatus: "shipped",
+    rollback: "Remettre en attente de paiement",
+  },
+  shipped: {
+    title: "Expédiées",
+    sub: "Commandes remises au transporteur.",
+    rollback: "Remettre en fabrication",
+  },
+};
 
-const IconUser = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+const IconSearch = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+    <circle cx="11" cy="11" r="7" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
   </svg>
 );
-const IconTruck = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="1" y="3" width="15" height="13" rx="1"/>
-    <path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
-  </svg>
-);
-const IconWrench = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
-  </svg>
-);
-const IconWall = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="2" y="3" width="20" height="4" rx="1"/><rect x="2" y="10" width="9" height="4" rx="1"/><rect x="13" y="10" width="9" height="4" rx="1"/><rect x="2" y="17" width="20" height="4" rx="1"/>
-  </svg>
-);
+
 const IconTrash = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-  </svg>
-);
-const IconDownload = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-  </svg>
-);
-const IconFile = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <polyline points="3 6 5 6 21 6" />
+    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
   </svg>
 );
 
 const AdminOrders = () => {
   const { status } = useParams();
   const { token } = useContext(AuthContext);
+  const { refreshStats } = useOutletContext();
   const navigate = useNavigate();
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [orders, setOrders] = useState(null);
+  const [query, setQuery] = useState("");
+  const [busyId, setBusyId] = useState(null);
+  const [toast, toastNode] = useToast();
 
-  const titles = {
-    pending_payment: {
-      label: "En attente de paiement",
-      action: "Confirmer le paiement",
-      nextStatus: "paid",
-      color: "#f39c12",
-      rollbackStatus: null,
-      rollbackLabel: null,
-    },
-    paid: {
-      label: "Commandes Payées (À Produire)",
-      action: "Marquer comme Expédié",
-      nextStatus: "shipped",
-      color: "#27ae60",
-      rollbackStatus: "pending_payment",
-      rollbackLabel: "← Revenir en attente de paiement",
-    },
-    shipped: {
-      label: "Commandes Expédiées / Terminées",
-      action: null,
-      nextStatus: null,
-      color: "#2980b9",
-      rollbackStatus: "paid",
-      rollbackLabel: "← Revenir en fabrication",
-    },
-  };
+  const page = PAGE[status] || PAGE.pending_payment;
+  const headers = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token]);
 
-  const currentConfig = titles[status] || titles["pending_payment"];
+  const fetchOrders = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/orders/${status}`, { headers });
+      setOrders(res.ok ? await res.json() : []);
+    } catch {
+      setOrders([]);
+      toast("Impossible de charger les commandes.", "error");
+    }
+  }, [status, headers, toast]);
 
   useEffect(() => {
-    if (token) fetchOrders();
-  }, [status, token]);
+    setOrders(null);
+    setQuery("");
+    fetchOrders();
+  }, [fetchOrders]);
 
-  const fetchOrders = async () => {
-    setLoading(true);
+  const filtered = useMemo(() => {
+    if (!orders) return [];
+    const q = query.trim().toLowerCase();
+    if (!q) return orders;
+    return orders.filter((o) =>
+      [
+        o.orderNumber,
+        o.userId?.companyName,
+        o.userId?.email,
+        o.billingAddress?.company,
+        o.billingAddress?.lastName,
+        o.shippingAddress?.city,
+      ]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(q)),
+    );
+  }, [orders, query]);
+
+  const run = async (orderId, fn, successMsg) => {
+    setBusyId(orderId);
     try {
-      const response = await fetch(`${API_URL}/api/admin/orders/${status}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (Array.isArray(data)) {
-          setOrders(data);
-        } else if (data.orders && Array.isArray(data.orders)) {
-          setOrders(data.orders);
-        } else {
-          setOrders([]);
-        }
-      }
-    } catch (error) {
-      console.error("Erreur fetch :", error);
+      const res = await fn();
+      if (!res.ok) throw new Error();
+      toast(successMsg);
+      await fetchOrders();
+      refreshStats();
+    } catch {
+      toast("L'opération a échoué.", "error");
     }
-    setLoading(false);
+    setBusyId(null);
   };
 
-  const handleStatusUpdate = async (e, orderId) => {
+  const advance = (e, order) => {
     e.stopPropagation();
-    if (
-      !window.confirm(
-        "Voulez-vous vraiment changer le statut de cette commande ?",
-      )
-    )
-      return;
-
-    try {
-      const response = await fetch(`${API_URL}/api/admin/order/${orderId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ status: currentConfig.nextStatus }),
-      });
-
-      if (response.ok) {
-        fetchOrders();
-      }
-    } catch (error) {
-      alert("Erreur technique lors de la mise à jour");
-    }
+    if (!window.confirm(page.confirm)) return;
+    run(
+      order._id,
+      () =>
+        fetch(`${API_URL}/api/admin/order/${order._id}`, {
+          method: "PUT",
+          headers: { ...headers, "Content-Type": "application/json" },
+          body: JSON.stringify({ status: page.nextStatus }),
+        }),
+      `Commande #${order.orderNumber} mise à jour.`,
+    );
   };
 
-  const handleDeleteOrder = async (e, orderId, orderNumber) => {
+  const rollback = (e, order) => {
     e.stopPropagation();
-    if (
-      !window.confirm(
-        `Êtes-vous sûr de vouloir supprimer DÉFINITIVEMENT la commande #${orderNumber} ? Cette action est irréversible.`,
-      )
-    ) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_URL}/api/admin/order/${orderId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.ok) {
-        setOrders(orders.filter((o) => o._id !== orderId));
-      } else {
-        alert("Erreur lors de la suppression");
-      }
-    } catch (error) {
-      alert("Erreur technique lors de la suppression");
-    }
+    if (!window.confirm(`${page.rollback} la commande #${order.orderNumber} ?\nL'email prévu au client sera annulé s'il n'est pas encore parti.`)) return;
+    run(
+      order._id,
+      () => fetch(`${API_URL}/api/admin/order/${order._id}/rollback`, { method: "PUT", headers }),
+      `Commande #${order.orderNumber} revenue à l'étape précédente.`,
+    );
   };
 
-  const handleRollback = async (e, orderId, orderNumber) => {
+  const remove = (e, order) => {
     e.stopPropagation();
-    if (
-      !window.confirm(
-        `Repasser la commande #${orderNumber} à l'étape précédente ?\nSi un email de notification était planifié, il sera annulé.`,
-      )
-    )
-      return;
-
-    try {
-      const response = await fetch(`${API_URL}/api/admin/order/${orderId}/rollback`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        fetchOrders();
-      } else {
-        alert("Erreur lors du rollback.");
-      }
-    } catch (error) {
-      alert("Erreur technique lors du rollback.");
-    }
+    if (!window.confirm(`Supprimer définitivement la commande #${order.orderNumber} ?\nCette action est irréversible.`)) return;
+    run(
+      order._id,
+      () => fetch(`${API_URL}/api/admin/order/${order._id}`, { method: "DELETE", headers }),
+      `Commande #${order.orderNumber} supprimée.`,
+    );
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("fr-FR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
+  const deliveryNote = async (e, order) => {
+    e.stopPropagation();
+    setBusyId(order._id);
+    try {
+      await downloadPdf(async () => {
+        const { default: DeliveryNote } = await import("../components/DeliveryNote");
+        return <DeliveryNote order={order} />;
+      }, `BL-${order.orderNumber}.pdf`);
+    } catch {
+      toast("Génération du bon de livraison impossible.", "error");
+    }
+    setBusyId(null);
   };
 
   return (
-    <div style={{ backgroundColor: "#f4f6f8", minHeight: "100vh" }}>
-      <Header />
-      <div className="admin-orders-page">
-        <div className="page-header">
-          <button className="back-btn" onClick={() => navigate("/admin")}>
-            ← Retour Dashboard
-          </button>
-          <h2 style={{ color: currentConfig.color }}>
-            {currentConfig.label} ({orders.length})
-          </h2>
+    <div className="admin-page">
+      <Helmet>
+        <title>{page.title} — Administration</title>
+      </Helmet>
+
+      <div className="page-head">
+        <div>
+          <p className="eyebrow">Commandes</p>
+          <h1>{page.title}</h1>
+          <p className="sub">{page.sub}</p>
+        </div>
+      </div>
+
+      <section className="panel">
+        <div className="toolbar">
+          <label className="search">
+            <IconSearch />
+            <span className="sr-only">Rechercher</span>
+            <input
+              type="text"
+              placeholder="N° de commande, société, ville…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </label>
+          {orders && (
+            <span className="result-count">
+              {filtered.length} commande{filtered.length > 1 ? "s" : ""} ·{" "}
+              {formatPrice(filtered.reduce((s, o) => s + (o.totalAmount || 0), 0))} HT
+            </span>
+          )}
         </div>
 
-        {loading ? (
-          <div className="loading">Chargement...</div>
-        ) : orders.length === 0 ? (
+        {orders === null ? (
+          <div className="loading-state" />
+        ) : filtered.length === 0 ? (
           <div className="empty-state">
-            <p>Aucune commande trouvée.</p>
+            <strong>{query ? "Aucun résultat" : "Aucune commande"}</strong>
+            {query ? "Essayez un autre terme de recherche." : "Rien à traiter dans cette étape."}
           </div>
         ) : (
-          <div className="orders-list">
-            {orders.map((order) => (
-              <div
-                key={order._id}
-                className="order-card"
-                onClick={() => navigate(`/admin/order/${order._id}`)}
-                style={{
-                  cursor: "pointer",
-                  borderLeft: `5px solid ${currentConfig.color}`,
-                }}
-              >
-                <div className="order-header">
-                  <div className="meta">
-                    <span className="order-id">#{order.orderNumber}</span>
-                    <span className="order-date">
-                      {formatDate(order.createdAt)}
-                    </span>
-                  </div>
-                  <div className="amount">
-                    {order.totalAmount?.toFixed(2)} € HT
-                  </div>
-                </div>
-
-                <div className="client-info">
-                  <p>
-                    <strong>
-                      {order.userId?.companyName || "Entreprise inconnue"}
-                    </strong>
-                  </p>
-                  <p>
-                    {order.billingAddress?.firstName}{" "}
-                    {order.billingAddress?.lastName}
-                  </p>
-                </div>
-
-                <div className="products-summary">
-                  <ul>
-                    {order.items.slice(0, 2).map((item, idx) => (
-                      <li key={idx}>
-                        {item.quantity}x {item.roomName ? item.roomName : `Plan ${item.length}x${item.width}mm`}
-                      </li>
-                    ))}
-                    {order.items.length > 2 && (
-                      <li>... (+{order.items.length - 2} autres)</li>
-                    )}
-                  </ul>
-                </div>
-
-                <div
-                  style={{
-                    marginTop: "15px",
-                    display: "flex",
-                    gap: "15px",
-                    justifyContent: "flex-end",
-                    alignItems: "center",
-                  }}
-                >
-                  {/* --- BOUTON BON DE LIVRAISON (UNIQUEMENT SI EXPÉDIÉ) --- */}
-                  {status === "shipped" && (
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <PDFDownloadLink
-                        document={<DeliveryNote order={order} />}
-                        fileName={`BL-${order.orderNumber}.pdf`}
-                        style={{
-                          textDecoration: "none",
-                          padding: "8px 12px",
-                          backgroundColor: "#7f8c8d",
-                          color: "white",
-                          borderRadius: "4px",
-                          fontSize: "0.9rem",
-                          marginRight: "10px",
-                        }}
-                      >
-                        {({ blob, url, loading, error }) =>
-                          loading ? "Génération..." : <><IconFile /> Bon de Livraison</>
-                        }
-                      </PDFDownloadLink>
-                    </div>
-                  )}
-
-                  {/* --- BOUTON ROLLBACK (paid et shipped uniquement) --- */}
-                  {currentConfig.rollbackStatus && (
-                    <button
-                      onClick={(e) => handleRollback(e, order._id, order.orderNumber)}
-                      style={{
-                        backgroundColor: "transparent",
-                        border: "1px solid #95a5a6",
-                        color: "#7f8c8d",
-                        cursor: "pointer",
-                        padding: "6px 10px",
-                        borderRadius: "4px",
-                        fontSize: "0.8rem",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px",
-                      }}
-                      title={currentConfig.rollbackLabel}
-                    >
-                      ↩ Revenir en arrière
-                    </button>
-                  )}
-
-                  <button
-                    className="delete-btn"
-                    onClick={(e) =>
-                      handleDeleteOrder(e, order._id, order.orderNumber)
-                    }
-                    style={{
-                      backgroundColor: "transparent",
-                      border: "none",
-                      color: "#e74c3c",
-                      cursor: "pointer",
-                      padding: "5px",
-                      display: "flex",
-                      alignItems: "center",
-                    }}
-                    title="Supprimer définitivement"
-                  >
-                    <IconTrash />
-                  </button>
-
-                  {currentConfig.action && (
-                    <button
-                      className="action-btn"
-                      style={{ backgroundColor: currentConfig.color }}
-                      onClick={(e) => handleStatusUpdate(e, order._id)}
-                    >
-                      {currentConfig.action}
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+          <div className="table-wrap">
+            <table className="data-table as-cards">
+              <thead>
+                <tr>
+                  <th>Commande</th>
+                  <th>Client</th>
+                  <th>Plans</th>
+                  <th>{status === "pending_payment" ? "Échéance" : "Livraison"}</th>
+                  <th className="num">Montant HT</th>
+                  <th className="num">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((o) => {
+                  const late = status === "pending_payment" && o.paymentDeadline && new Date(o.paymentDeadline) < new Date();
+                  const busy = busyId === o._id;
+                  return (
+                    <tr key={o._id} className="is-clickable" onClick={() => navigate(`/admin/order/${o._id}`)}>
+                      <td>
+                        <div className="stack">
+                          <span className="ref">#{o.orderNumber}</span>
+                          <small>{formatDate(o.createdAt)}</small>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="stack">
+                          <span>{o.userId?.companyName || o.billingAddress?.company || "—"}</span>
+                          <small>
+                            {o.billingAddress?.firstName} {o.billingAddress?.lastName}
+                          </small>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="stack">
+                          {o.items.slice(0, 2).map((it, i) => (
+                            <span key={i}>
+                              {it.quantity} × {itemTitle(it, i)} <small>{it.length}×{it.width}</small>
+                            </span>
+                          ))}
+                          {o.items.length > 2 && <small>+ {o.items.length - 2} autre(s)</small>}
+                        </div>
+                      </td>
+                      <td className="nowrap">
+                        {status === "pending_payment" ? (
+                          late ? (
+                            <span className="status-badge is-pending">Dépassée</span>
+                          ) : (
+                            formatDate(o.paymentDeadline)
+                          )
+                        ) : (
+                          <span className="muted">
+                            {o.shippingAddress?.zip} {o.shippingAddress?.city}
+                          </span>
+                        )}
+                      </td>
+                      <td className="num amount">
+                        <strong>{formatPrice(o.totalAmount)}</strong>
+                      </td>
+                      <td className="row-actions" onClick={(e) => e.stopPropagation()}>
+                        <div style={{ display: "inline-flex", gap: 6 }}>
+                          {status === "shipped" && (
+                            <button className="btn btn-outline btn-sm" disabled={busy} onClick={(e) => deliveryNote(e, o)}>
+                              Bon de livraison
+                            </button>
+                          )}
+                          {page.rollback && (
+                            <button className="btn btn-ghost btn-sm" disabled={busy} onClick={(e) => rollback(e, o)} title={page.rollback}>
+                              Annuler l'étape
+                            </button>
+                          )}
+                          {page.action && (
+                            <button className="btn btn-primary btn-sm" disabled={busy} onClick={(e) => advance(e, o)}>
+                              {page.action}
+                            </button>
+                          )}
+                          <button className="btn btn-ghost btn-sm" disabled={busy} onClick={(e) => remove(e, o)} aria-label={`Supprimer la commande ${o.orderNumber}`} title="Supprimer">
+                            <IconTrash />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
-      </div>
+      </section>
+      <p className="sub" style={{ color: "var(--muted)", fontSize: "0.85rem", marginTop: 12 }}>
+        Statut : {ORDER_STATUS[status]?.label}. Les emails de changement de statut partent 1 h après l'action, ce qui laisse le temps d'annuler une erreur.
+      </p>
+      {toastNode}
     </div>
   );
 };

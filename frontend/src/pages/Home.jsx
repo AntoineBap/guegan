@@ -1,210 +1,191 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useRef, useContext } from "react";
+import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
+import { AuthContext } from "../contexts/AuthContext";
+import { SettingsContext } from "../contexts/SettingsContext";
 import "../styles/home.scss";
-import { Helmet } from 'react-helmet-async';
 
-// Clé utilisée dans localStorage pour mémoriser le consentement cookies
-const COOKIE_CONSENT_KEY = "guegan_cookie_consent";
+// Le site n'utilise que le stockage nécessaire à son fonctionnement (session, panier) :
+// pas de consentement requis, une simple information suffit.
+const NOTICE_KEY = "guegan_cookie_consent";
 
-// DÉFINITION DE LA SÉQUENCE
-// type: 'video' ou 'image'
-// src: chemin du fichier
-// duration: temps d'affichage pour les images (en ms). Pour la vidéo, on attend la fin.
+// type: 'video' ou 'image' · duration en ms pour les images (la vidéo va jusqu'au bout)
+// Les anciennes images (img1/img2) faisaient 320 px de large : floues en plein écran.
+const photo = (n) =>
+  `/photos/realisation-${n}-${typeof window !== "undefined" && window.innerWidth < 900 ? 1000 : 2000}.webp`;
+
 const MEDIA_SEQUENCE = [
   { type: "video", src: "/videos/video_vasque.mp4" },
-  { type: "image", src: "img1.jpeg", duration: 3000 }, // 3 secondes
-  { type: "image", src: "img2.png", duration: 3000 },
+  { type: "image", src: photo(1), duration: 5000 },
+  { type: "image", src: photo(2), duration: 5000 },
 ];
 
-const IconCookie = () => (
-  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10"/>
-    <circle cx="8" cy="9" r="1" fill="currentColor"/>
-    <circle cx="14" cy="8" r="0.7" fill="currentColor"/>
-    <circle cx="15" cy="14" r="1" fill="currentColor"/>
-    <circle cx="9" cy="15" r="0.7" fill="currentColor"/>
-    <circle cx="12" cy="12" r="0.7" fill="currentColor"/>
-  </svg>
-);
+const readNotice = () => {
+  try {
+    return !localStorage.getItem(NOTICE_KEY);
+  } catch {
+    return false;
+  }
+};
 
 const Home = () => {
-  const navigate = useNavigate();
+  const { isAuthenticated, user } = useContext(AuthContext);
+  const { settings } = useContext(SettingsContext);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [showNotice, setShowNotice] = useState(readNotice);
   const videoRef = useRef(null);
 
-  // Vérifie si l'utilisateur est authentifié (adapter selon votre système d'auth)
-  const isAuthenticated = !!localStorage.getItem("token");
+  const leadTime = settings?.constraints?.leadTime || 15;
 
-  // Affiche la modale si l'utilisateur n'est pas authentifié ET n'a pas encore répondu
-  const [showCookieBanner, setShowCookieBanner] = useState(false);
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      const consent = localStorage.getItem(COOKIE_CONSENT_KEY);
-      if (!consent) {
-        setShowCookieBanner(true);
-      }
+  const dismissNotice = () => {
+    try {
+      localStorage.setItem(NOTICE_KEY, "acknowledged");
+    } catch {
+      /* stockage indisponible : on masque quand même */
     }
-  }, [isAuthenticated]);
-
-  const handleAcceptCookies = () => {
-    localStorage.setItem(COOKIE_CONSENT_KEY, "accepted");
-    setShowCookieBanner(false);
+    setShowNotice(false);
   };
 
-  const handleDeclineCookies = () => {
-    localStorage.setItem(COOKIE_CONSENT_KEY, "declined");
-    setShowCookieBanner(false);
-  };
-
-  // Fonction pour passer à l'étape suivante
-  const nextStep = () => {
-    setCurrentIndex((prev) => (prev + 1) % MEDIA_SEQUENCE.length);
-  };
-
-  // GESTION DU TIMING ET DE LA VIDÉO
   useEffect(() => {
-    const currentMedia = MEDIA_SEQUENCE[currentIndex];
+    const media = MEDIA_SEQUENCE[currentIndex];
+    const next = () => setCurrentIndex((i) => (i + 1) % MEDIA_SEQUENCE.length);
 
-    // Si c'est une IMAGE
-    if (currentMedia.type === "image") {
-      const timer = setTimeout(nextStep, currentMedia.duration);
+    if (media.type === "image") {
+      const timer = setTimeout(next, media.duration);
       return () => clearTimeout(timer);
     }
 
-    // Si c'est une VIDÉO
-    if (currentMedia.type === "video" && videoRef.current) {
-      const video = videoRef.current;
-      video.currentTime = 0;
-
-      // On passe à la suite seulement quand la vidéo est finie
-      const onEnded = () => nextStep();
-      video.addEventListener("ended", onEnded);
-
-      return () => {
-        video.removeEventListener("ended", onEnded);
-        video.pause();
-      };
-    }
+    const video = videoRef.current;
+    if (!video) return;
+    video.currentTime = 0;
+    // La vidéo n'était jamais lancée : seul son premier plan s'affichait
+    video.play().catch(() => setTimeout(next, 4000));
+    video.addEventListener("ended", next);
+    return () => {
+      video.removeEventListener("ended", next);
+      video.pause();
+    };
   }, [currentIndex]);
 
   return (
     <div className="home-page">
       <Helmet>
-        <title>Guégan Shop — Plans vasque et robinetterie sanitaire</title>
-        <meta name="description" content="Configurez et commandez vos plans vasque, meubles de salle de bain et robinetterie de la marque Guégan. Livraison rapide, qualité professionnelle." />
-        <meta name="keywords" content="plans vasque Guégan, robinetterie Guégan, meuble salle de bain Guégan, sanitaire Guégan, achat plan vasque" />
+        <title>Guegan Shop — Plans-vasques sur mesure en Solid Surface</title>
+        <meta
+          name="description"
+          content="Configurez en 3D et commandez en ligne vos plans-vasques sur mesure en résine Solid Surface, fabriqués par les Établissements Guegan à Bobigny."
+        />
         <link rel="canonical" href="https://guegan-shop.fr/" />
-
-        {/* Open Graph (réseaux sociaux) */}
-        <meta property="og:title" content="Guégan Shop — Plans vasque et robinetterie sanitaire" />
-        <meta property="og:description" content="Configurez et commandez vos plans vasque et robinetterie Guégan en ligne." />
+        <meta property="og:title" content="Guegan Shop — Plans-vasques sur mesure en Solid Surface" />
+        <meta property="og:description" content="Configurez en 3D et commandez en ligne vos plans-vasques sur mesure." />
         <meta property="og:url" content="https://guegan-shop.fr/" />
         <meta property="og:type" content="website" />
-        <meta property="og:image" content="https://guegan-shop.fr/og-image.jpg" />
-
-        {/* Schema.org — Organisation */}
+        <meta property="og:image" content="https://guegan-shop.fr/photos/realisation-1-2000.webp" />
         <script type="application/ld+json">{`
           {
             "@context": "https://schema.org",
             "@type": "Organization",
-            "name": "Guégan Shop",
+            "name": "Guegan Shop",
             "url": "https://guegan-shop.fr",
-            "description": "Vente en ligne de plans vasque, robinetterie et sanitaire de la marque Guégan",
-            "contactPoint": {
-              "@type": "ContactPoint",
-              "contactType": "customer service",
-              "url": "https://guegan-shop.fr/contact"
-            }
+            "description": "Plans-vasques sur mesure en résine Solid Surface, fabriqués à Bobigny",
+            "address": { "@type": "PostalAddress", "streetAddress": "1 rue de l'Industrie", "postalCode": "93000", "addressLocality": "Bobigny", "addressCountry": "FR" },
+            "telephone": "+33148400505",
+            "contactPoint": { "@type": "ContactPoint", "contactType": "customer service", "url": "https://guegan-shop.fr/contact" }
           }
         `}</script>
       </Helmet>
-      {/* CONTAINER DES MÉDIAS (BACKGROUND) */}
-      <div className="background-container">
-        <div className="overlay"></div> {/* Filtre sombre constant */}
+
+      <div className="background-container" aria-hidden="true">
         {MEDIA_SEQUENCE.map((item, index) => {
           const isActive = index === currentIndex;
-
-          if (item.type === "video") {
-            return (
-              <video
-                key={index}
-                ref={videoRef}
-                className={`media-item ${isActive ? "active" : ""}`}
-                muted
-                playsInline
-                // Pas de 'loop', pas d'autoPlay ici (géré par le useEffect)
-              >
-                <source src={item.src} type="video/mp4" />
-              </video>
-            );
-          } else {
-            return (
-              <div
-                key={index}
-                className={`media-item ${isActive ? "active" : ""}`}
-                style={{ backgroundImage: `url(${item.src})` }}
-              />
-            );
-          }
+          return item.type === "video" ? (
+            <video
+              key={index}
+              ref={videoRef}
+              className={`media-item ${isActive ? "active" : ""}`}
+              muted
+              playsInline
+              autoPlay
+              preload="auto"
+            >
+              <source src={item.src} type="video/mp4" />
+            </video>
+          ) : (
+            <div
+              key={index}
+              className={`media-item ${isActive ? "active" : ""}`}
+              style={{ backgroundImage: `url(${item.src})` }}
+            />
+          );
         })}
+        <div className="overlay" />
       </div>
 
-      <nav className="home-nav">
-        <div className="logo">GUEGAN <span className="subtitle">Shop</span></div>
+      <nav className="home-nav" aria-label="Navigation">
+        <Link to="/" className="logo">
+          GUEGAN <span className="subtitle">Shop</span>
+        </Link>
+        <div className="nav-links">
+          <Link to="/contact">Contact</Link>
+          {isAuthenticated ? (
+            <Link to="/my-orders">{user?.firstName ? `${user.firstName} · Mon espace` : "Mon espace"}</Link>
+          ) : (
+            <Link to="/login">Espace pro</Link>
+          )}
+        </div>
       </nav>
 
-      <header className="hero-section">
+      <main className="hero">
         <div className="hero-content">
+          <p className="hero-kicker">Établissements Guegan · Bobigny</p>
           <h1>
-            Créez votre Plan-Vasque <br />
-            <span className="gold-text">Sur Mesure</span>
+            Plans-vasques sur mesure,
+            <br />
+            <span className="gold-text">au millimètre près.</span>
           </h1>
-          <p>
-            Configurez, visualisez en 3D et commandez vos plans-vasques en
-            résine Solid Surface® directement en ligne.
+          <p className="hero-lead">
+            Dimensions, cuves, dosserets, retombées : configurez votre plan en résine Solid Surface®,
+            visualisez-le en 3D et commandez-le directement en ligne.
           </p>
 
           <div className="cta-buttons">
-            <button
-              className="primary-btn"
-              onClick={() => navigate("/configurator")}
-            >
-              Commencer une configuration →
-            </button>
-            <button
-              className="secondary-btn"
-              onClick={() => navigate("/login")}
-            >
-              Se connecter
-            </button>
+            <Link to="/configurator" className="btn btn-gold btn-lg">
+              Configurer mon plan
+            </Link>
+            {!isAuthenticated && (
+              <Link to="/login" className="btn btn-lg hero-secondary">
+                Se connecter
+              </Link>
+            )}
           </div>
         </div>
-      </header>
-      {/* MODALE CONSENTEMENT COOKIES */}
-      {showCookieBanner && (
-        <div className="cookie-overlay">
-          <div className="cookie-modal">
-            <div className="cookie-icon"><IconCookie /></div>
-            <h3>Ce site utilise des cookies</h3>
-            <p>
-              Nous utilisons des cookies pour améliorer votre expérience,
-              mémoriser vos préférences et analyser le trafic de notre site.
-              En continuant, vous acceptez leur utilisation conformément à notre{" "}
-              <a href="/politique-confidentialite" className="cookie-link">
-                politique de confidentialité
-              </a>
-              .
-            </p>
-            <div className="cookie-actions">
-              <button className="cookie-decline" onClick={handleDeclineCookies}>
-                Refuser
-              </button>
-              <button className="cookie-accept" onClick={handleAcceptCookies}>
-                Accepter
-              </button>
-            </div>
-          </div>
+
+        <ul className="hero-facts">
+          <li>
+            <strong>Fabriqué dans nos ateliers</strong>
+            <span>à partir de votre configuration exacte</span>
+          </li>
+          <li>
+            <strong>Prix immédiat</strong>
+            <span>chiffrage en direct pendant la configuration</span>
+          </li>
+          <li>
+            <strong>Environ {leadTime} jours</strong>
+            <span>de délai de livraison indicatif</span>
+          </li>
+        </ul>
+      </main>
+
+      {showNotice && (
+        <div className="storage-notice" role="note">
+          <p>
+            Ce site n'utilise que le stockage nécessaire à son fonctionnement (session, panier). Aucun
+            traceur publicitaire ni outil de mesure d'audience.{" "}
+            <Link to="/politique-confidentialite">En savoir plus</Link>
+          </p>
+          <button className="btn btn-sm btn-gold" onClick={dismissNotice}>
+            Compris
+          </button>
         </div>
       )}
     </div>

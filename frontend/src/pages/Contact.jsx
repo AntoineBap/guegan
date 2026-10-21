@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import Header from "../components/Header";
 import "../styles/contact.scss";
 import { Helmet } from 'react-helmet-async';
 
@@ -22,7 +22,6 @@ const IconMail = () => (
 );
 
 const Contact = () => {
-  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     nom: "",
     prenom: "",
@@ -93,6 +92,8 @@ const Contact = () => {
   };
 
   return (
+    <>
+    <Header />
     <div className="contact-page">
       <Helmet>
         <title>Contact — Guégan Shop</title>
@@ -105,13 +106,6 @@ const Contact = () => {
         {/* --- COLONNE GAUCHE : FORMULAIRE --- */}
         <div className="contact-form-section">
           {/* BOUTON RETOUR */}
-          <button
-            className="back-btn"
-            onClick={() => navigate("/configurator")}
-          >
-            ← Retour au configurateur
-          </button>
-
           <h1>Contactez-nous</h1>
           <p>
             Une question sur nos plans vasques ou une demande spécifique ?
@@ -239,11 +233,11 @@ const Contact = () => {
             </div>
             <div className="info-item">
               <span className="icon"><IconPhone /></span>
-              <p>01.48.40.05.05</p>
+              <p><a href="tel:+33148400505">01 48 40 05 05</a></p>
             </div>
             <div className="info-item">
               <span className="icon"><IconMail /></span>
-              <p>contact@etsguegan.com</p>
+              <p><a href="mailto:contact@etsguegan.com">contact@etsguegan.com</a></p>
             </div>
           </div>
 
@@ -263,6 +257,7 @@ const Contact = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

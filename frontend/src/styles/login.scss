@@ -1,394 +1,352 @@
-// src/styles/login.scss
-
-$gold: #d4af37;
-$gold-light: rgba($gold, 0.1);
-$black: #1a1a1a;
-$grey-light: #f4f4f6;
-$white: #ffffff;
-$text: #2c2c2c;
-$border-color: #e0e0e0;
+@use "tokens" as *;
 
 .login-page {
-  height: 100vh;
-  width: 100%;
-  overflow-y: auto;
-  display: flex;
-  background-color: #f4f6f8;
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
-  padding: 40px 20px;
-  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.1fr);
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: $paper;
 
-  input::placeholder {
-    color: #b0b0b0;
-    font-weight: 600;
-    opacity: 1;
+  // --- Colonne de marque ---
+  .login-aside {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 40px 48px;
+    background:
+      linear-gradient(to bottom, rgba($ink, 0.55), rgba($ink, 0.92)),
+      url("/photos/realisation-2-1000.webp") center / cover;
+    color: $paper;
+
+    .logo {
+      color: $paper;
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-decoration: none;
+
+      span {
+        margin-left: 6px;
+        color: $gold;
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+    }
+
+    h2 {
+      margin: 0 0 20px;
+      color: $paper;
+      font-size: 1.9rem;
+      font-weight: 750;
+    }
+
+    ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 12px;
+
+      li {
+        position: relative;
+        padding-left: 22px;
+        color: rgba($paper, 0.8);
+        font-size: 0.98rem;
+
+        &::before {
+          content: "";
+          position: absolute;
+          left: 0;
+          top: 0.7em;
+          width: 10px;
+          height: 1px;
+          background: $gold;
+        }
+      }
+    }
+
+    p {
+      margin: 0;
+      color: rgba($paper, 0.6);
+      font-size: 0.88rem;
+
+      a {
+        color: $paper;
+      }
+    }
+  }
+
+  // --- Colonne formulaire ---
+  .login-main {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 32px;
   }
 
   .login-card {
-    margin: auto;
-    background: white;
-    padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     width: 100%;
-    max-width: 500px;
-    text-align: center;
-    animation: slideUp 0.4s ease-out;
+    max-width: 420px;
 
-    .back-btn {
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: #666;
-      margin-bottom: 15px;
-      font-size: 0.9rem;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      padding: 0;
-
-      &:hover {
-        color: #111;
-        text-decoration: underline;
-      }
-    }
-
-    h2 {
-      margin-bottom: 20px;
-      color: #222;
-    }
-
-    .alert-box {
-      padding: 10px;
-      border-radius: 6px;
-      margin-bottom: 15px;
-      font-size: 0.9rem;
-      text-align: left;
-
-      &.error {
-        background-color: #fee2e2;
-        color: #991b1b;
-        border: 1px solid #fecaca;
-      }
-
-      &.success {
-        background-color: #dcfce7;
-        color: #166534;
-        border: 1px solid #bbf7d0;
-      }
-    }
-
-    form {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-
-      .form-row {
-        display: flex;
-        margin-bottom: 0.1rem;
-        gap: 10px;
-
-        @media (max-width: 480px) {
-          flex-direction: column;
-          gap: 10px;
-        }
-
-        .form-col {
-          flex: 1;
-        }
-      }
-
-      /* * LE CŒUR DU PROBLÈME ÉTAIT ICI :
-       * Ce style s'applique à TOUS les inputs par défaut.
-       * On utilise :not([type="checkbox"]) pour l'exclure proprement.
-       */
-      input:not([type="checkbox"]) {
-        padding: 10px;
-        border-radius: 6px;
-        border: 1px solid #ccc;
-        outline: none;
-        font-size: 0.95rem;
-        width: 100%;
-        box-sizing: border-box;
-        color: #333;
-        background-color: #fff;
-        transition:
-          border-color 0.2s,
-          background-color 0.2s;
-
-        &:focus {
-          border-color: #111;
-        }
-
-        &.has-error {
-          border-color: #e74c3c;
-          background-color: #fff5f5;
-        }
-      }
-
-      .form-group {
-        position: relative;
-
-        /* --- STYLE CASE À COCHER (STANDARD) --- */
-        &.checkbox-group-login {
-          background: $white;
-          border: 1px solid $border-color;
-          border-radius: 8px;
-          padding: 1.5rem;
-          margin-bottom: 1.5rem;
-          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
-
-          /* 👇 MODIFICATION ICI : Flex row pour mettre checkbox à gauche */
-          display: flex;
-          flex-direction: row;
-          align-items: center; /* Aligne verticalement au centre */
-          gap: 15px; /* Espace entre la case et le texte */
-
-          label {
-            margin: 0;
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-            text-transform: none;
-            /* 👇 MODIFICATION ICI : Texte en gras */
-            font-weight: 700;
-            font-size: 1rem;
-            color: #111;
-          }
-
-          input[type="checkbox"] {
-            appearance: none;
-            -webkit-appearance: none;
-            width: 20px;
-            height: 20px;
-            border: 1px solid $black;
-            border-radius: 4px;
-            /* margin-right: 15px; <--- Supprimé car géré par le gap du parent */
-            display: grid;
-            place-content: center;
-            transition: all 0.2s ease;
-            background-color: transparent;
-            margin-bottom: 0;
-            flex-shrink: 0; /* Empêche la case de s'écraser si le texte est long */
-
-            &::before {
-              content: "";
-              width: 14px;
-              height: 14px;
-              transform: scale(0);
-              transition: 120ms transform ease-in-out;
-              box-shadow: inset 1em 1em $gold;
-              transform-origin: center;
-              clip-path: polygon(
-                14% 44%,
-                0 65%,
-                50% 100%,
-                100% 16%,
-                80% 0%,
-                43% 62%
-              );
-            }
-            &:checked {
-              background-color: $black;
-              border-color: $black;
-              &::before {
-                transform: scale(1);
-              }
-            }
-          }
-        }
-      }
-
-      label {
-        display: block;
-        text-align: left;
-        margin-bottom: 4px;
-        font-size: 0.85rem;
-        font-weight: 700;
-        color: #111;
-      }
-
-      .error-msg {
-        color: #e74c3c;
-        font-size: 0.75rem;
-        display: block;
-        text-align: left;
-        margin-top: 2px;
-      }
-
-      .eye-icon {
-        position: absolute;
-        right: 12px;
-        top: 50%;
-        transform: translateY(-40%);
-        cursor: pointer;
-
-        &:hover svg {
-          stroke: #111;
-        }
-      }
-
-      .suggestions-list {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
-        background: white;
-        border: 1px solid #ccc;
-        border-top: none;
-        border-radius: 0 0 6px 6px;
-        z-index: 1000;
-        list-style: none;
-        padding: 0;
-        margin: 0;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        max-height: 200px;
-        overflow-y: auto;
-        text-align: left;
-
-        li {
-          padding: 10px 12px;
-          cursor: pointer;
-          font-size: 0.9rem;
-          border-bottom: 1px solid #f0f0f0;
-
-          &:hover {
-            background-color: #f8f9fa;
-          }
-
-          &:last-child {
-            border-bottom: none;
-          }
-        }
-      }
-
-      .password-reqs {
-        font-size: 0.8rem;
-        text-align: left;
-        margin: 5px 0 10px 0;
-        padding: 8px;
-        background: #f8f9fa;
-        border-radius: 5px;
-        border: 1px solid #eee;
-
-        .req-item {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-
-          &.valid {
-            color: #2ecc71;
-          }
-          &.invalid {
-            color: #e74c3c;
-          }
-        }
-      }
-
-      .submit-btn {
-        padding: 12px;
-        background: #111;
-        color: white;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 1rem;
-        font-weight: 600;
-        margin-top: 5px;
-        transition:
-          opacity 0.2s,
-          background-color 0.2s;
-
-        &:hover {
-          background-color: #333;
-        }
-
-        &:disabled {
-          background-color: #ccc;
-          cursor: not-allowed;
-        }
-      }
-    }
-
-    .toggle-text {
-      margin-top: 20px;
-      color: #666;
-      font-size: 0.9rem;
-
-      .link {
-        color: #007bff;
-        cursor: pointer;
-        margin-left: 6px;
-        font-weight: 600;
-        text-decoration: underline;
-
-        &:hover {
-          color: #0056b3;
-        }
-      }
-    }
-  }
-
-  .validation-screen {
-    h2 {
-      color: #2ecc71;
-      margin-bottom: 20px;
-    }
-    p {
-      color: #555;
-      margin-bottom: 20px;
-      line-height: 1.5;
-    }
-
-    .resend-section {
-      margin-top: 30px;
-      border-top: 1px solid #eee;
-      padding-top: 20px;
-
-      p {
-        font-size: 0.9rem;
-        color: #777;
-        margin-bottom: 10px;
-      }
-
-      .resend-btn {
-        padding: 10px 20px;
-        background: #111;
-        color: white;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 0.9rem;
-        font-weight: 600;
-
-        &:disabled {
-          background: #ccc;
-          cursor: not-allowed;
-        }
-      }
+    &.is-wide {
+      max-width: 540px;
     }
 
     .back-link {
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: #007bff;
-      margin-top: 20px;
-      text-decoration: underline;
+      margin-bottom: 28px;
+    }
+
+    .eyebrow {
+      @include eyebrow;
+      margin: 0 0 8px;
+      color: $gold-dark;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 1.85rem;
+      font-weight: 750;
+    }
+
+    .lead {
+      margin: 0 0 28px;
+      color: $muted;
     }
   }
-}
 
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    .btn-block {
+      margin-top: 8px;
+    }
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .field {
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+
+      > span {
+        color: $ink;
+        font-size: 0.86rem;
+        font-weight: 650;
+      }
+    }
+
+    input {
+      margin: 0;
+    }
+
+    input[readonly] {
+      background: $canvas;
+      color: $text;
+      border-color: $line;
+      cursor: default;
+
+      &:focus {
+        box-shadow: none;
+      }
+    }
+
+    &.has-error input {
+      border-color: $danger;
+      background: $danger-soft;
+    }
+  }
+
+  .field-error,
+  .field-hint {
+    display: block;
+    margin-top: 5px;
+    font-size: 0.8rem;
+  }
+
+  .field-error {
+    color: $danger;
+    font-weight: 600;
+  }
+
+  .field-hint {
+    color: $faint;
+  }
+
+  .siret-status {
+    margin: -6px 0 0;
+    font-size: 0.84rem;
+    font-weight: 600;
+
+    &.success {
+      color: $success;
+    }
+
+    &.error {
+      color: $danger;
+    }
+  }
+
+  .password-wrap {
+    position: relative;
+
+    input {
+      padding-right: 48px;
+    }
+
+    .eye-btn {
+      position: absolute;
+      right: 4px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      border: none;
+      background: none;
+      color: $muted;
+      border-radius: $radius;
+
+      &:hover {
+        color: $ink;
+      }
+    }
+  }
+
+  .password-reqs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    margin: -6px 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.8rem;
+
+    li {
+      color: $faint;
+
+      &::before {
+        content: "○";
+        margin-right: 5px;
+      }
+
+      &.valid {
+        color: $success;
+
+        &::before {
+          content: "●";
+        }
+      }
+    }
+  }
+
+  .consent {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    color: $muted;
+    font-size: 0.86rem;
+    line-height: 1.45;
+    cursor: pointer;
+
+    input {
+      width: 18px;
+      height: 18px;
+      margin: 1px 0 0;
+      flex-shrink: 0;
+      accent-color: $ink;
+    }
+
+    &.has-error span {
+      color: $danger;
+    }
+  }
+
+  .alert-box {
+    margin-bottom: 20px;
+    padding: 12px 14px;
+    border-radius: $radius;
+    font-size: 0.9rem;
+
+    &.error {
+      background: $danger-soft;
+      color: $danger;
+    }
+
+    &.success {
+      background: $success-soft;
+      color: $success;
+    }
+  }
+
+  .text-link {
+    padding: 0;
+    border: none;
+    background: none;
+    color: $ink;
+    font-weight: 700;
+    text-decoration: underline;
+    text-decoration-color: $gold;
+    text-underline-offset: 4px;
+
+    &:hover {
+      text-decoration-thickness: 2px;
+    }
+  }
+
+  .login-card > .text-link {
+    display: block;
+    margin: 20px auto 0;
+  }
+
+  .toggle-text {
+    margin: 28px 0 0;
+    padding-top: 20px;
+    border-top: 1px solid $line;
+    color: $muted;
+    font-size: 0.92rem;
+    text-align: center;
+  }
+
+  // --- MOBILE ---
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+
+    .login-aside {
+      position: static;
+      height: auto;
+      padding: 20px;
+      background: $ink;
+
+      > div,
+      > p {
+        display: none;
+      }
+    }
+
+    .login-main {
+      align-items: flex-start;
+      padding: 32px 20px 48px;
+    }
+  }
+
+  @media (max-width: $bp-sm) {
+    .form-row {
+      grid-template-columns: 1fr;
+    }
   }
 }

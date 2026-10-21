@@ -1,146 +1,227 @@
-.confirmation-page {
-  padding: 40px;
-  padding-top: max(40px, env(safe-area-inset-top));
-  padding-bottom: max(40px, env(safe-area-inset-bottom));
-  background-color: #f4f6f8;
-  min-height: 100vh;
-  font-family: system-ui, sans-serif;
-  max-width: 1000px;
-  margin: 0 auto;
+@use "tokens" as *;
 
-  .success-banner {
-    text-align: center;
-    margin-bottom: 40px;
-    h1 {
-      color: #27ae60;
-      margin-bottom: 10px;
+.confirmation-page {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 48px 24px 80px;
+
+  .confirmation-head {
+    max-width: 680px;
+    margin-bottom: 32px;
+
+    .eyebrow {
+      @include eyebrow;
+      margin: 0 0 8px;
+      color: $gold-dark;
     }
-    p {
-      font-size: 1.2rem;
-      color: #555;
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 2rem;
+      font-weight: 750;
+    }
+
+    .lead {
+      margin: 0;
+      color: $muted;
+      font-size: 1.02rem;
     }
   }
 
-  .order-grid {
+  .confirmation-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+
+    @media (max-width: 860px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .card {
+    padding: 24px;
+    background: $paper;
+    border: 1px solid $line;
+    border-radius: $radius-lg;
+
+    h2 {
+      margin: 0 0 16px;
+      font-size: 1rem;
+      font-weight: 750;
+    }
+  }
+
+  .bank-card {
+    border-color: $ink;
+
+    dl {
+      display: grid;
+      gap: 12px;
+      margin: 0;
+
+      > div {
+        display: grid;
+        grid-template-columns: 110px 1fr;
+        align-items: center;
+        gap: 12px;
+      }
+    }
+
+    dt {
+      color: $muted;
+      font-size: 0.88rem;
+    }
+
+    dd {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 0;
+      color: $ink;
+      font-weight: 600;
+
+      &.amount {
+        font-size: 1.4rem;
+        font-weight: 800;
+      }
+    }
+
+    .mono {
+      font-family: $mono;
+      font-size: 0.92rem;
+      letter-spacing: 0.02em;
+      word-break: break-all;
+    }
+
+    .note {
+      margin: 18px 0 0;
+      padding-top: 14px;
+      border-top: 1px solid $line;
+      color: $muted;
+      font-size: 0.86rem;
+    }
+  }
+
+  .copy-btn {
+    padding: 3px 9px;
+    border: 1px solid $line-strong;
+    border-radius: $radius-sm;
+    background: $paper;
+    color: $muted;
+    font-size: 0.75rem;
+    font-weight: 650;
+
+    &:hover {
+      border-color: $ink;
+      color: $ink;
+    }
+  }
+
+  .items {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 0;
+      border-bottom: 1px solid $line;
+
+      > div {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      strong {
+        color: $ink;
+        font-size: 0.94rem;
+      }
+
+      span {
+        color: $muted;
+        font-size: 0.85rem;
+      }
+
+      .price {
+        color: $ink;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+      }
+    }
+  }
+
+  .sum {
+    display: grid;
+    gap: 6px;
+    margin: 14px 0 0;
+    font-size: 0.92rem;
+
+    > div {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    dt {
+      color: $muted;
+    }
+
+    dd {
+      margin: 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .grand {
+      margin-top: 6px;
+      padding-top: 10px;
+      border-top: 1px solid $line;
+      font-size: 1.05rem;
+      font-weight: 800;
+
+      dt {
+        color: $ink;
+      }
+    }
+  }
+
+  .addresses {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 20px;
 
-    @media (max-width: 768px) {
-      grid-template-columns: 1fr;
-    }
-
-    .card {
-      background: white;
-      padding: 25px;
-      border-radius: 12px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-
-      &.full-width {
-        grid-column: span 2;
-        @media (max-width: 768px) {
-          grid-column: span 1;
-        }
-      }
-
-      h2,
-      h3 {
-        margin-top: 0;
-        color: #111;
-        font-size: 1.2rem;
-        border-bottom: 1px solid #f0f0f0;
-        padding-bottom: 10px;
-        margin-bottom: 15px;
-      }
-    }
-  }
-
-  .status-badge {
-    background: #fff3cd;
-    color: #856404;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-weight: bold;
-    font-size: 0.9rem;
-  }
-
-  .iban-box {
-    background: #f8f9fa;
-    padding: 15px;
-    border-radius: 6px;
-    border: 1px dashed #ccc;
-    margin: 15px 0;
     p {
-      margin: 5px 0;
-      font-family: Manrope;
-      font-size: 1rem;
+      margin: 0;
+      color: $text;
+      line-height: 1.6;
     }
   }
 
-  .address-card {
+  .confirmation-actions {
     display: flex;
-    gap: 20px;
-    @media (max-width: 480px) {
-      flex-direction: column;
-      gap: 10px;
-    }
-    .col {
-      flex: 1;
-      p {
-        margin: 4px 0;
-        color: #555;
-      }
-    }
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 32px;
   }
 
-  .items-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 10px;
-    th {
-      text-align: left;
-      border-bottom: 2px solid #eee;
-      padding: 10px;
-      color: #888;
-      font-size: 0.9rem;
-    }
-    td {
-      padding: 12px 10px;
-      border-bottom: 1px solid #f9f9f9;
+  @media (max-width: $bp-sm) {
+    padding: 28px 16px 60px;
+
+    .confirmation-head h1 {
+      font-size: 1.55rem;
     }
 
-    @media (max-width: 480px) {
-      font-size: 0.85rem;
-      th,
-      td {
-        padding: 8px 4px;
-      }
+    .bank-card dl > div {
+      grid-template-columns: 1fr;
+      gap: 2px;
     }
-  }
 
-  .grand-total {
-    text-align: right;
-    margin-top: 20px;
-    font-size: 1.3rem;
-    font-weight: bold;
-    span {
-      color: #d4af37;
-      margin-left: 10px;
-    }
-  }
-
-  .btn-home {
-    display: block;
-    margin: 40px auto;
-    padding: 12px 30px;
-    background: #111;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: bold;
-    &:hover {
-      background: #333;
+    .addresses {
+      grid-template-columns: 1fr;
     }
   }
 }

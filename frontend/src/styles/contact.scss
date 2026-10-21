@@ -1,7 +1,7 @@
 .contact-page {
   padding: 60px 20px;
-  background-color: #f8f9fa;
-  min-height: 80vh;
+  background-color: #f5f4f0;
+  min-height: calc(100vh - 64px);
   display: flex;
   justify-content: center;
 
@@ -11,15 +11,15 @@
     max-width: 1200px;
     width: 100%;
     background: white;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
-    border-radius: 10px;
+        border-radius: 10px;
+    border: 1px solid #e4e1d9;
     overflow: hidden;
   }
 
   .contact-form-section {
     flex: 2;
     padding: 40px;
-    min-width: 350px;
+    min-width: min(350px, 100%);
 
     .back-btn {
       background: none;
@@ -177,6 +177,36 @@
           color: #ccc;
         }
       }
+    }
+  }
+}
+
+// Liens de contact dans la colonne sombre
+.contact-page .contact-container a[href^="tel:"],
+.contact-page .contact-container a[href^="mailto:"] {
+  color: inherit;
+  text-decoration: none;
+
+  &:hover {
+    color: #d4af37;
+  }
+}
+
+@media (max-width: 600px) {
+  .contact-page {
+    padding: 0;
+
+    .contact-container {
+      border: none;
+      border-radius: 0;
+    }
+
+    .contact-form-section {
+      padding: 28px 18px;
+    }
+
+    h1 {
+      font-size: 1.6rem;
     }
   }
 }

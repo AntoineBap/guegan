@@ -1,96 +1,132 @@
-import React, { useEffect, useState, useContext } from "react";
+import React, { useEffect, useState, useContext, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { AuthContext } from "../contexts/AuthContext";
-import Header from "../components/Header";
-import "../styles/adminDashboard.scss";
+import { formatPrice, formatDate, quoteExpiry, isQuoteValid } from "../utils/format";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 const AdminQuotes = () => {
-  const { token, isAdmin } = useContext(AuthContext);
+  const { token } = useContext(AuthContext);
   const navigate = useNavigate();
-  const [quotes, setQuotes] = useState([]);
+  const [quotes, setQuotes] = useState(null);
+  const [query, setQuery] = useState("");
+  const [showExpired, setShowExpired] = useState(false);
 
   useEffect(() => {
-    if (!isAdmin) return navigate("/");
-    
-    fetch(`${API_URL}/api/admin/quotes`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setQuotes(data);
-        }
-      })
-      .catch((err) => console.error(err));
-  }, [isAdmin, navigate, token]);
+    fetch(`${API_URL}/api/admin/quotes`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => setQuotes(Array.isArray(data) ? data : []))
+      .catch(() => setQuotes([]));
+  }, [token]);
 
-  // Filtrer uniquement les devis valables (moins de 1 mois)
-  const validQuotes = quotes.filter(q => {
-    const creationDate = new Date(q.createdAt);
-    const oneMonthLater = new Date(creationDate);
-    oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
-    return new Date() <= oneMonthLater;
-  });
+  const list = useMemo(() => {
+    if (!quotes) return [];
+    const q = query.trim().toLowerCase();
+    return quotes
+      .filter((x) => showExpired || isQuoteValid(x.createdAt))
+      .filter(
+        (x) =>
+          !q ||
+          [x.quoteNumber, x.userId?.companyName, x.userId?.email, x.userId?.lastName]
+            .filter(Boolean)
+            .some((v) => String(v).toLowerCase().includes(q)),
+      );
+  }, [quotes, query, showExpired]);
+
+  const expiredCount = quotes ? quotes.filter((x) => !isQuoteValid(x.createdAt)).length : 0;
 
   return (
-    <div style={{ backgroundColor: "#f4f6f8", minHeight: "100vh" }}>
-      <Header />
-      <div className="admin-dashboard">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2>Gestion des Devis ({validQuotes.length} en cours)</h2>
-          <button onClick={() => navigate("/admin")} style={{ padding: '8px 15px', background: '#ddd', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
-            ← Retour Dashboard
-          </button>
+    <div className="admin-page">
+      <Helmet>
+        <title>Devis — Administration</title>
+      </Helmet>
+
+      <div className="page-head">
+        <div>
+          <p className="eyebrow">Clients</p>
+          <h1>Devis</h1>
+          <p className="sub">Devis générés par les clients depuis leur panier. Un devis reste valable un mois.</p>
+        </div>
+      </div>
+
+      <section className="panel">
+        <div className="toolbar">
+          <label className="search">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <span className="sr-only">Rechercher</span>
+            <input type="text" placeholder="N° de devis, société, email…" value={query} onChange={(e) => setQuery(e.target.value)} />
+          </label>
+          {expiredCount > 0 && (
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.88rem", color: "var(--muted)" }}>
+              <input type="checkbox" checked={showExpired} onChange={(e) => setShowExpired(e.target.checked)} />
+              Afficher les expirés ({expiredCount})
+            </label>
+          )}
+          {quotes && <span className="result-count">{list.length} devis</span>}
         </div>
 
-        {validQuotes.length === 0 ? (
-          <p style={{ textAlign: "center", fontStyle: "italic", color: "#666", marginTop: "40px" }}>
-            Aucun devis en cours de validité.
-          </p>
+        {quotes === null ? (
+          <div className="loading-state" />
+        ) : list.length === 0 ? (
+          <div className="empty-state">
+            <strong>Aucun devis en cours</strong>
+            Les devis créés par les clients apparaîtront ici.
+          </div>
         ) : (
-          <table style={{ width: '100%', backgroundColor: 'white', borderRadius: '8px', overflow: 'hidden', borderCollapse: 'collapse', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
-            <thead style={{ backgroundColor: '#f0f0f0', textAlign: 'left' }}>
-              <tr>
-                <th style={{ padding: '15px' }}>Numéro</th>
-                <th style={{ padding: '15px' }}>Date de création</th>
-                <th style={{ padding: '15px' }}>Fin de validité</th>
-                <th style={{ padding: '15px' }}>Client</th>
-                <th style={{ padding: '15px' }}>Montant HT</th>
-                <th style={{ padding: '15px' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {validQuotes.map(q => {
-                const creationDate = new Date(q.createdAt);
-                const expirationDate = new Date(creationDate);
-                expirationDate.setMonth(expirationDate.getMonth() + 1);
-
-                return (
-                  <tr key={q._id} style={{ borderBottom: '1px solid #eee' }}>
-                    <td style={{ padding: '15px', fontWeight: 'bold' }}>#{q.quoteNumber}</td>
-                    <td style={{ padding: '15px' }}>{creationDate.toLocaleDateString()}</td>
-                    <td style={{ padding: '15px', color: '#e74c3c', fontWeight: 'bold' }}>
-                      {expirationDate.toLocaleDateString()}
-                    </td>
-                    <td style={{ padding: '15px' }}>{q.userId?.email || 'Inconnu'}</td>
-                    <td style={{ padding: '15px' }}>{q.totalAmount.toFixed(2)} €</td>
-                    <td style={{ padding: '15px' }}>
-                      <button 
-                        onClick={() => navigate(`/admin/quotes/${q._id}`)}
-                        style={{ padding: '6px 12px', background: '#111', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                      >
-                        Voir
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="table-wrap">
+            <table className="data-table as-cards">
+              <thead>
+                <tr>
+                  <th>Devis</th>
+                  <th>Client</th>
+                  <th>Plans</th>
+                  <th>Validité</th>
+                  <th className="num">Montant HT</th>
+                </tr>
+              </thead>
+              <tbody>
+                {list.map((q) => {
+                  const valid = isQuoteValid(q.createdAt);
+                  const daysLeft = Math.ceil((quoteExpiry(q.createdAt) - new Date()) / 86400000);
+                  return (
+                    <tr key={q._id} className="is-clickable" onClick={() => navigate(`/admin/quotes/${q._id}`)}>
+                      <td>
+                        <div className="stack">
+                          <span className="ref">#{q.quoteNumber}</span>
+                          <small>{formatDate(q.createdAt)}</small>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="stack">
+                          <span>{q.userId?.companyName || "—"}</span>
+                          <small>{q.userId?.email || "Compte supprimé"}</small>
+                        </div>
+                      </td>
+                      <td className="muted">{q.items.reduce((n, i) => n + (i.quantity || 1), 0)}</td>
+                      <td className="nowrap">
+                        {valid ? (
+                          <span className={`status-badge ${daysLeft <= 7 ? "is-pending" : "is-paid"}`}>
+                            {daysLeft <= 0 ? "Expire aujourd'hui" : `${daysLeft} j restants`}
+                          </span>
+                        ) : (
+                          <span className="status-badge is-neutral">Expiré le {formatDate(quoteExpiry(q.createdAt))}</span>
+                        )}
+                      </td>
+                      <td className="num amount">
+                        <strong>{formatPrice(q.totalAmount)}</strong>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
-      </div>
+      </section>
     </div>
   );
 };

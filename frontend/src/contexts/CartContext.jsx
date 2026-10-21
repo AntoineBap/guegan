@@ -1,17 +1,27 @@
-import React, { createContext, useState, useContext, useEffect } from "react";
+import React, { createContext, useState, useContext, useEffect, useRef } from "react";
 import { AuthContext } from "./AuthContext";
+import { SettingsContext } from "./SettingsContext";
+import { computeUnitPrice, hasPrices } from "../utils/pricing";
 
 const CartContext = createContext();
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 export const useCart = () => useContext(CartContext);
 
+// Identifiant stable par article (les objets sont recréés lors d'un recalcul de prix)
+const newId = () =>
+  typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+const withIds = (items) =>
+  Array.isArray(items) ? items.map((i) => (i.cartId ? i : { ...i, cartId: newId() })) : [];
+
 export const CartProvider = ({ children }) => {
   // 1. Initialisation Panier Global
   const [cartItems, setCartItems] = useState(() => {
     try {
       const localData = localStorage.getItem("guest_cart");
-      return localData ? JSON.parse(localData) : [];
+      return localData ? withIds(JSON.parse(localData)) : [];
     } catch (error) {
       return [];
     }
@@ -24,6 +34,24 @@ export const CartProvider = ({ children }) => {
   const [isCartOpen, setIsCartOpen] = useState(false);
 
   const { token, isAuthenticated } = useContext(AuthContext);
+  const { settings } = useContext(SettingsContext);
+
+  // --- RECALCUL DES PRIX ---
+  // Les articles ajoutés sans tarifs (visiteur) ou avant un changement de tarifs
+  // sont remis à jour dès que les prix sont connus.
+  useEffect(() => {
+    if (!hasPrices(settings)) return;
+    setCartItems((prev) => {
+      let changed = false;
+      const next = prev.map((item) => {
+        const unitPrice = computeUnitPrice(item, settings);
+        if (unitPrice === item.unitPrice) return item;
+        changed = true;
+        return { ...item, unitPrice, totalPrice: unitPrice * (item.quantity || 1) };
+      });
+      return changed ? next : prev;
+    });
+  }, [settings, cartItems.length]);
 
   // --- EFFET 1 : CHARGEMENT INITIAL (FETCH) ---
   useEffect(() => {
@@ -37,17 +65,22 @@ export const CartProvider = ({ children }) => {
           if (response.ok) {
             const savedCart = await response.json();
             if (Array.isArray(savedCart)) {
-              setCartItems(savedCart);
+              // Fusion : panier enregistré + articles ajoutés avant la connexion
+              const saved = withIds(savedCart);
+              const savedIds = new Set(saved.map((i) => i.cartId));
+              setCartItems((prev) => [...saved, ...prev.filter((i) => !savedIds.has(i.cartId))]);
             }
           }
         } catch (error) {
-          console.error("❌ Erreur chargement panier:", error);
+          console.error("Erreur chargement panier:", error);
         }
       }
       setIsDataLoaded(true);
     };
 
     if (isAuthenticated) {
+      // Pas de sauvegarde tant que le panier serveur n'est pas chargé (sinon il serait écrasé)
+      setIsDataLoaded(false);
       fetchCart();
     } else {
       setIsDataLoaded(true);
@@ -55,35 +88,40 @@ export const CartProvider = ({ children }) => {
   }, [isAuthenticated, token]);
 
   // --- EFFET 2 : SAUVEGARDE AUTOMATIQUE ---
+  // Regroupée (300 ms) : changer une quantité au clavier n'envoie plus une requête par frappe
+  const saveTimer = useRef(null);
   useEffect(() => {
     if (!isDataLoaded) return;
+    clearTimeout(saveTimer.current);
     if (isAuthenticated && token) {
-      saveCartToBackend(cartItems);
-      localStorage.removeItem("guest_cart");
+      saveTimer.current = setTimeout(() => {
+        fetch(`${API_URL}/api/auth/cart`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ cart: cartItems }),
+        }).catch((error) => console.error("Erreur réseau sauvegarde panier:", error));
+      }, 300);
+      try {
+        localStorage.removeItem("guest_cart");
+      } catch {
+        /* stockage indisponible */
+      }
     } else {
-      localStorage.setItem("guest_cart", JSON.stringify(cartItems));
+      try {
+        localStorage.setItem("guest_cart", JSON.stringify(cartItems));
+      } catch {
+        /* stockage indisponible */
+      }
     }
+    return () => clearTimeout(saveTimer.current);
   }, [cartItems, isAuthenticated, token, isDataLoaded]);
 
-  // --- FONCTION SAUVEGARDE API ---
-  const saveCartToBackend = async (items) => {
-    if (!token) return;
-    try {
-      await fetch(`${API_URL}/api/auth/cart`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ cart: items }),
-      });
-    } catch (error) {
-      console.error("❌ Erreur réseau sauvegarde:", error);
-    }
-  };
-
   // --- ACTIONS ---
-  const addToCart = (item, insertAtIndex = null) => {
+  const addToCart = (rawItem, insertAtIndex = null) => {
+    const item = { ...rawItem, cartId: newId() };
     setCartItems((prev) => {
       if (insertAtIndex !== null && insertAtIndex >= 0 && insertAtIndex <= prev.length) {
         const newCart = [...prev];
@@ -127,20 +165,13 @@ export const CartProvider = ({ children }) => {
 
   // Supprime uniquement les articles qui viennent d'être payés/validés
   const clearPurchasedItems = () => {
-    setCartItems((prev) => prev.filter(item => !checkoutItems.includes(item)));
+    const bought = new Set(checkoutItems.map((i) => i.cartId));
+    setCartItems((prev) => prev.filter((item) => !bought.has(item.cartId)));
     setCheckoutItems([]);
   };
 
-  const mergeCartAfterLogin = (dbCart = []) => {
-    setCartItems((prevGuestCart) => {
-      let finalCart = [];
-      if (!dbCart || dbCart.length === 0) finalCart = [...prevGuestCart];
-      else if (prevGuestCart.length === 0) finalCart = [...dbCart];
-      else finalCart = [...dbCart, ...prevGuestCart];
-      return finalCart;
-    });
-    setIsDataLoaded(true);
-  };
+  // Conservé pour compatibilité : la fusion se fait désormais au chargement du panier serveur
+  const mergeCartAfterLogin = () => {};
 
   const proceedToCheckout = (selectedIndices) => {
     // On filtre le panier global pour ne garder que les indices sélectionnés
@@ -155,7 +186,7 @@ export const CartProvider = ({ children }) => {
       value={{
         cartItems,
         checkoutItems, 
-        setCheckoutItems, // <-- C'EST ICI QUE ÇA MANQUAIT !
+        setCheckoutItems,
         addToCart,
         removeFromCart,
         updateCartItem,
