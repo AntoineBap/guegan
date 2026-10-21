@@ -18,10 +18,14 @@ const serverError = (res, error) => {
 // --- 1. DASHBOARD STATS ---
 exports.getDashboardStats = async (req, res) => {
   try {
+    // Un devis est valable un mois
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
     const [byStatus, users, quotes] = await Promise.all([
       Order.aggregate([{ $group: { _id: "$status", count: { $sum: 1 }, amount: { $sum: "$totalAmount" } } }]),
       User.countDocuments({ role: "client" }),
-      Quote.estimatedDocumentCount(),
+      Quote.countDocuments({ createdAt: mongoose.trusted({ $gte: oneMonthAgo }) }),
     ]);
 
     const stat = (s) => byStatus.find((b) => b._id === s) || { count: 0, amount: 0 };

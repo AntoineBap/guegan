@@ -4,6 +4,7 @@ const crypto = require("crypto");
 const mongoose = require("mongoose");
 const User = require("../models/User");
 const Order = require("../models/Order");
+const Quote = require("../models/Quote");
 const {
   sendVerificationEmail,
   sendOrderConfirmationEmail,
@@ -234,9 +235,24 @@ exports.createOrder = async (req, res) => {
     if (!billingAddress || !shippingAddress)
       return res.status(400).json({ message: "Adresse incomplète." });
 
-    // Prix et livraison recalculés côté serveur : le total envoyé par le navigateur est ignoré
-    const settings = await getGlobalSettings();
-    const { items, totalAmount: itemsTotal } = priceItems(req.body.items, settings);
+    // Prix et livraison recalculés côté serveur : le total envoyé par le navigateur est ignoré.
+    // Commande depuis un devis encore valable : on reprend les prix enregistrés dans le devis.
+    let items;
+    let itemsTotal;
+    const quoteId = typeof req.body.quoteId === "string" ? req.body.quoteId : null;
+    const quote = quoteId
+      ? await Quote.findOne({ _id: quoteId, userId: req.auth.userId }).lean().catch(() => null)
+      : null;
+    const quoteValidUntil = quote ? new Date(quote.createdAt) : null;
+    if (quoteValidUntil) quoteValidUntil.setMonth(quoteValidUntil.getMonth() + 1);
+
+    if (quote && new Date() <= quoteValidUntil) {
+      items = quote.items;
+      itemsTotal = quote.totalAmount;
+    } else {
+      const settings = await getGlobalSettings();
+      ({ items, totalAmount: itemsTotal } = priceItems(req.body.items, settings));
+    }
     const shippingCost = await computeShippingCost(shippingAddress, req.body.shippingCost);
     const totalAmount = itemsTotal + Math.max(0, shippingCost);
 
@@ -268,9 +284,9 @@ exports.createOrder = async (req, res) => {
     // Retire du panier uniquement les articles commandés (les autres restent)
     const user = await User.findById(req.auth.userId);
     if (user) {
-      const orderedIds = new Set(items.map((i) => i.id).filter(Boolean).map(String));
+      const orderedIds = new Set(items.map((i) => i.cartId).filter(Boolean).map(String));
       user.cart = orderedIds.size
-        ? (user.cart || []).filter((c) => !orderedIds.has(String(c.id)))
+        ? (user.cart || []).filter((c) => !orderedIds.has(String(c.cartId)))
         : [];
       await user.save();
       sendOrderConfirmationEmail(savedOrder, user).catch((e) =>
