@@ -1,5 +1,44 @@
 import React, { useMemo } from "react";
 import * as THREE from "three";
+import { computeSinkLayout } from "../utils/sinkLayout";
+import { getCorners, outlinePieces, outlinePoints, CORNER_SIDES } from "../utils/planShape";
+
+const cap = (side) => side.charAt(0).toUpperCase() + side.slice(1);
+
+// Bande qui suit un morceau du contour (côté droit ou arc), vue de dessus :
+// de `inset` à `inset + thickness` vers l'intérieur du plan, extrudée sur `height`
+// à partir de `yBottom`. Sert aux retombées, dosserets et chants mélaminés.
+const bandGeometry = (piece, inset, thickness, yBottom, height) => {
+  const outer = [];
+  const inner = [];
+  if (piece.kind === "line") {
+    const [nx, nz] = piece.normal;
+    for (const [x, z] of piece.points) {
+      outer.push([x - nx * inset, z - nz * inset]);
+      inner.push([x - nx * (inset + thickness), z - nz * (inset + thickness)]);
+    }
+  } else {
+    const [cx, cz] = piece.center;
+    const rOut = piece.radius - inset;
+    const rIn = Math.max(0.0001, piece.radius - inset - thickness);
+    const n = piece.points.length - 1;
+    for (let i = 0; i <= n; i++) {
+      const t = piece.t0 + ((piece.t1 - piece.t0) * i) / n;
+      outer.push([cx + rOut * Math.cos(t), cz + rOut * Math.sin(t)]);
+      inner.push([cx + rIn * Math.cos(t), cz + rIn * Math.sin(t)]);
+    }
+  }
+  const poly = [...outer, ...inner.reverse()];
+  const shape = new THREE.Shape();
+  // Forme dans le plan (x, -z) : après rotateX(-PI/2), y de la forme devient -z
+  shape.moveTo(poly[0][0], -poly[0][1]);
+  for (let i = 1; i < poly.length; i++) shape.lineTo(poly[i][0], -poly[i][1]);
+  shape.closePath();
+  const geom = new THREE.ExtrudeGeometry(shape, { depth: height, bevelEnabled: false, curveSegments: 1 });
+  geom.rotateX(-Math.PI / 2);
+  geom.translate(0, yBottom, 0);
+  return geom;
+};
 
 const Vasque3D = ({ config }) => {
   const UNIT_SCALE = 100;
@@ -15,15 +54,6 @@ const Vasque3D = ({ config }) => {
     (config.aprons && config.apronHeight ? config.apronHeight : 40) /
     UNIT_SCALE;
 
-  const SINK_SPECS_DIM = {
-    "Aucune cuve": { l: 0, w: 0, d: 0 },
-    "Cuve Labo 400x400x300": { l: 400, w: 400, d: 300 },
-    "Cuve Détente 400x400x200": { l: 400, w: 400, d: 200 },
-    "Cuve Cuisine 500x400x180": { l: 500, w: 400, d: 180 },
-    "Cuve Sanitaire 422x336x139": { l: 422, w: 336, d: 139 },
-  };
-
-  const GAP_DEFAULT = 40 / UNIT_SCALE;
   const DRAINER_LEN = 3.5;
   const GROOVE_W = 0.1;
   const STD_GROOVE_COUNT = 7;
@@ -38,126 +68,22 @@ const Vasque3D = ({ config }) => {
   };
 
   // --- CALCUL POSITIONS CUVES (MOTEUR BIDIRECTIONNEL) ---
-  const calculatedSinks = useMemo(() => {
-    const sinks = config.sinks || [
-      {
-        id: 999,
-        type: config.sink || "Aucune cuve",
-        position: config.position || "center",
-        offset: config.sinkOffset || 100,
-      },
-    ];
-
-    if (sinks.length === 0) return [];
-
-    const items = sinks.map((s) => {
-      const spec = SINK_SPECS_DIM[s.type] || SINK_SPECS_DIM["Aucune cuve"];
-      const offsetVal =
-        s.offset !== undefined && s.offset !== null
-          ? s.offset / UNIT_SCALE
-          : GAP_DEFAULT;
-
-      const tapHoleOffsetVal = (s.tapHoleOffset || 0) / UNIT_SCALE;
-
-      return {
+  // Position des cuves (calcul partagé avec le configurateur), convertie en unités 3D
+  const calculatedSinks = useMemo(
+    () =>
+      computeSinkLayout(config).map((s) => ({
         ...s,
-        width: spec.l / UNIT_SCALE,
-        height: spec.w / UNIT_SCALE,
-        depth: spec.d / UNIT_SCALE,
-        offsetVal,
-        tapHoleOffsetVal,
-      };
-    });
-
-    let anchorIndex = items.findIndex((s) => s.id === config.anchorId);
-    if (anchorIndex === -1) anchorIndex = 0;
-
-    const anchorItem = items[anchorIndex];
-    const planHalfL = totalL / 2;
-
-    let anchorAbsX = 0;
-    if (anchorItem.position === "center") {
-      anchorAbsX = 0;
-    } else if (anchorItem.position === "left") {
-      anchorAbsX = -planHalfL + anchorItem.offsetVal + anchorItem.width / 2;
-    } else if (anchorItem.position === "right") {
-      anchorAbsX = planHalfL - anchorItem.offsetVal - anchorItem.width / 2;
-    }
-
-    const calculatedItems = new Array(items.length);
-
-    const calculateZ = (sinkItem) => {
-      const minBack = 100 / UNIT_SCALE;
-      const planHalfDepth = totalW / 2;
-      const sinkHalfDepth = sinkItem.height / 2;
-      return Math.max(0, minBack + sinkHalfDepth - planHalfDepth);
-    };
-
-    calculatedItems[anchorIndex] = {
-      ...anchorItem,
-      x: anchorAbsX,
-      z: calculateZ(anchorItem),
-      valid: anchorItem.type !== "Aucune cuve",
-    };
-
-    for (let i = anchorIndex + 1; i < items.length; i++) {
-      const prev = calculatedItems[i - 1];
-      const curr = items[i];
-
-      // Si la cuve précédente a un égouttoir à droite, il faut en tenir compte
-      const prevDrainerExtra =
-        prev.hasDrainer && prev.drainerPosition === "right" ? DRAINER_LEN : 0;
-      // Si la cuve courante a un égouttoir à gauche, il faut en tenir compte
-      const currDrainerExtra =
-        curr.hasDrainer && curr.drainerPosition === "left" ? DRAINER_LEN : 0;
-
-      const dist =
-        prev.width / 2 +
-        prevDrainerExtra +
-        curr.offsetVal +
-        currDrainerExtra +
-        curr.width / 2;
-      const x = prev.x + dist;
-
-      calculatedItems[i] = {
-        ...curr,
-        x,
-        z: calculateZ(curr),
-        valid: curr.type !== "Aucune cuve",
-      };
-    }
-
-    for (let i = anchorIndex - 1; i >= 0; i--) {
-      const next = calculatedItems[i + 1];
-      const curr = items[i];
-
-      const gapVal = curr.offsetVal;
-
-      // Si la cuve suivante a un égouttoir à gauche, il faut en tenir compte
-      const nextDrainerExtra =
-        next.hasDrainer && next.drainerPosition === "left" ? DRAINER_LEN : 0;
-      // Si la cuve courante a un égouttoir à droite, il faut en tenir compte
-      const currDrainerExtra =
-        curr.hasDrainer && curr.drainerPosition === "right" ? DRAINER_LEN : 0;
-
-      const dist =
-        next.width / 2 +
-        nextDrainerExtra +
-        gapVal +
-        currDrainerExtra +
-        curr.width / 2;
-      const x = next.x - dist;
-
-      calculatedItems[i] = {
-        ...curr,
-        x,
-        z: calculateZ(curr),
-        valid: curr.type !== "Aucune cuve",
-      };
-    }
-
-    return calculatedItems;
-  }, [config.sinks, config.length, totalL, totalW, config.anchorId]);
+        width: s.width / UNIT_SCALE,
+        height: s.height / UNIT_SCALE,
+        depth: s.depth / UNIT_SCALE,
+        offsetVal: s.offsetVal / UNIT_SCALE,
+        tapHoleOffsetVal: s.tapHoleOffsetVal / UNIT_SCALE,
+        x: s.x / UNIT_SCALE,
+        z: s.z / UNIT_SCALE,
+      })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [config.sinks, config.length, config.width, config.anchorId],
+  );
 
   const maxBasinDepth = calculatedSinks.reduce(
     (max, s) => (s.valid && s.depth > max ? s.depth : max),
@@ -237,12 +163,14 @@ const Vasque3D = ({ config }) => {
   };
 
   const planComponents = useMemo(() => {
+    // Contour du plan : rectangle, avec des quarts de cercle aux angles arrondis
+    const outline = outlinePoints(config.length, config.width, getCorners(config), 64).map(
+      ([x, z]) => [x / UNIT_SCALE, z / UNIT_SCALE],
+    );
     const drawBaseRect = (shp) => {
-      shp.moveTo(-totalL / 2, -totalW / 2);
-      shp.lineTo(-totalL / 2, totalW / 2);
-      shp.lineTo(totalL / 2, totalW / 2);
-      shp.lineTo(totalL / 2, -totalW / 2);
-      shp.lineTo(-totalL / 2, -totalW / 2);
+      shp.moveTo(outline[0][0], -outline[0][1]);
+      for (let i = 1; i < outline.length; i++) shp.lineTo(outline[i][0], -outline[i][1]);
+      shp.closePath();
     };
     const drawOneHole = (shp, x, z, w, h, r, isOval) => {
       const hole = new THREE.Path();
@@ -344,7 +272,8 @@ const Vasque3D = ({ config }) => {
       geomFull.rotateX(-Math.PI / 2);
       return { isSplit: false, full: geomFull };
     }
-  }, [totalL, totalW, calculatedSinks, thickness]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalL, totalW, calculatedSinks, thickness, config.corners]);
 
   const drainerVisuals = useMemo(() => {
     const visuals = [];
@@ -835,103 +764,107 @@ const Vasque3D = ({ config }) => {
     return geometry;
   };
 
-  const geomFront = useMemo(
-    () =>
-      !config.splashback || !config.apronFront
-        ? null
-        : createSplashGeometry(
-            totalL,
+  // --- BORDS (retombées, dosserets, chants, anti-goutte) ---
+  // Tout est construit à partir du contour : un arc d'angle arrondi reçoit la retombée
+  // ou le dosseret dès qu'un des deux côtés qu'il relie en a un.
+  const MELA_H = 0.28; // 28 mm de mélaminé hydrofuge sous la résine
+  const edgeGeometries = useMemo(() => {
+    const corners = getCorners(config);
+    const pieces = outlinePieces(config.length, config.width, corners, 48).map((p) => ({
+      ...p,
+      points: p.points?.map(([x, z]) => [x / UNIT_SCALE, z / UNIT_SCALE]),
+      point: p.point && [p.point[0] / UNIT_SCALE, p.point[1] / UNIT_SCALE],
+      center: p.center && [p.center[0] / UNIT_SCALE, p.center[1] / UNIT_SCALE],
+      radius: p.radius && p.radius / UNIT_SCALE,
+    }));
+
+    const sideHas = (prefix, side) => !!config[`${prefix}${cap(side)}`];
+    const apronOn = (side) => !!config.aprons && sideHas("apron", side);
+    const rimOn = (side) => !!config.rims && side !== "front" && sideHas("rim", side);
+    const pieceHas = (piece, test) =>
+      piece.kind === "line" ? test(piece.side) : CORNER_SIDES[piece.corner].some(test);
+
+    const rimH = (config.rimHeigh || 100) / UNIT_SCALE;
+    const EPS = 0.002;
+    const out = { aprons: [], rims: [], melas: [], splashes: [] };
+
+    pieces.forEach((piece, i) => {
+      if (piece.kind === "corner") return;
+      const prev = pieces[(i + pieces.length - 1) % pieces.length];
+      const next = pieces[(i + 1) % pieces.length];
+      // À un angle vif : le côté qui se trouve de l'autre côté de cet angle
+      const otherSide = (cornerPiece) =>
+        cornerPiece.kind === "corner"
+          ? CORNER_SIDES[cornerPiece.corner].find((sd) => sd !== piece.side)
+          : null;
+
+      const hasApron = pieceHas(piece, apronOn);
+      if (hasApron) out.aprons.push(bandGeometry(piece, 0, wallThickness, 0.4 - apronH, apronH));
+      if (pieceHas(piece, rimOn)) out.rims.push(bandGeometry(piece, 0, wallThickness, 0.4, rimH));
+
+      // Chant mélaminé visible là où il n'y a pas de retombée (jamais à l'avant)
+      if (!hasApron && piece.side !== "front") {
+        let mela = piece;
+        if (piece.kind === "line") {
+          // À un angle vif, la retombée du côté voisin couvre déjà l'épaisseur du mur
+          const [a, b] = piece.points;
+          const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+          const ux = (b[0] - a[0]) / len;
+          const uz = (b[1] - a[1]) / len;
+          const cropStart = otherSide(prev) && apronOn(otherSide(prev)) ? wallThickness : 0;
+          const cropEnd = otherSide(next) && apronOn(otherSide(next)) ? wallThickness : 0;
+          mela = {
+            ...piece,
+            points: [
+              [a[0] + ux * cropStart, a[1] + uz * cropStart],
+              [b[0] - ux * cropEnd, b[1] - uz * cropEnd],
+            ],
+          };
+        }
+        out.melas.push(bandGeometry(mela, -EPS, 0.003, 0, MELA_H));
+      }
+
+      // Anti-goutte : bourrelet sur l'arête supérieure, là où il y a une retombée
+      if (config.splashback && hasApron) {
+        if (piece.kind === "line") {
+          const [a, b] = piece.points;
+          const dx = b[0] - a[0];
+          const dz = b[1] - a[1];
+          const splashSide = (sd) => !!sd && apronOn(sd);
+          const geom = createSplashGeometry(
+            Math.hypot(dx, dz),
             splashRadius,
-            !!config.apronLeft,
-            !!config.apronRight,
-            false,
-          ),
-    [
-      config.splashback,
-      config.apronFront,
-      config.apronLeft,
-      config.apronRight,
-      totalL,
-      splashRadius,
-    ],
-  );
-  const geomBack = useMemo(
-    () =>
-      !config.splashback || !config.apronBack
-        ? null
-        : createSplashGeometry(
-            totalL,
-            splashRadius,
-            !!config.apronRight,
-            !!config.apronLeft,
-            false,
-          ),
-    [
-      config.splashback,
-      config.apronBack,
-      config.apronLeft,
-      config.apronRight,
-      totalL,
-      splashRadius,
-    ],
-  );
-  const geomLeft = useMemo(
-    () =>
-      !config.splashback || !config.apronLeft
-        ? null
-        : createSplashGeometry(
-            totalW,
-            splashRadius,
-            !!config.apronFront,
-            !!config.apronBack,
-            true,
-          ),
-    [
-      config.splashback,
-      config.apronLeft,
-      config.apronBack,
-      config.apronFront,
-      totalW,
-      splashRadius,
-    ],
-  );
-  const geomRight = useMemo(
-    () =>
-      !config.splashback || !config.apronRight
-        ? null
-        : createSplashGeometry(
-            totalW,
-            splashRadius,
-            !!config.apronBack,
-            !!config.apronFront,
-            true,
-          ),
-    [
-      config.splashback,
-      config.apronRight,
-      config.apronFront,
-      config.apronBack,
-      totalW,
-      splashRadius,
-    ],
-  );
+            splashSide(otherSide(prev)),
+            splashSide(otherSide(next)),
+          );
+          const [nx, nz] = piece.normal;
+          out.splashes.push({
+            geom,
+            position: [(a[0] + b[0]) / 2 - nx * splashRadius, 0.4, (a[1] + b[1]) / 2 - nz * splashRadius],
+            rotation: [0, Math.atan2(-dz, dx), 0],
+          });
+        } else {
+          // Quart de tore : même section que le bourrelet droit, raccord tangent
+          const geom = new THREE.TorusGeometry(piece.radius - splashRadius, splashRadius, 32, 48, Math.PI / 2);
+          geom.rotateX(Math.PI / 2);
+          geom.rotateY(-Math.min(piece.t0, piece.t1));
+          out.splashes.push({ geom, position: [piece.center[0], 0.4, piece.center[1]], rotation: [0, 0, 0] });
+        }
+      }
+    });
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    config.length, config.width, config.corners, config.aprons, config.apronFront, config.apronBack,
+    config.apronLeft, config.apronRight, config.apronHeight, config.rims, config.rimHeigh,
+    config.rimBack, config.rimLeft, config.rimRight, config.splashback,
+  ]);
+
   const materialProps = {
     color: config.color === "white" ? "#ffffff" : "#111111",
     roughness: 0.9,
     metalness: 0.1,
   };
-
-  // Méla hydro : plaque de 28mm sous la résine, visible sur les côtés sans retombée ni dosseret
-  // Jamais sur l'avant (retombée obligatoire). Couleur jaune-verdâtre typique du mélaminé hydrofuge.
-  const MELA_H = 0.28; // 28mm en unités Three.js
-  const MELA_COLOR = "#c8bb72"; // jaune verdâtre mélaminé hydrofuge
-  const melaMatProps = { color: MELA_COLOR, roughness: 0.85, metalness: 0.05 };
-
-  // Un côté est visible si pas de retombée ET pas de dosseret sur ce côté
-  const melaVisibleLeft  = !config.apronLeft;
-  const melaVisibleRight = !config.apronRight;
-  const melaVisibleBack  = !config.apronBack;
-  // L'avant n'est jamais visible (retombée avant obligatoire)
 
   return (
     <group position={[0, elevationY, 0]}>
@@ -958,171 +891,26 @@ const Vasque3D = ({ config }) => {
       ))}
       {drainerVisuals}
 
-      {config.aprons && (
-        <>
-          {config.apronFront && (
-            <mesh
-              position={[0, 0.4 - apronH / 2, totalW / 2 - wallThickness / 2]}
-            >
-              <boxGeometry args={[totalL, apronH, wallThickness]} />
-              <meshStandardMaterial {...materialProps} />
-            </mesh>
-          )}
-          {config.apronLeft && (
-            <mesh
-              position={[-totalL / 2 + wallThickness / 2, 0.4 - apronH / 2, 0]}
-            >
-              <boxGeometry args={[wallThickness, apronH, totalW]} />
-              <meshStandardMaterial {...materialProps} />
-            </mesh>
-          )}
-          {config.apronRight && (
-            <mesh
-              position={[totalL / 2 - wallThickness / 2, 0.4 - apronH / 2, 0]}
-            >
-              <boxGeometry args={[wallThickness, apronH, totalW]} />
-              <meshStandardMaterial {...materialProps} />
-            </mesh>
-          )}
-          {config.apronBack && (
-            <mesh
-              position={[0, 0.4 - apronH / 2, -totalW / 2 + wallThickness / 2]}
-            >
-              <boxGeometry args={[totalL, apronH, wallThickness]} />
-              <meshStandardMaterial {...materialProps} />
-            </mesh>
-          )}
-        </>
-      )}
-
-      {config.rims && (
-        <>
-          {config.rimLeft && (
-            <mesh
-              position={[
-                -totalL / 2 + wallThickness / 2,
-                0.4 + config.rimHeigh / UNIT_SCALE / 2,
-                0,
-              ]}
-            >
-              <boxGeometry
-                args={[wallThickness, config.rimHeigh / UNIT_SCALE, totalW]}
-              />
-              <meshStandardMaterial {...materialProps} />
-            </mesh>
-          )}
-          {config.rimRight && (
-            <mesh
-              position={[
-                totalL / 2 - wallThickness / 2,
-                0.4 + config.rimHeigh / UNIT_SCALE / 2,
-                0,
-              ]}
-            >
-              <boxGeometry
-                args={[wallThickness, config.rimHeigh / UNIT_SCALE, totalW]}
-              />
-              <meshStandardMaterial {...materialProps} />
-            </mesh>
-          )}
-          {config.rimBack && (
-            <mesh
-              position={[
-                0,
-                0.4 + config.rimHeigh / UNIT_SCALE / 2,
-                -totalW / 2 + wallThickness / 2,
-              ]}
-            >
-              <boxGeometry
-                args={[totalL, config.rimHeigh / UNIT_SCALE, wallThickness]}
-              />
-              <meshStandardMaterial {...materialProps} />
-            </mesh>
-          )}
-        </>
-      )}
-
-      {/* MÉLA HYDRO — tranche 28mm peinte sur les faces latérales du plan */}
-      {/* On place un mesh plat (epsilon d'épaisseur) exactement sur la face, légèrement en avant */}
-      {melaVisibleLeft && (() => {
-        const EPS = 0.002;
-        const frontCrop = wallThickness; // retombée avant obligatoire (côté +Z)
-        const backCrop  = config.apronBack ? wallThickness : 0; // côté -Z
-        const melaLen   = totalW - frontCrop - backCrop;
-        // Centre de la bande : entre -totalW/2+backCrop et +totalW/2-frontCrop
-        const centerZ   = (backCrop - frontCrop) / 2;
-        return (
-          <mesh position={[-totalL / 2 - EPS, MELA_H / 2, centerZ]} rotation={[0, Math.PI / 2, 0]}>
-            <planeGeometry args={[melaLen, MELA_H]} />
-            <meshStandardMaterial {...melaMatProps} side={THREE.DoubleSide} />
-          </mesh>
-        );
-      })()}
-      {melaVisibleRight && (() => {
-        const EPS = 0.002;
-        const frontCrop = wallThickness;
-        const backCrop  = config.apronBack ? wallThickness : 0;
-        const melaLen   = totalW - frontCrop - backCrop;
-        const centerZ   = (backCrop - frontCrop) / 2;
-        return (
-          <mesh position={[totalL / 2 + EPS, MELA_H / 2, centerZ]} rotation={[0, -Math.PI / 2, 0]}>
-            <planeGeometry args={[melaLen, MELA_H]} />
-            <meshStandardMaterial {...melaMatProps} side={THREE.DoubleSide} />
-          </mesh>
-        );
-      })()}
-      {melaVisibleBack && (() => {
-        const EPS = 0.002;
-        // côté gauche = -X, côté droit = +X
-        const leftCrop  = config.apronLeft  ? wallThickness : 0;
-        const rightCrop = config.apronRight ? wallThickness : 0;
-        const melaLen   = totalL - leftCrop - rightCrop;
-        // Centre entre -totalL/2+leftCrop et +totalL/2-rightCrop
-        const centerX   = (leftCrop - rightCrop) / 2;
-        return (
-          <mesh position={[centerX, MELA_H / 2, -totalW / 2 - EPS]}>
-            <planeGeometry args={[melaLen, MELA_H]} />
-            <meshStandardMaterial {...melaMatProps} side={THREE.DoubleSide} />
-          </mesh>
-        );
-      })()}
-        <>
-          {geomFront && (
-            <mesh
-              position={[0, 0.4, totalW / 2 - splashRadius]}
-              geometry={geomFront}
-            >
-              <meshStandardMaterial {...materialProps} />
-            </mesh>
-          )}
-          {geomBack && (
-            <mesh
-              position={[0, 0.4, -totalW / 2 + splashRadius]}
-              rotation={[0, Math.PI, 0]}
-              geometry={geomBack}
-            >
-              <meshStandardMaterial {...materialProps} />
-            </mesh>
-          )}
-          {geomLeft && (
-            <mesh
-              position={[-totalL / 2 + splashRadius, 0.4, 0]}
-              rotation={[0, Math.PI / 2, 0]}
-              geometry={geomLeft}
-            >
-              <meshStandardMaterial {...materialProps} />
-            </mesh>
-          )}
-          {geomRight && (
-            <mesh
-              position={[totalL / 2 - splashRadius, 0.4, 0]}
-              rotation={[0, -Math.PI / 2, 0]}
-              geometry={geomRight}
-            >
-              <meshStandardMaterial {...materialProps} />
-            </mesh>
-          )}
-        </>
+      {edgeGeometries.aprons.map((g, i) => (
+        <mesh key={`apron-${i}`} geometry={g}>
+          <meshStandardMaterial {...materialProps} />
+        </mesh>
+      ))}
+      {edgeGeometries.rims.map((g, i) => (
+        <mesh key={`rim-${i}`} geometry={g}>
+          <meshStandardMaterial {...materialProps} />
+        </mesh>
+      ))}
+      {edgeGeometries.melas.map((g, i) => (
+        <mesh key={`mela-${i}`} geometry={g}>
+          <meshStandardMaterial color="#c8bb72" roughness={0.85} metalness={0.05} />
+        </mesh>
+      ))}
+      {edgeGeometries.splashes.map((sp, i) => (
+        <mesh key={`splash-${i}`} geometry={sp.geom} position={sp.position} rotation={sp.rotation}>
+          <meshStandardMaterial {...materialProps} />
+        </mesh>
+      ))}
     </group>
   );
 };

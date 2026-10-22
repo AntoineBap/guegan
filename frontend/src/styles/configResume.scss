@@ -205,3 +205,30 @@
     }
   }
 }
+
+.summary-panel .summary-card {
+  .blocking-msg {
+    margin-bottom: 10px;
+    padding: 10px 12px;
+    border-radius: $radius;
+    background: $danger-soft;
+    color: $danger;
+    font-size: 0.86rem;
+    font-weight: 600;
+
+    button {
+      padding: 0;
+      border: none;
+      background: none;
+      color: inherit;
+      font-weight: 700;
+      text-decoration: underline;
+    }
+  }
+
+  .btn-add-cart:disabled {
+    background: $line-strong;
+    color: $paper;
+    cursor: not-allowed;
+  }
+}

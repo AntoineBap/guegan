@@ -1,4 +1,5 @@
 import React from "react";
+import { describeCorners } from "../utils/planShape";
 
 const SIDE = { left: "Gauche", right: "Droite", center: "Centrée" };
 const TAP = { Gauche: "Gauche", Droite: "Droite", Centre: "Centré" };
@@ -28,6 +29,17 @@ const ItemSpecs = ({ item }) => {
           {item.length} × {item.width} mm
         </dd>
       </div>
+
+      {describeCorners(item).length > 0 && (
+        <div>
+          <dt>Angles</dt>
+          <dd>
+            {describeCorners(item).map((line) => (
+              <span key={line}>{line}</span>
+            ))}
+          </dd>
+        </div>
+      )}
 
       {sinks.length === 0 && (
         <div>

@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useContext, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import ConfigResume from "./ConfigResume";
+import CornerEditor from "./CornerEditor";
+import { computeSinkLayout, sinkFootprints } from "../utils/sinkLayout";
+import { getCorners, sinkCornerConflicts } from "../utils/planShape";
 import { AuthContext } from "../contexts/AuthContext";
 import { SettingsContext } from "../contexts/SettingsContext";
 import "../styles/configurator.scss"; // ou configurator.scss selon votre structure
@@ -737,6 +740,21 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset, editIndex = nul
     return false;
   };
 
+  // --- ANGLES ARRONDIS : une cuve ne doit pas mordre sur un arrondi ---
+  const footprints = useMemo(() => sinkFootprints(computeSinkLayout(config)), [config]);
+  const cornerConflicts = useMemo(
+    () => sinkCornerConflicts(footprints, Number(config.length) || 0, Number(config.width) || 0, getCorners(config)),
+    [footprints, config],
+  );
+
+  const scrollToBlockingError = () => {
+    if (cornerConflicts.length && inputsRef.current.corners) {
+      inputsRef.current.corners.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    scrollToFirstError();
+  };
+
   const handleResetClick = () => {
     if (window.confirm("Repartir d'une configuration vierge ? Les réglages en cours seront perdus.")) {
       onReset();
@@ -822,6 +840,13 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset, editIndex = nul
             )}
           </div>
         </div>
+      </div>
+
+      <div className="form-group section-box" ref={(el) => (inputsRef.current.corners = el)}>
+        <label className="section-title">
+          Angles <span className="optional">vifs ou arrondis</span>
+        </label>
+        <CornerEditor config={config} setConfig={setConfig} footprints={footprints} conflicts={cornerConflicts} />
       </div>
 
       {currentSinks.length > 1 && (
@@ -1661,8 +1686,9 @@ const ConfigPanel = ({ config, setConfig, setShowModal, onReset, editIndex = nul
         onReset={onReset}
         sinkSpecs={SINK_SPECS}
         settings={settings}
-        blockingErrors={Object.keys(alerts).length > 0}
-        onScrollToError={scrollToFirstError}
+        blockingErrors={cornerConflicts.length > 0}
+        blockingMessage="Une cuve déborde sur un angle arrondi."
+        onScrollToError={scrollToBlockingError}
         editIndex={editIndex}
         onEditDone={onEditDone}
       />

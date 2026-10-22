@@ -3,6 +3,7 @@
 // le prix envoyé par le navigateur n'est jamais pris tel quel.
 
 const MAX_QUANTITY = 100;
+const MIN_CORNER_RADIUS = 50;
 const MAX_SINKS = 6;
 
 class PricingError extends Error {}
@@ -13,6 +14,26 @@ const linearPartPrice = (heightMm, lengthMm, formula) => {
   if (!heightMm || heightMm <= formula.b) return 0;
   const pricePerMeter = formula.a * Math.log(heightMm - formula.b) - formula.c;
   return Math.round(Math.max(0, pricePerMeter) * (lengthMm / 1000));
+};
+
+// Angles arrondis (quarts de cercle) : sans supplément, mais ils doivent tenir dans le plan.
+// Mêmes règles que frontend/src/utils/planShape.js.
+const sanitizeCorners = (corners, length, width) => {
+  if (corners === undefined || corners === null) return undefined;
+  if (typeof corners !== "object") throw new PricingError("Angles invalides.");
+  const out = {};
+  for (const k of ["fl", "fr", "br", "bl"]) {
+    const r = corners[k] === undefined || corners[k] === null || corners[k] === "" ? 0 : num(corners[k]);
+    if (!Number.isFinite(r) || r < 0) throw new PricingError("Rayon d'angle invalide.");
+    if (r > 0 && r < MIN_CORNER_RADIUS) throw new PricingError(`Rayon d'angle minimum : ${MIN_CORNER_RADIUS} mm.`);
+    out[k] = Math.round(r);
+  }
+  const tol = 1;
+  if (out.fl + out.fr > length + tol || out.bl + out.br > length + tol ||
+      out.fl + out.bl > width + tol || out.fr + out.br > width + tol) {
+    throw new PricingError("Les arrondis ne tiennent pas dans le plan.");
+  }
+  return out;
 };
 
 const computeUnitPrice = (item, settings) => {
@@ -82,8 +103,15 @@ const priceItems = (items, settings) => {
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_QUANTITY)
       throw new PricingError("Quantité invalide.");
     const unitPrice = computeUnitPrice(item, settings);
+    const corners = sanitizeCorners(item.corners, num(item.length), num(item.width));
     totalAmount += unitPrice * quantity;
-    return { ...item, quantity, unitPrice, totalPrice: unitPrice * quantity };
+    return {
+      ...item,
+      ...(corners !== undefined && { corners }),
+      quantity,
+      unitPrice,
+      totalPrice: unitPrice * quantity,
+    };
   });
 
   return { items: priced, totalAmount };

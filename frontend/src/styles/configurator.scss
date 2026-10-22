@@ -674,3 +674,193 @@
   }
 }
 }
+
+// =============================================================
+// Angles arrondis
+// =============================================================
+.corner-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  .plan-preview {
+    display: block;
+    width: 100%;
+    max-height: 200px;
+    padding: 6px 0;
+    background: $canvas;
+    border-radius: $radius;
+
+    .outline {
+      fill: $paper;
+      stroke: $ink;
+      stroke-width: 1.5;
+      stroke-linejoin: round;
+    }
+
+    .sink {
+      fill: rgba($ink, 0.06);
+      stroke: $line-strong;
+      stroke-width: 1;
+
+      &.is-bad {
+        fill: rgba($danger, 0.15);
+        stroke: $danger;
+      }
+    }
+
+    .label {
+      fill: $faint;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+  }
+
+  .semicircle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+
+    > span {
+      color: $text;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    > div {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      min-height: 36px;
+      padding: 6px 12px;
+      border: 1px solid $line-strong;
+      border-radius: $radius;
+      background: $paper;
+      color: $ink;
+      font-size: 0.85rem;
+      font-weight: 600;
+
+      &:hover:not(:disabled) {
+        border-color: $ink;
+      }
+
+      &.active-small {
+        background: $ink;
+        border-color: $ink;
+        color: $paper;
+      }
+
+      &:disabled {
+        background: $canvas;
+        border-color: $line;
+        color: $faint;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  .corner-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+
+    @media (max-width: $bp-sm) {
+      gap: 8px;
+    }
+  }
+
+  .corner-card {
+    padding: 12px;
+    border: 1px solid $line;
+    border-radius: $radius;
+    background: $paper;
+    transition: border-color 0.15s;
+
+    &.is-on {
+      border-color: rgba($gold, 0.7);
+      background: #fffdf6;
+    }
+
+    .corner-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .corner-name {
+      color: $ink;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+
+    .drilling-options button {
+      min-height: 36px;
+      padding: 6px 8px;
+      font-size: 0.85rem;
+    }
+  }
+
+  .radius-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+
+    label {
+      flex: 1;
+      min-width: 90px;
+      margin: 0;
+
+      > span {
+        display: block;
+        margin-bottom: 4px;
+        color: $muted;
+        font-size: 0.78rem;
+        font-weight: 600;
+      }
+    }
+
+    .radius-input {
+      position: relative;
+
+      input {
+        margin: 0;
+        padding-right: 38px;
+      }
+
+      em {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: $faint;
+        font-size: 0.8rem;
+        font-style: normal;
+        pointer-events: none;
+      }
+    }
+
+    .btn {
+      min-height: 44px;
+    }
+  }
+
+  .corner-notice {
+    color: $warning;
+  }
+
+  .corner-hint {
+    margin: 0;
+    color: $faint;
+    font-size: 0.8rem;
+  }
+}

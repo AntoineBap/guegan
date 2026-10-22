@@ -8,6 +8,7 @@ import {
   Image,
 } from "@react-pdf/renderer";
 import { logoBase64 } from "../assets/logoData";
+import { describeCorners } from "../utils/planShape";
 
 const styles = StyleSheet.create({
   page: { padding: 40, fontSize: 11, fontFamily: "Helvetica", lineHeight: 1.5 },
@@ -187,6 +188,7 @@ const DeliveryNote = ({ order }) => {
                 <Text style={styles.tableCell}>
                   Plan de travail {item.material || ""} {"\n"}
                   Dimensions : {item.length} x {item.width} mm {"\n"}
+                  {describeCorners(item).map((line) => `${line}\n`).join("")}
                   {item.sinks &&
                   item.sinks.length > 0 &&
                   item.sinks[0]?.type !== "Aucune cuve"

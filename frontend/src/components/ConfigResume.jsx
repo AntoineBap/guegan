@@ -2,6 +2,7 @@ import React, { useMemo, useState, useContext } from "react";
 import { Link } from "react-router-dom";
 import { useCart } from "../contexts/CartContext";
 import { AuthContext } from "../contexts/AuthContext";
+import { getCorners, CORNERS, CORNER_LABEL, SIDE_CORNERS, SIDE_LABEL, isSemicircle } from "../utils/planShape";
 import "../styles/configResume.scss";
 
 // Constantes de Poids (kg/m2) - Restent en dur car physique des matériaux
@@ -42,7 +43,17 @@ const SummaryLine = ({
 };
 
 // On récupère settings et sinkSpecs via les props
-const ConfigResume = ({ config, onReset, sinkSpecs, settings, editIndex = null, onEditDone }) => {
+const ConfigResume = ({
+  config,
+  onReset,
+  sinkSpecs,
+  settings,
+  editIndex = null,
+  onEditDone,
+  blockingErrors = false,
+  blockingMessage = "",
+  onScrollToError,
+}) => {
   const [quantity, setQuantity] = useState(1);
   const { addToCart, removeFromCart, cartItems } = useCart();
   const { isAuthenticated } = useContext(AuthContext);
@@ -57,10 +68,15 @@ const ConfigResume = ({ config, onReset, sinkSpecs, settings, editIndex = null, 
   const planDetails = useMemo(() => {
     const widthM = config.width / 1000;
     const lengthM = config.length / 1000;
+    const corners = getCorners(config);
+    const removed = CORNERS.reduce((sum, k) => sum + ((corners[k] / 1000) ** 2) * (1 - Math.PI / 4), 0);
+    // Le prix reste celui du rectangle (pas de supplément ni de remise pour un arrondi)
     const area = widthM * lengthM;
+    const weightArea = area - removed;
     const price = Math.round(219.3 * area + 447.37);
-    return { area, price };
-  }, [config.width, config.length]);
+    return { area, weightArea, price };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config.width, config.length, config.corners]);
 
   const sinksDetails = useMemo(() => {
     const sinks = config.sinks || [];
@@ -255,10 +271,29 @@ const ConfigResume = ({ config, onReset, sinkSpecs, settings, editIndex = null, 
     return { price, length: config.length };
   }, [config.splashback, config.length, WATER_DRIP_PRICE]);
 
+  // --- ANGLES : demi-cercles regroupés, puis angles isolés ---
+  const cornerSummary = useMemo(() => {
+    const corners = getCorners(config);
+    const L = Number(config.length) || 0;
+    const W = Number(config.width) || 0;
+    const done = new Set();
+    const lines = [];
+    for (const side of ["left", "right", "front", "back"]) {
+      if (isSemicircle(side, corners, L, W)) {
+        SIDE_CORNERS[side].forEach((k) => done.add(k));
+        lines.push({ label: `Côté ${SIDE_LABEL[side].toLowerCase()}`, value: `demi-cercle R ${corners[SIDE_CORNERS[side][0]]} mm` });
+      }
+    }
+    for (const k of CORNERS) {
+      if (corners[k] && !done.has(k)) lines.push({ label: CORNER_LABEL[k], value: `R ${corners[k]} mm` });
+    }
+    return lines;
+  }, [config]);
+
   // --- 2. CALCUL POIDS ---
   const totalWeight = useMemo(() => {
     let weight = 0;
-    weight += planDetails.area * WEIGHT_PLAN_M2;
+    weight += planDetails.weightArea * WEIGHT_PLAN_M2;
 
     if (rimsDetails) {
       const areaRims =
@@ -342,6 +377,16 @@ const ConfigResume = ({ config, onReset, sinkSpecs, settings, editIndex = null, 
             isAuthenticated={isAuthenticated}
           />
         </div>
+
+        {/* --- ANGLES --- */}
+        {cornerSummary.length > 0 && (
+          <div className="summary-section">
+            <h3>Angles arrondis</h3>
+            {cornerSummary.map((line) => (
+              <SummaryLine key={line.label} label={line.label} value={line.value} isAuthenticated={isAuthenticated} />
+            ))}
+          </div>
+        )}
 
         {/* --- CUVES --- */}
         {sinksDetails.map((sink) => (
@@ -511,9 +556,20 @@ const ConfigResume = ({ config, onReset, sinkSpecs, settings, editIndex = null, 
           )}
         </div>
 
+        {blockingErrors && (
+          <div className="blocking-msg" role="alert">
+            {blockingMessage}{" "}
+            {onScrollToError && (
+              <button type="button" onClick={onScrollToError}>
+                Voir
+              </button>
+            )}
+          </div>
+        )}
         <button
           className={`btn-add-cart ${isEditMode ? "is-edit" : ""}`}
           onClick={performAddToCart}
+          disabled={blockingErrors}
         >
           {isEditMode ? "Enregistrer les modifications" : `Ajouter au panier${quantity > 1 ? ` (${quantity})` : ""}`}
         </button>
