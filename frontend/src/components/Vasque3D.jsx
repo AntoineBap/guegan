@@ -22,6 +22,11 @@ import {
   createSplashGeometry,
 } from "./three/geometry";
 
+// Matière laissée entre le bout des rainures et la cuve (2 mm) : la paroi verticale de la
+// découpe forme le fond plat de la rainure. Collée à la cuve (0,1 mm), cette paroi se
+// confondait avec la cuve et créait des scintillements ou laissait voir la cuve.
+const DRAIN_EDGE_GAP = 0.02;
+
 // Fusionne des géométries (indexées ou non) en une seule ; libère les morceaux
 const mergeAll = (geoms) => {
   if (!geoms.length) return null;
@@ -146,7 +151,7 @@ const Vasque3D = ({ config }) => {
         if (s.hasDrainer) {
           const isLeft = s.drainerPosition === "left";
           const extraOffset = isOval ? WALL_THICKNESS : 0;
-          const SAFETY_GAP = 0.001;
+          const SAFETY_GAP = DRAIN_EDGE_GAP;
           const innerEdge = isLeft ? s.x - s.width / 2 : s.x + s.width / 2;
           const drainStartEdge = isLeft
             ? innerEdge - extraOffset - SAFETY_GAP
@@ -163,18 +168,16 @@ const Vasque3D = ({ config }) => {
             const grooveHole = new THREE.Path();
             const xStart = drainCenter - DRAINER_LEN / 2;
             const xEnd = drainCenter + DRAINER_LEN / 2;
-            // Côté cuve, la rainure se termine en demi-cercle (bout en cuillère)
+            // Triangle : pleine largeur côté cuve, en pointe à l'autre bout
             if (isLeft) {
-              const xe = xEnd - halfW;
               grooveHole.moveTo(xStart, shapeY);
-              grooveHole.lineTo(xe, shapeY + halfW);
-              grooveHole.absarc(xe, shapeY, halfW, Math.PI / 2, -Math.PI / 2, true);
+              grooveHole.lineTo(xEnd, shapeY + halfW);
+              grooveHole.lineTo(xEnd, shapeY - halfW);
               grooveHole.lineTo(xStart, shapeY);
             } else {
-              const xs = xStart + halfW;
               grooveHole.moveTo(xEnd, shapeY);
-              grooveHole.lineTo(xs, shapeY + halfW);
-              grooveHole.absarc(xs, shapeY, halfW, Math.PI / 2, (3 * Math.PI) / 2, false);
+              grooveHole.lineTo(xStart, shapeY + halfW);
+              grooveHole.lineTo(xStart, shapeY - halfW);
               grooveHole.lineTo(xEnd, shapeY);
             }
             shapeTop.holes.push(grooveHole);
@@ -203,17 +206,15 @@ const Vasque3D = ({ config }) => {
   useDispose(planComponents);
 
   // --- RAINURES D'ÉGOUTTOIR ---
-  // Demi-cône (profond côté cuve, nul à l'autre bout) fermé côté cuve par un quart
-  // d'ellipsoïde de même section : fin en cuillère au ras de la cuve.
+  // Demi-cône : profond côté cuve, nul à l'autre bout, fond plat côté cuve.
   // Toutes les rainures sont fusionnées en une seule géométrie.
   const drainerGeometry = useMemo(() => {
     const grooveR = GROOVE_W / 2;
     const depthScale = 0.08 / grooveR;
-    const cone = new THREE.CylinderGeometry(0, grooveR, DRAINER_LEN - grooveR, 64, 1, true, 0, Math.PI);
+    // Ouvert : le fond plat est la paroi de la découpe dans le plan (pas de surface en double)
+    const cone = new THREE.CylinderGeometry(0, grooveR, DRAINER_LEN, 64, 1, true, 0, Math.PI);
     cone.rotateZ(-Math.PI / 2);
     cone.scale(1, depthScale, 1);
-    const spoon = new THREE.SphereGeometry(grooveR, 48, 16, -Math.PI / 2, Math.PI, Math.PI / 2, Math.PI / 2);
-    spoon.scale(1, depthScale, 1);
 
     const parts = [];
     calculatedSinks.forEach((s) => {
@@ -221,7 +222,7 @@ const Vasque3D = ({ config }) => {
       const isOval = s.type.toLowerCase().includes("sanitaire");
       const extraOffset = isOval ? WALL_THICKNESS : 0;
       const isLeft = s.drainerPosition === "left";
-      const SAFETY_GAP = 0.001;
+      const SAFETY_GAP = DRAIN_EDGE_GAP;
       const innerEdge = isLeft ? s.x - s.width / 2 : s.x + s.width / 2;
       const drainStartEdge = isLeft ? innerEdge - extraOffset - SAFETY_GAP : innerEdge + extraOffset + SAFETY_GAP;
       const { count, totalH } = getDrainerSpec(s.type);
@@ -231,18 +232,13 @@ const Vasque3D = ({ config }) => {
       for (let i = 0; i < count; i++) {
         const z = startZ + i * (GROOVE_W + GAP_DRAIN);
         const c = cone.clone();
-        c.translate(grooveR + (DRAINER_LEN - grooveR) / 2, 0, 0);
-        const sp = spoon.clone();
-        sp.translate(grooveR, 0, 0);
-        for (const g of [c, sp]) {
-          g.rotateY(rotY);
-          g.translate(drainStartEdge, 0.401, z);
-          parts.push(g);
-        }
+        c.translate(DRAINER_LEN / 2, 0, 0);
+        c.rotateY(rotY);
+        c.translate(drainStartEdge, 0.401, z);
+        parts.push(c);
       }
     });
     cone.dispose();
-    spoon.dispose();
     return { grooves: mergeAll(parts) };
   }, [calculatedSinks]);
   useDispose(drainerGeometry);

@@ -87,7 +87,7 @@ const CameraFit = ({ length, width }) => {
     // Objets three.js impératifs fournis par R3F : les modifier est l'usage prévu
     /* eslint-disable react-hooks/immutability */
     camera.position.copy(controls.target).addScaledVector(dir, dist);
-    controls.minDistance = dist * 0.25;
+    controls.minDistance = dist * 0.12; // assez près pour inspecter un égouttoir ou un perçage
     controls.maxDistance = dist * 2.5;
     /* eslint-enable react-hooks/immutability */
     controls.update();
@@ -100,6 +100,7 @@ const CameraFit = ({ length, width }) => {
 // Rotation avec inertie, mais arrêtée net 0,7 s après le relâchement : en rendu à la
 // demande, l'inertie seule ne retombe jamais à zéro et la scène se redessinait en continu.
 const SettlingControls = () => {
+  const invalidate = useThree((state) => state.invalidate);
   const timer = useRef(null);
   const onStart = (e) => {
     clearTimeout(timer.current);
@@ -111,6 +112,7 @@ const SettlingControls = () => {
     timer.current = setTimeout(() => {
       controls.enableDamping = false; // remet à zéro la vitesse résiduelle
       controls.update();
+      invalidate(); // dessine la position finale (sinon le dernier pas du zoom restait invisible)
     }, 700);
   };
   useEffect(() => () => clearTimeout(timer.current), []);
@@ -125,9 +127,16 @@ const SettlingControls = () => {
       maxPolarAngle={Math.PI / 2}
       onStart={onStart}
       onEnd={onEnd}
+      onChange={() => invalidate()}
     />
   );
 };
+
+// Options du canevas définies une fois : recréées à chaque rendu, elles faisaient
+// reconfigurer la caméra par R3F, qui ne suivait plus les contrôles (zoom figé).
+const CAMERA = { position: [0, 6, 10], fov: 45 };
+const DPR = [1, 2];
+const GL = { antialias: true, alpha: true };
 
 const CanvasView = ({ children, planLength, planWidth }) => (
   <div className="canvas-view">
@@ -136,9 +145,9 @@ const CanvasView = ({ children, planLength, planWidth }) => (
       // Rendu à la demande : plus de 60 images/s quand rien ne bouge
       frameloop="demand"
       shadows
-      dpr={[1, 2]}
-      gl={{ antialias: true, alpha: true }}
-      camera={{ position: [0, 6, 10], fov: 45 }}
+      dpr={DPR}
+      gl={GL}
+      camera={CAMERA}
     >
       <Suspense fallback={null}>
         <LocalEnvironment intensity={0.85} />
