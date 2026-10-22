@@ -240,15 +240,18 @@ const Vasque3D = ({ config }) => {
             const grooveHole = new THREE.Path();
             const xStart = drainCenter - DRAINER_LEN / 2;
             const xEnd = drainCenter + DRAINER_LEN / 2;
+            // Côté cuve, la rainure se termine en demi-cercle (bout en cuillère)
             if (isLeft) {
+              const xe = xEnd - halfW;
               grooveHole.moveTo(xStart, shapeY);
-              grooveHole.lineTo(xEnd, shapeY + halfW);
-              grooveHole.lineTo(xEnd, shapeY - halfW);
+              grooveHole.lineTo(xe, shapeY + halfW);
+              grooveHole.absarc(xe, shapeY, halfW, Math.PI / 2, -Math.PI / 2, true);
               grooveHole.lineTo(xStart, shapeY);
             } else {
+              const xs = xStart + halfW;
               grooveHole.moveTo(xEnd, shapeY);
-              grooveHole.lineTo(xStart, shapeY + halfW);
-              grooveHole.lineTo(xStart, shapeY - halfW);
+              grooveHole.lineTo(xs, shapeY + halfW);
+              grooveHole.absarc(xs, shapeY, halfW, Math.PI / 2, (3 * Math.PI) / 2, false);
               grooveHole.lineTo(xEnd, shapeY);
             }
             shapeTop.holes.push(grooveHole);
@@ -277,10 +280,12 @@ const Vasque3D = ({ config }) => {
 
   const drainerVisuals = useMemo(() => {
     const visuals = [];
+    const grooveR = GROOVE_W / 2;
+    // Fond de rainure : demi-cône (profond côté cuve, nul à l'autre bout)...
     const geometry = new THREE.CylinderGeometry(
       0,
-      GROOVE_W / 2,
-      DRAINER_LEN,
+      grooveR,
+      DRAINER_LEN - grooveR,
       64,
       1,
       true,
@@ -288,8 +293,12 @@ const Vasque3D = ({ config }) => {
       Math.PI,
     );
     geometry.rotateZ(-Math.PI / 2);
-    const depthScale = 0.08 / (GROOVE_W / 2);
+    const depthScale = 0.08 / grooveR;
     geometry.scale(1, depthScale, 1);
+    // ...fermé côté cuve par un quart d'ellipsoïde de même section : la rainure finit
+    // en cuillère au ras de la cuve, sans laisser voir l'intérieur de la cuve par le bout.
+    const capGeometry = new THREE.SphereGeometry(grooveR, 48, 16, -Math.PI / 2, Math.PI, Math.PI / 2, Math.PI / 2);
+    capGeometry.scale(1, depthScale, 1);
     const drainerColor = config.color === "white" ? "#d0d0d0" : "#000000";
 
     calculatedSinks.forEach((s, idx) => {
@@ -302,27 +311,21 @@ const Vasque3D = ({ config }) => {
         const drainStartEdge = isLeft
           ? innerEdge - extraOffset - SAFETY_GAP
           : innerEdge + extraOffset + SAFETY_GAP;
-        const drainCenter = isLeft
-          ? drainStartEdge - DRAINER_LEN / 2
-          : drainStartEdge + DRAINER_LEN / 2;
         const { count, totalH } = getDrainerSpec(s.type);
         const startZ = s.z - totalH / 2 + GROOVE_W / 2;
         const rotY = isLeft ? Math.PI : 0;
         for (let i = 0; i < count; i++) {
           const currentZ = startZ + i * (GROOVE_W + GAP_DRAIN);
           visuals.push(
-            <mesh
-              key={`${idx}-${i}`}
-              geometry={geometry}
-              position={[drainCenter, 0.401, currentZ]}
-              rotation={[0, rotY, 0]}
-            >
-              <meshStandardMaterial
-                color={drainerColor}
-                roughness={0.6}
-                side={THREE.DoubleSide}
-              />
-            </mesh>,
+            // Repère local : origine au bord côté cuve, +x vers le bout de l'égouttoir
+            <group key={`${idx}-${i}`} position={[drainStartEdge, 0.401, currentZ]} rotation={[0, rotY, 0]}>
+              <mesh geometry={geometry} position={[grooveR + (DRAINER_LEN - grooveR) / 2, 0, 0]}>
+                <meshStandardMaterial color={drainerColor} roughness={0.6} side={THREE.DoubleSide} />
+              </mesh>
+              <mesh geometry={capGeometry} position={[grooveR, 0, 0]}>
+                <meshStandardMaterial color={drainerColor} roughness={0.6} side={THREE.DoubleSide} />
+              </mesh>
+            </group>,
           );
         }
       }
