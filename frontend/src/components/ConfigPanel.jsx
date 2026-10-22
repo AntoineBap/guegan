@@ -8,7 +8,7 @@ import { AuthContext } from "../contexts/AuthContext";
 import { SettingsContext } from "../contexts/SettingsContext";
 import "../styles/configurator.scss"; // ou configurator.scss selon votre structure
 
-const ConfigPanel = ({ config, setConfig, setShowModal, onReset, editIndex = null, onEditDone }) => {
+const ConfigPanel = ({ config, setConfig, onReset, editIndex = null, onEditDone }) => {
   const { isAuthenticated } = useContext(AuthContext);
   const { settings } = useContext(SettingsContext);
 

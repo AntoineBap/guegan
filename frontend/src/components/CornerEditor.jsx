@@ -100,6 +100,18 @@ const CornerEditor = ({ config, setConfig, footprints = [], conflicts = [] }) =>
     apply({ ...corners, [k]: r });
   };
 
+  // Mise à jour en direct pendant la saisie ou le glissement du curseur :
+  // appliquée dès que la valeur est un rayon valide, normalisée à la sortie du champ.
+  const liveRadius = (k, raw) => {
+    setDrafts((d) => ({ ...d, [k]: raw }));
+    const n = Math.round(Number(raw));
+    if (!Number.isFinite(n) || n < MIN_CORNER_RADIUS) return; // saisie en cours (ex. « 1 » pour 150)
+    const max = maxRadius(k, corners, length, width);
+    setNotice(n > max ? `Rayon maximum pour cet angle : ${max} mm (limité par la taille du plan et les angles voisins).` : null);
+    const r = Math.min(n, max);
+    if (r !== corners[k]) apply({ ...corners, [k]: r });
+  };
+
   const toggleCorner = (k) => {
     if (corners[k]) return setRadius(k, 0);
     const max = maxRadius(k, corners, length, width);
@@ -193,7 +205,7 @@ const CornerEditor = ({ config, setConfig, footprints = [], conflicts = [] }) =>
                         max={max}
                         step="5"
                         value={draft ?? r}
-                        onChange={(e) => setDrafts((d) => ({ ...d, [k]: e.target.value }))}
+                        onChange={(e) => liveRadius(k, e.target.value)}
                         onBlur={(e) => setRadius(k, e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
                         onWheel={(e) => e.target.blur()}
@@ -204,6 +216,22 @@ const CornerEditor = ({ config, setConfig, footprints = [], conflicts = [] }) =>
                   <button type="button" className="btn btn-ghost btn-sm" disabled={r === max} onClick={() => setRadius(k, max)}>
                     Max ({max})
                   </button>
+                  {max > MIN_CORNER_RADIUS && (
+                    <input
+                      type="range"
+                      className="radius-slider"
+                      min={MIN_CORNER_RADIUS}
+                      max={max}
+                      step="5"
+                      value={Math.min(r, max)}
+                      onChange={(e) => {
+                        setDrafts((d) => ({ ...d, [k]: undefined }));
+                        liveRadius(k, e.target.value);
+                      }}
+                      onPointerUp={() => setDrafts((d) => ({ ...d, [k]: undefined }))}
+                      aria-label={`Rayon ${CORNER_LABEL[k].toLowerCase()}`}
+                    />
+                  )}
                 </div>
               )}
             </div>

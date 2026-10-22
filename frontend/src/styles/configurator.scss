@@ -852,6 +852,14 @@
     .btn {
       min-height: 44px;
     }
+
+    .radius-slider {
+      flex-basis: 100%;
+      width: 100%;
+      margin: 2px 0 0;
+      accent-color: $ink;
+      cursor: pointer;
+    }
   }
 
   .corner-notice {

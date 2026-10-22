@@ -3,7 +3,6 @@ import { useLocation } from "react-router-dom";
 import "../styles/configurator.scss";
 import ConfigPanel from "../components/ConfigPanel";
 import Visualizer from "../components/Visualizer";
-import Modal3D from "../components/Modal3D";
 import Header from "../components/Header";
 import Carousel from "../components/Carousel";
 import { Helmet } from 'react-helmet-async';
@@ -29,7 +28,6 @@ const CAROUSEL_OPTIONS = { loop: true };
 
 const Configurator = () => {
   const [config, setConfig] = useState(INITIAL_CONFIG);
-  const [showModal, setShowModal] = useState(false);
   const [configKey, setConfigKey] = useState(0);
   const [editIndex, setEditIndex] = useState(null);
 
@@ -98,7 +96,6 @@ const Configurator = () => {
             key={configKey}
             config={config}
             setConfig={setConfig}
-            setShowModal={setShowModal}
             onReset={handleReset}
             editIndex={editIndex}
             onEditDone={() => setEditIndex(null)}
@@ -110,11 +107,6 @@ const Configurator = () => {
         </div>
       </main>
 
-      <Modal3D
-        config={config}
-        showModal={showModal}
-        setShowModal={setShowModal}
-      />
     </div>
   );
 };
