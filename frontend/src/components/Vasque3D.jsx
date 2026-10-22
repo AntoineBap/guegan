@@ -283,7 +283,7 @@ const Vasque3D = ({ config }) => {
       DRAINER_LEN,
       64,
       1,
-      false,
+      true,
       0,
       Math.PI,
     );
