@@ -66,8 +66,13 @@ const LocalEnvironment = ({ intensity = 1 }) => {
 // Cadre automatiquement le plan entier quand ses dimensions changent,
 // en gardant l'angle de vue choisi par l'utilisateur.
 const CameraFit = ({ length, width }) => {
-  const { camera, controls, size, invalidate } = useThree();
+  const { camera, controls, size, invalidate, get } = useThree();
   const lastFit = useRef(null);
+
+  // En développement uniquement : accès à la scène pour les tests de rendu automatisés
+  useEffect(() => {
+    if (import.meta.env.DEV) window.__get = get;
+  }, [get]);
 
   useEffect(() => {
     if (!controls || !length || !width) return;

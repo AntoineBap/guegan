@@ -4,8 +4,13 @@ import * as THREE from "three";
 
 export const UNIT_SCALE = 100;
 export const PLAN_THICKNESS = 0.4;
-export const GROOVE_DEPTH = 0.3; // épaisseur de la couche supérieure rainurée
-export const BASE_THICKNESS = 0.1;
+// Avec égouttoir, le plan est fait de deux couches : la couche supérieure rainurée a
+// exactement la profondeur d'une rainure (8 mm). Plus épaisse, la découpe laissait une
+// fente sous chaque rainure, visible depuis la cuve dès que la rainure y débouche.
+export const GROOVE_DEPTH = 0.08;
+export const BASE_THICKNESS = PLAN_THICKNESS - GROOVE_DEPTH;
+// Le bol ovale commence un peu sous le dessus du plan, pour ne pas dépasser dans les rainures
+export const OVAL_LIP_DROP = 0.09;
 export const WALL_THICKNESS = 0.12;
 export const MELA_H = 0.28; // 28 mm de mélaminé hydrofuge sous la résine
 export const SPLASH_RADIUS = 0.06;
@@ -156,4 +161,142 @@ export const createSplashGeometry = (
   }
   geometry.computeVertexNormals();
   return geometry;
+};
+
+// --- RAINURES QUI DÉBOUCHENT DANS LA CUVE -----------------------------------
+const SINK_HOLE_RADIUS = 0.28;
+const isOvalSink = (s) => s.type.toLowerCase().includes("sanitaire");
+
+// Bord de la découpe de la cuve côté égouttoir, à la hauteur (z monde) d'une rainure
+const holeEdgeX = (s, z, side) => {
+  if (isOvalSink(s)) {
+    const a = s.width / 2;
+    const b = s.height / 2;
+    const t = Math.min(1, Math.abs(z - s.z) / b);
+    return s.x + side * a * Math.sqrt(1 - t * t);
+  }
+  return s.x + side * (s.width / 2);
+};
+
+// Rainures d'une cuve : centre (z monde), départ sur le bord de la cuve (edgeX), pointe (apexX).
+// La pointe est au même endroit qu'avant ; la rainure part maintenant du bord même de la cuve.
+export const grooveLayout = (s) => {
+  if (!s.valid || !s.hasDrainer) return [];
+  const isLeft = s.drainerPosition === "left";
+  const side = isLeft ? -1 : 1;
+  const extraOffset = isOvalSink(s) ? WALL_THICKNESS : 0;
+  const apexX = s.x + side * (s.width / 2 + extraOffset + DRAINER_LEN);
+  const { count, totalH } = getDrainerSpec(s.type);
+  const startZ = s.z - totalH / 2 + GROOVE_W / 2;
+  const out = [];
+  for (let i = 0; i < count; i++) {
+    const z = startZ + i * (GROOVE_W + GAP_DRAIN);
+    out.push({ z, edgeX: holeEdgeX(s, z, side), apexX, isLeft });
+  }
+  return out;
+};
+
+// Découpe de la cuve dans la couche rainurée, rainures comprises (un seul contour) :
+// chaque rainure est un triangle qui part du bord de la cuve. Coordonnées de forme (x, -z).
+export const holeWithGrooves = (s) => {
+  const grooves = grooveLayout(s);
+  const half = GROOVE_W / 2;
+  const cy = -s.z;
+  const w = s.width;
+  const h = s.height;
+  const pts = [];
+
+  if (isOvalSink(s)) {
+    // Ellipse échantillonnée, côté droit de haut en bas puis côté gauche de bas en haut
+    const a = w / 2;
+    const b = h / 2;
+    const N = 160;
+    const right = !grooves[0]?.isLeft;
+    const notches = grooves
+      .map((g) => ({ y: -g.z, top: -g.z + half, bot: -g.z - half, apex: g.apexX }))
+      .sort((p, q) => q.y - p.y);
+    const edgeAt = (y, sideSign) => s.x + sideSign * a * Math.sqrt(Math.max(0, 1 - ((y - cy) / b) ** 2));
+    const halfPoints = (sideSign, withNotches) => {
+      const list = [];
+      let k = 0;
+      for (let i = 0; i <= N; i++) {
+        const th = Math.PI / 2 - (Math.PI * i) / N; // de haut (pi/2) en bas (-pi/2)
+        const y = cy + b * Math.sin(th);
+        const x = s.x + sideSign * a * Math.cos(th);
+        if (withNotches) {
+          while (k < notches.length && y < notches[k].top) {
+            const n = notches[k];
+            list.push([edgeAt(n.top, sideSign), n.top], [n.apex, n.y], [edgeAt(n.bot, sideSign), n.bot]);
+            k++;
+          }
+          if (notches.some((n) => y <= n.top && y >= n.bot)) continue;
+        }
+        list.push([x, y]);
+      }
+      return list;
+    };
+    const r = halfPoints(1, right);
+    const l = halfPoints(-1, !right).reverse();
+    pts.push(...r, ...l);
+  } else {
+    // Rectangle à angles arrondis, avec les triangles des rainures sur le côté égouttoir
+    const r = SINK_HOLE_RADIUS;
+    const x0 = s.x - w / 2;
+    const x1 = s.x + w / 2;
+    const yTop = cy + h / 2 - r;
+    const yBot = cy - h / 2 + r;
+    const clampY = (y) => Math.min(yTop, Math.max(yBot, y));
+    const arc = (cx, cyy, a0, a1) => {
+      for (let i = 1; i <= 12; i++) {
+        const t = a0 + ((a1 - a0) * i) / 12;
+        pts.push([cx + r * Math.cos(t), cyy + r * Math.sin(t)]);
+      }
+    };
+    const leftNotches = grooves.filter((g) => g.isLeft).map((g) => -g.z).sort((p, q) => p - q);
+    const rightNotches = grooves.filter((g) => !g.isLeft).map((g) => -g.z).sort((p, q) => q - p);
+    const apex = grooves[0]?.apexX;
+
+    pts.push([x0, yBot]);
+    for (const y of leftNotches) pts.push([x0, clampY(y - half)], [apex, y], [x0, clampY(y + half)]);
+    pts.push([x0, yTop]);
+    arc(x0 + r, yTop, Math.PI, Math.PI / 2);
+    pts.push([x1 - r, cy + h / 2]);
+    arc(x1 - r, yTop, Math.PI / 2, 0);
+    for (const y of rightNotches) pts.push([x1, clampY(y + half)], [apex, y], [x1, clampY(y - half)]);
+    pts.push([x1, yBot]);
+    arc(x1 - r, yBot, 0, -Math.PI / 2);
+    pts.push([x0 + r, cy - h / 2]);
+    arc(x0 + r, yBot, -Math.PI / 2, -Math.PI);
+  }
+
+  const path = new THREE.Path();
+  path.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i++) path.lineTo(pts[i][0], pts[i][1]);
+  path.closePath();
+  return path;
+};
+
+// Raccord vertical au bout de chaque rainure, dans le plan du bord de la cuve : bouche
+// les deux petits coins sous le demi-cône (rectangle de la découpe moins la demi-ellipse),
+// pour que, vu depuis la cuve, on ne voie que l'ouverture en demi-ellipse.
+export const grooveMouthGeometry = (edgeX, z) => {
+  const half = GROOVE_W / 2;
+  const top = PLAN_THICKNESS + 0.001;
+  const bottom = BASE_THICKNESS;
+  const depth = top - bottom;
+  const piece = (sign) => {
+    const sh = new THREE.Shape();
+    sh.moveTo(sign * half, top);
+    for (let i = 1; i <= 16; i++) {
+      const t = (Math.PI / 2) * (i / 16); // du bord (t=0) au fond (t=pi/2)
+      sh.lineTo(sign * half * Math.cos(t), top - depth * Math.sin(t));
+    }
+    sh.lineTo(sign * half, bottom);
+    sh.closePath();
+    const g = new THREE.ShapeGeometry(sh);
+    g.rotateY(Math.PI / 2);
+    g.translate(edgeX, 0, z);
+    return g;
+  };
+  return [piece(1), piece(-1)];
 };

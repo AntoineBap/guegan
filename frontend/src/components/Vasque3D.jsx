@@ -13,19 +13,14 @@ import {
   WALL_THICKNESS,
   MELA_H,
   SPLASH_RADIUS,
-  DRAINER_LEN,
   GROOVE_W,
-  GAP_DRAIN,
-  getDrainerSpec,
   cap,
   bandGeometry,
   createSplashGeometry,
+  grooveLayout,
+  holeWithGrooves,
+  grooveMouthGeometry,
 } from "./three/geometry";
-
-// Matière laissée entre le bout des rainures et la cuve (2 mm) : la paroi verticale de la
-// découpe forme le fond plat de la rainure. Collée à la cuve (0,1 mm), cette paroi se
-// confondait avec la cuve et créait des scintillements ou laissait voir la cuve.
-const DRAIN_EDGE_GAP = 0.02;
 
 // Fusionne des géométries (indexées ou non) en une seule ; libère les morceaux
 const mergeAll = (geoms) => {
@@ -145,44 +140,13 @@ const Vasque3D = ({ config }) => {
     const shapeTop = new THREE.Shape();
     drawBaseRect(shapeTop);
     calculatedSinks.forEach((s) => {
-      if (s.valid) {
+      if (!s.valid) return;
+      if (s.hasDrainer) {
+        // Rainures et cuve forment une seule découpe : les rainures débouchent dans la cuve
+        shapeTop.holes.push(holeWithGrooves(s));
+      } else {
         const isOval = s.type.toLowerCase().includes("sanitaire");
         drawOneHole(shapeTop, s.x, -s.z, s.width, s.height, 0.28, isOval);
-        if (s.hasDrainer) {
-          const isLeft = s.drainerPosition === "left";
-          const extraOffset = isOval ? WALL_THICKNESS : 0;
-          const SAFETY_GAP = DRAIN_EDGE_GAP;
-          const innerEdge = isLeft ? s.x - s.width / 2 : s.x + s.width / 2;
-          const drainStartEdge = isLeft
-            ? innerEdge - extraOffset - SAFETY_GAP
-            : innerEdge + extraOffset + SAFETY_GAP;
-          const drainCenter = isLeft
-            ? drainStartEdge - DRAINER_LEN / 2
-            : drainStartEdge + DRAINER_LEN / 2;
-          const { count, totalH } = getDrainerSpec(s.type);
-          const startZ = s.z - totalH / 2 + GROOVE_W / 2;
-          for (let i = 0; i < count; i++) {
-            const currentZ = startZ + i * (GROOVE_W + GAP_DRAIN);
-            const shapeY = -currentZ;
-            const halfW = GROOVE_W / 2;
-            const grooveHole = new THREE.Path();
-            const xStart = drainCenter - DRAINER_LEN / 2;
-            const xEnd = drainCenter + DRAINER_LEN / 2;
-            // Triangle : pleine largeur côté cuve, en pointe à l'autre bout
-            if (isLeft) {
-              grooveHole.moveTo(xStart, shapeY);
-              grooveHole.lineTo(xEnd, shapeY + halfW);
-              grooveHole.lineTo(xEnd, shapeY - halfW);
-              grooveHole.lineTo(xStart, shapeY);
-            } else {
-              grooveHole.moveTo(xEnd, shapeY);
-              grooveHole.lineTo(xStart, shapeY + halfW);
-              grooveHole.lineTo(xStart, shapeY - halfW);
-              grooveHole.lineTo(xEnd, shapeY);
-            }
-            shapeTop.holes.push(grooveHole);
-          }
-        }
       }
     });
 
@@ -206,40 +170,29 @@ const Vasque3D = ({ config }) => {
   useDispose(planComponents);
 
   // --- RAINURES D'ÉGOUTTOIR ---
-  // Demi-cône : profond côté cuve, nul à l'autre bout, fond plat côté cuve.
-  // Toutes les rainures sont fusionnées en une seule géométrie.
+  // Demi-cône ouvert : profond côté cuve, nul à l'autre bout. Il part du bord même de la
+  // cuve et y débouche, comme une vraie rainure d'écoulement. Un petit raccord ferme les
+  // coins sous le demi-cône, dans le plan du bord de la cuve.
   const drainerGeometry = useMemo(() => {
     const grooveR = GROOVE_W / 2;
     const depthScale = 0.08 / grooveR;
-    // Ouvert : le fond plat est la paroi de la découpe dans le plan (pas de surface en double)
-    const cone = new THREE.CylinderGeometry(0, grooveR, DRAINER_LEN, 64, 1, true, 0, Math.PI);
-    cone.rotateZ(-Math.PI / 2);
-    cone.scale(1, depthScale, 1);
-
     const parts = [];
+    const mouths = [];
     calculatedSinks.forEach((s) => {
-      if (!s.valid || !s.hasDrainer) return;
-      const isOval = s.type.toLowerCase().includes("sanitaire");
-      const extraOffset = isOval ? WALL_THICKNESS : 0;
-      const isLeft = s.drainerPosition === "left";
-      const SAFETY_GAP = DRAIN_EDGE_GAP;
-      const innerEdge = isLeft ? s.x - s.width / 2 : s.x + s.width / 2;
-      const drainStartEdge = isLeft ? innerEdge - extraOffset - SAFETY_GAP : innerEdge + extraOffset + SAFETY_GAP;
-      const { count, totalH } = getDrainerSpec(s.type);
-      const startZ = s.z - totalH / 2 + GROOVE_W / 2;
-      // Repère local : origine au bord côté cuve, +x vers le bout de l'égouttoir
-      const rotY = isLeft ? Math.PI : 0;
-      for (let i = 0; i < count; i++) {
-        const z = startZ + i * (GROOVE_W + GAP_DRAIN);
-        const c = cone.clone();
-        c.translate(DRAINER_LEN / 2, 0, 0);
-        c.rotateY(rotY);
-        c.translate(drainStartEdge, 0.401, z);
-        parts.push(c);
+      for (const g of grooveLayout(s)) {
+        const len = Math.abs(g.apexX - g.edgeX);
+        const cone = new THREE.CylinderGeometry(0, grooveR, len, 64, 1, true, 0, Math.PI);
+        cone.rotateZ(-Math.PI / 2);
+        cone.scale(1, depthScale, 1);
+        // Repère local : origine au bord de la cuve, +x vers la pointe
+        cone.translate(len / 2, 0, 0);
+        cone.rotateY(g.isLeft ? Math.PI : 0);
+        cone.translate(g.edgeX, 0.401, g.z);
+        parts.push(cone);
+        mouths.push(...grooveMouthGeometry(g.edgeX, g.z));
       }
     });
-    cone.dispose();
-    return { grooves: mergeAll(parts) };
+    return { grooves: mergeAll(parts), mouths: mergeAll(mouths) };
   }, [calculatedSinks]);
   useDispose(drainerGeometry);
 
@@ -365,6 +318,7 @@ const Vasque3D = ({ config }) => {
         ))}
 
       {drainerGeometry.grooves && <mesh geometry={drainerGeometry.grooves} material={materials.drainer} />}
+      {drainerGeometry.mouths && <mesh geometry={drainerGeometry.mouths} material={materials.sink} />}
       {edgeGeometries.resin && <mesh geometry={edgeGeometries.resin} material={materials.plan} />}
       {edgeGeometries.mela && <mesh geometry={edgeGeometries.mela} material={materials.mela} />}
     </group>

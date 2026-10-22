@@ -2,7 +2,7 @@
 // Composant autonome : sa géométrie n'est recalculée que si la cuve elle-même change.
 import React, { memo, useEffect, useMemo } from "react";
 import * as THREE from "three";
-import { WALL_THICKNESS, drawTeethedHole } from "./geometry";
+import { WALL_THICKNESS, OVAL_LIP_DROP, drawTeethedHole } from "./geometry";
 
 const SinkModel = ({ s, materials }) => {
 
@@ -37,7 +37,7 @@ const SinkModel = ({ s, materials }) => {
       for (let i = 0; i <= segments; i++) {
         const theta = (i / segments) * (Math.PI / 2);
         const x = Math.cos(theta) * wR;
-        const y = -Math.sin(theta) * dIn;
+        const y = -OVAL_LIP_DROP - Math.sin(theta) * (dIn - OVAL_LIP_DROP);
         points.push(new THREE.Vector2(x, y));
       }
 
@@ -45,11 +45,11 @@ const SinkModel = ({ s, materials }) => {
       for (let i = segments; i >= 0; i--) {
         const theta = (i / segments) * (Math.PI / 2);
         const x = Math.cos(theta) * wR_out;
-        const y = -Math.sin(theta) * dOut;
+        const y = -OVAL_LIP_DROP - Math.sin(theta) * (dOut - OVAL_LIP_DROP);
 
         if (i === 0) {
           // On descend la lèvre externe de 0.01 pour éviter le z-fighting avec le plan
-          points.push(new THREE.Vector2(x, -0.01));
+          points.push(new THREE.Vector2(x, -OVAL_LIP_DROP - 0.01));
         } else {
           points.push(new THREE.Vector2(x, y));
         }
@@ -187,7 +187,9 @@ const SinkModel = ({ s, materials }) => {
       innerShape.holes.push(holeIn);
 
       geomIn = new THREE.ExtrudeGeometry(innerShape, {
-        depth: s.depth - SHRINK_OFFSET - SHORTEN_BOTTOM,
+        // S'arrête sous le dessus du plan, comme les murs : au ras du plan, elle bouchait
+        // le bout des rainures (le « plat » visible au bout de l'égouttoir)
+        depth: s.depth - SHRINK_OFFSET - SHORTEN_BOTTOM - WALL_TOP_DROP,
         bevelEnabled: false,
         curveSegments: 64,
       });
