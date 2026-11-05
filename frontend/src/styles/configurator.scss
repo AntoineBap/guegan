@@ -338,6 +338,14 @@
   gap: 8px;
 }
 
+// 4 choix sur téléphone : grille 2 × 2 plutôt qu'une ligne de 3 + 1 orphelin
+@media (max-width: $bp-sm) {
+  .drilling-options:has(> button:nth-child(4):last-child) {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 .sink-options-list {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -618,6 +626,19 @@
 
     &.embla__dot--selected::after {
       background: $paper;
+    }
+  }
+
+  // Au doigt : zone de toucher agrandie, le point visible garde sa taille
+  @media (pointer: coarse) {
+    .embla__dots {
+      gap: 0;
+      padding: 0 6px;
+    }
+
+    .embla__dot {
+      width: 30px;
+      height: 30px;
     }
   }
 }

@@ -24,10 +24,10 @@ const PolitiqueConfidentialite = () => {
             <p>SAS au capital de 525 500,00 €</p>
             <p>Siège social : 1 rue de l'Industrie, 93000 Bobigny</p>
             <p>RCS Bobigny 785 583 527 — TVA FR 84 785 583 527</p>
-            <p>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</p>
+            <hr className="legal-sep" />
             <p>Site internet : https://www.guegan-shop.fr/</p>
             <p>En vigueur à compter du 01/05/2026</p>
-            <p>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</p>
+            <hr className="legal-sep" />
           </div>
 
           <section>

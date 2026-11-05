@@ -119,6 +119,7 @@ const Contact = () => {
                 <input
                   type="text"
                   name="nom"
+                  autoComplete="family-name"
                   value={formData.nom}
                   onChange={handleChange}
                   required
@@ -129,6 +130,7 @@ const Contact = () => {
                 <input
                   type="text"
                   name="prenom"
+                  autoComplete="given-name"
                   value={formData.prenom}
                   onChange={handleChange}
                   required
@@ -142,6 +144,7 @@ const Contact = () => {
                 <input
                   type="email"
                   name="email"
+                  autoComplete="email"
                   value={formData.email}
                   onChange={handleChange}
                   required
@@ -152,6 +155,7 @@ const Contact = () => {
                 <input
                   type="tel"
                   name="phone"
+                  autoComplete="tel"
                   value={formData.phone}
                   onChange={handleChange}
                 />
@@ -182,7 +186,7 @@ const Contact = () => {
 
             <div className="input-group">
               <label>Pièce jointe (optionnel)</label>
-              <input type="file" onChange={handleFileChange} />
+              <input type="file" className="file-input" onChange={handleFileChange} />
             </div>
 
             <div className="checkbox-group">

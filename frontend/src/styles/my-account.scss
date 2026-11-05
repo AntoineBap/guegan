@@ -63,8 +63,10 @@ $radius: t.$radius-lg;
   border-radius: $radius;
   padding: 6px;
 
+  // Téléphone : les 3 onglets restent sur une ligne, icône au-dessus du libellé
   @media (max-width: 560px) {
-    flex-direction: column;
+    gap: 4px;
+    padding: 4px;
   }
 }
 
@@ -99,6 +101,17 @@ $radius: t.$radius-lg;
   &.active {
     background: $black;
     color: $white;
+  }
+
+  @media (max-width: 560px) {
+    flex-direction: column;
+    gap: 4px;
+    min-height: 56px;
+    padding: 8px 4px;
+    font-size: 0.78rem;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.2;
   }
 
   &.danger-tab {
@@ -368,6 +381,13 @@ $radius: t.$radius-lg;
 // ── Boutons ───────────────────────────────────────────────────────────────
 .btn-primary {
   align-self: flex-start;
+  min-height: 46px;
+
+  @media (max-width: 560px) {
+    align-self: stretch;
+    min-height: 50px;
+  }
+
   padding: 12px 28px;
   background: $black;
   color: $white;

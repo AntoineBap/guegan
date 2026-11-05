@@ -66,7 +66,9 @@ export const CartProvider = ({ children }) => {
             const savedCart = await response.json();
             if (Array.isArray(savedCart)) {
               // Fusion : panier enregistré + articles ajoutés avant la connexion
-              const saved = withIds(savedCart);
+              // Identifiant stable pour les anciens articles sans cartId : si le chargement
+              // se produit deux fois, la fusion ne crée pas de doublons.
+              const saved = savedCart.map((i, idx) => (i.cartId ? i : { ...i, cartId: `saved-${idx}` }));
               const savedIds = new Set(saved.map((i) => i.cartId));
               setCartItems((prev) => [...saved, ...prev.filter((i) => !savedIds.has(i.cartId))]);
             }

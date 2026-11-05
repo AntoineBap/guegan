@@ -142,7 +142,7 @@ const AdminUsers = () => {
           </div>
         ) : (
           <div className="table-wrap">
-            <table className="data-table">
+            <table className="data-table as-cards users-table">
               <thead>
                 <tr>
                   {COLUMNS.map((c) => (
@@ -171,15 +171,15 @@ const AdminUsers = () => {
                         <small>{u.adresse}</small>
                       </div>
                     </td>
-                    <td className="nowrap">
+                    <td className="nowrap" data-label="Tél.">
                       {u.telephone !== "N/A" ? <a href={`tel:${u.telephone}`}>{u.telephone}</a> : "—"}
                     </td>
-                    <td className="nowrap muted">{u.siret}</td>
-                    <td className="nowrap muted">{u.tva}</td>
-                    <td className="muted" style={{ whiteSpace: "pre-line", minWidth: 180 }}>
+                    <td className="nowrap muted" data-label="SIRET">{u.siret}</td>
+                    <td className="nowrap muted" data-label="TVA">{u.tva}</td>
+                    <td className="muted cart-cell" data-label="Panier">
                       {u.panier === "Panier vide" ? "—" : u.panier}
                     </td>
-                    <td className="num">{u.total_panier > 0 ? <strong>{formatPrice(u.total_panier)}</strong> : <span className="muted">—</span>}</td>
+                    <td className="num amount">{u.total_panier > 0 ? <strong>{formatPrice(u.total_panier)}</strong> : <span className="muted">—</span>}</td>
                   </tr>
                 ))}
               </tbody>

@@ -16,6 +16,16 @@
     font-size: 0.98rem;
     line-height: 1.7;
 
+    .legal-sep {
+      margin: 14px 0;
+      border: none;
+      border-top: 1px solid $line;
+    }
+
+    a {
+      overflow-wrap: anywhere;
+    }
+
     h1 {
       margin: 0 0 8px;
       padding-bottom: 20px;

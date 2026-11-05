@@ -99,7 +99,7 @@
 
 @media (max-width: 900px) {
   .admin-body {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr); // la rangée d'onglets défile sans élargir la page
   }
 
   // Sur mobile, la barre latérale devient une rangée d'onglets défilante
@@ -743,6 +743,7 @@
 
 .formula-preview {
   width: 100%;
+  max-width: 360px;
   margin-top: 14px;
   border-collapse: collapse;
   font-size: 0.84rem;
@@ -891,5 +892,21 @@
       top: 14px;
       right: 16px;
     }
+
+    // Libellé devant les valeurs qui n'ont plus d'en-tête de colonne
+    td[data-label]::before {
+      content: attr(data-label) " : ";
+      color: $faint;
+      font-size: 0.8rem;
+    }
   }
+
+  .users-table td:first-child {
+    padding-right: 96px; // place pour le montant du panier
+  }
+}
+
+.users-table .cart-cell {
+  min-width: 180px;
+  white-space: pre-line;
 }

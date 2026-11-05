@@ -223,5 +223,14 @@
     .addresses {
       grid-template-columns: 1fr;
     }
+
+    .confirmation-actions {
+      flex-direction: column;
+
+      .btn {
+        width: 100%;
+        min-height: 50px;
+      }
+    }
   }
 }

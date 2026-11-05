@@ -130,6 +130,22 @@
     gap: 4px 14px;
   }
 
+  // Au doigt : les actions deviennent de petites pastilles faciles à toucher
+  @media (pointer: coarse) {
+    .item-actions-row {
+      gap: 6px;
+      margin-top: 8px;
+
+      .btn-text {
+        min-height: 34px;
+        padding: 0 12px;
+        border-radius: 999px;
+        background: $canvas;
+        text-decoration: none;
+      }
+    }
+  }
+
   .btn-text {
     padding: 0;
     border: none;

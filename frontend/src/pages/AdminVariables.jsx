@@ -52,18 +52,16 @@ const FormulaBlock = ({ title, type, local, original, update }) => {
         <thead>
           <tr>
             <th>Hauteur</th>
-            {heights.map((h) => (
-              <th key={h}>{h} mm</th>
-            ))}
+            <th>Prix / mètre</th>
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td>Prix / mètre</td>
-            {heights.map((h) => (
-              <td key={h}>{formatPrice(pricePerMeter(f, h))}</td>
-            ))}
-          </tr>
+          {heights.map((h) => (
+            <tr key={h}>
+              <td>{h} mm</td>
+              <td>{formatPrice(pricePerMeter(f, h))}</td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>

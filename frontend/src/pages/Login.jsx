@@ -369,18 +369,22 @@ const Login = () => {
 
   const aside = (
     <aside className="login-aside">
-      <Link to="/" className="logo">
-        GUEGAN <span>Shop</span>
-      </Link>
-      <div>
+      <div className="aside-top">
+        <Link to="/" className="logo">
+          GUEGAN <span>Shop</span>
+        </Link>
+        <Link to="/" className="aside-back">← Accueil</Link>
+      </div>
+      <div className="aside-pitch">
         <h2>Espace professionnel</h2>
+        <p className="aside-sub">Tarifs, devis et commandes au même endroit.</p>
         <ul>
           <li>Tarifs HT affichés pendant la configuration</li>
           <li>Devis PDF générés en un clic, valables un mois</li>
           <li>Suivi des commandes, de la fabrication à l'expédition</li>
         </ul>
       </div>
-      <p>
+      <p className="aside-contact">
         Une question ? <a href="tel:0148400505">01 48 40 05 05</a>
       </p>
     </aside>
@@ -438,6 +442,14 @@ const Login = () => {
       <main className="login-main">
         <div className={`login-card ${isSignUp ? "is-wide" : ""}`}>
           <Link to="/" className="back-link">← Accueil</Link>
+          <div className="auth-tabs" role="tablist" aria-label="Connexion ou inscription">
+            <button type="button" role="tab" aria-selected={!isSignUp} className={!isSignUp ? "active" : ""} onClick={() => isSignUp && switchMode()}>
+              Connexion
+            </button>
+            <button type="button" role="tab" aria-selected={isSignUp} className={isSignUp ? "active" : ""} onClick={() => !isSignUp && switchMode()}>
+              Créer un compte
+            </button>
+          </div>
           <h1>{isSignUp ? "Créer un compte professionnel" : "Connexion"}</h1>
           <p className="lead">
             {isSignUp
@@ -449,7 +461,7 @@ const Login = () => {
 
           <form onSubmit={handleSubmit} noValidate>
             {isSignUp && (
-              <div className="form-row">
+              <div className="form-row keep-2">
                 <Field label="Prénom" error={errors.firstName}>
                   <input type="text" name="firstName" autoComplete="given-name" value={formData.firstName} onChange={handleChange} />
                 </Field>
