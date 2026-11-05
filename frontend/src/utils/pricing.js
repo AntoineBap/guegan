@@ -1,3 +1,5 @@
+import { sideExists } from "./planShape";
+
 // Même calcul que backend/utils/pricing.js et ConfigResume.jsx.
 // Sert à recalculer les articles du panier quand les tarifs changent ou
 // deviennent disponibles (ex. : panier rempli avant connexion).
@@ -28,18 +30,18 @@ export const computeUnitPrice = (item, settings) => {
   if (item.rims) {
     const h = Number(item.rimHeigh) || 100;
     const f = settings.linearFormula.rims;
-    if (item.rimLeft) total += linearPartPrice(h, width, f);
-    if (item.rimBack) total += linearPartPrice(h, length, f);
-    if (item.rimRight) total += linearPartPrice(h, width, f);
+    if (item.rimLeft && sideExists("left", item)) total += linearPartPrice(h, width, f);
+    if (item.rimBack && sideExists("back", item)) total += linearPartPrice(h, length, f);
+    if (item.rimRight && sideExists("right", item)) total += linearPartPrice(h, width, f);
   }
 
   if (item.aprons) {
     const h = Number(item.apronHeight) || 40;
     const f = settings.linearFormula.aprons;
-    if (item.apronFront) total += linearPartPrice(Math.max(0, h - 40), length, f);
-    if (item.apronLeft) total += linearPartPrice(h, width, f);
-    if (item.apronBack) total += linearPartPrice(h, length, f);
-    if (item.apronRight) total += linearPartPrice(h, width, f);
+    if (item.apronFront && sideExists("front", item)) total += linearPartPrice(Math.max(0, h - 40), length, f);
+    if (item.apronLeft && sideExists("left", item)) total += linearPartPrice(h, width, f);
+    if (item.apronBack && sideExists("back", item)) total += linearPartPrice(h, length, f);
+    if (item.apronRight && sideExists("right", item)) total += linearPartPrice(h, width, f);
   }
 
   if (item.splashback) total += Math.round((length / 1000) * (prices.waterDrip || 0));

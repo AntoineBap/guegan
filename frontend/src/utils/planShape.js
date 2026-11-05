@@ -62,6 +62,16 @@ export const maxRadius = (corner, corners, length, width) => {
   return Math.max(0, Math.floor(Math.min(limitA, limitB)));
 };
 
+// Un côté n'a plus de partie droite quand ses deux arrondis se rejoignent (ex. demi-cercle) :
+// il n'existe plus, on ne peut donc pas y poser de dosseret ni de retombée.
+// Même règle que backend/utils/pricing.js.
+export const sideExists = (side, config) => {
+  const corners = getCorners(config);
+  const [a, b] = SIDE_CORNERS[side];
+  const len = sideLength(side, Number(config?.length) || 0, Number(config?.width) || 0);
+  return len - corners[a] - corners[b] > 1;
+};
+
 // Un côté forme un demi-cercle quand ses deux angles ont un rayon égal à la moitié du côté
 export const isSemicircle = (side, corners, length, width) => {
   const half = sideLength(side, length, width) / 2;

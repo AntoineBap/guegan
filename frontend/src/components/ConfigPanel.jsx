@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import ConfigResume from "./ConfigResume";
 import CornerEditor from "./CornerEditor";
 import { computeSinkLayout, sinkFootprints } from "../utils/sinkLayout";
-import { getCorners, sinkCornerConflicts } from "../utils/planShape";
+import { getCorners, sinkCornerConflicts, sideExists } from "../utils/planShape";
 import { AuthContext } from "../contexts/AuthContext";
 import { SettingsContext } from "../contexts/SettingsContext";
 import "../styles/configurator.scss"; // ou configurator.scss selon votre structure
@@ -727,18 +727,38 @@ const ConfigPanel = ({ config, setConfig, onReset, editIndex = null, onEditDone 
     setConfig((prev) => ({ ...prev, [side]: !prev[side] }));
   const toggleApronSide = (side) =>
     setConfig((prev) => ({ ...prev, [side]: !prev[side] }));
+  // Côté sans partie droite (arrondi en demi-cercle) : ni dosseret ni retombée possible
+  const PART_SIDE = {
+    rimLeft: "left", rimRight: "right", rimBack: "back",
+    apronFront: "front", apronLeft: "left", apronRight: "right", apronBack: "back",
+  };
+  const isSideMissing = (key) => !sideExists(PART_SIDE[key], config);
   const isRimDisabled = (side) => {
+    if (isSideMissing(side)) return true;
     if (side === "rimLeft") return config.apronLeft;
     if (side === "rimRight") return config.apronRight;
     if (side === "rimBack") return config.apronBack;
     return false;
   };
   const isApronDisabled = (side) => {
+    if (isSideMissing(side)) return true;
     if (side === "apronLeft") return config.rimLeft;
     if (side === "apronRight") return config.rimRight;
     if (side === "apronBack") return config.rimBack;
     return false;
   };
+
+  // Un arrondi qui fait disparaître un côté retire le dosseret / la retombée posé dessus
+  const missingSelected = Object.keys(PART_SIDE).filter((k) => config[k] && isSideMissing(k));
+  const missingKey = missingSelected.join(",");
+  useEffect(() => {
+    if (!missingKey) return;
+    setConfig((prev) => {
+      const next = { ...prev };
+      for (const k of missingKey.split(",")) next[k] = false;
+      return next;
+    });
+  }, [missingKey, setConfig]);
 
   // --- ANGLES ARRONDIS : une cuve ne doit pas mordre sur un arrondi ---
   const footprints = useMemo(() => sinkFootprints(computeSinkLayout(config)), [config]);

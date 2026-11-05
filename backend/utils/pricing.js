@@ -36,6 +36,16 @@ const sanitizeCorners = (corners, length, width) => {
   return out;
 };
 
+// Un côté dont les deux arrondis se rejoignent (demi-cercle) n'a plus de partie droite :
+// pas de dosseret ni de retombée facturés dessus. Même règle que planShape.sideExists.
+const SIDE_CORNERS = { front: ["fl", "fr"], back: ["bl", "br"], left: ["bl", "fl"], right: ["br", "fr"] };
+const sideExists = (side, corners, length, width) => {
+  if (!corners) return true;
+  const len = side === "front" || side === "back" ? length : width;
+  const [a, b] = SIDE_CORNERS[side];
+  return len - corners[a] - corners[b] > 1;
+};
+
 const computeUnitPrice = (item, settings) => {
   const length = num(item.length);
   const width = num(item.width);
@@ -45,6 +55,9 @@ const computeUnitPrice = (item, settings) => {
     throw new PricingError("Largeur du plan invalide.");
   if (!Number.isFinite(width) || width < 300 || width > maxDepth)
     throw new PricingError("Profondeur du plan invalide.");
+
+  const corners = sanitizeCorners(item.corners, length, width);
+  const has = (side) => sideExists(side, corners, length, width);
 
   // Plan
   let total = Math.round(219.3 * (length / 1000) * (width / 1000) + 447.37);
@@ -67,9 +80,9 @@ const computeUnitPrice = (item, settings) => {
     const h = num(item.rimHeigh) || 100;
     if (h < 0 || h > 550) throw new PricingError("Hauteur de dosseret invalide.");
     const f = settings.linearFormula.rims;
-    if (item.rimLeft) total += linearPartPrice(h, width, f);
-    if (item.rimBack) total += linearPartPrice(h, length, f);
-    if (item.rimRight) total += linearPartPrice(h, width, f);
+    if (item.rimLeft && has("left")) total += linearPartPrice(h, width, f);
+    if (item.rimBack && has("back")) total += linearPartPrice(h, length, f);
+    if (item.rimRight && has("right")) total += linearPartPrice(h, width, f);
   }
 
   // Retombées (l'avant est compté sans les 40 premiers mm)
@@ -77,10 +90,10 @@ const computeUnitPrice = (item, settings) => {
     const h = num(item.apronHeight) || 40;
     if (h < 0 || h > 200) throw new PricingError("Hauteur de retombée invalide.");
     const f = settings.linearFormula.aprons;
-    if (item.apronFront) total += linearPartPrice(Math.max(0, h - 40), length, f);
-    if (item.apronLeft) total += linearPartPrice(h, width, f);
-    if (item.apronBack) total += linearPartPrice(h, length, f);
-    if (item.apronRight) total += linearPartPrice(h, width, f);
+    if (item.apronFront && has("front")) total += linearPartPrice(Math.max(0, h - 40), length, f);
+    if (item.apronLeft && has("left")) total += linearPartPrice(h, width, f);
+    if (item.apronBack && has("back")) total += linearPartPrice(h, length, f);
+    if (item.apronRight && has("right")) total += linearPartPrice(h, width, f);
   }
 
   // Anti-goutte

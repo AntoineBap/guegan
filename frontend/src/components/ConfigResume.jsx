@@ -2,7 +2,7 @@ import React, { useMemo, useState, useContext } from "react";
 import { Link } from "react-router-dom";
 import { useCart } from "../contexts/CartContext";
 import { AuthContext } from "../contexts/AuthContext";
-import { getCorners, CORNERS, CORNER_LABEL, SIDE_CORNERS, SIDE_LABEL, isSemicircle } from "../utils/planShape";
+import { getCorners, CORNERS, CORNER_LABEL, SIDE_CORNERS, SIDE_LABEL, isSemicircle, sideExists } from "../utils/planShape";
 import "../styles/configResume.scss";
 
 // Constantes de Poids (kg/m2) - Restent en dur car physique des matériaux
@@ -178,17 +178,17 @@ const ConfigResume = ({
     const sides = [];
 
     // On utilise le type 'rims' pour la formule
-    if (config.rimLeft) {
+    if (config.rimLeft && sideExists("left", config)) {
       totalPrice += getLinearPartPrice(height, config.width, "rims");
       totalLengthMm += config.width;
       sides.push("Gauche");
     }
-    if (config.rimBack) {
+    if (config.rimBack && sideExists("back", config)) {
       totalPrice += getLinearPartPrice(height, config.length, "rims");
       totalLengthMm += config.length;
       sides.push("Arrière");
     }
-    if (config.rimRight) {
+    if (config.rimRight && sideExists("right", config)) {
       totalPrice += getLinearPartPrice(height, config.width, "rims");
       totalLengthMm += config.width;
       sides.push("Droite");
@@ -209,6 +209,7 @@ const ConfigResume = ({
     config.rimBack,
     config.width,
     config.length,
+    config.corners,
     settings, // Dépendance ajoutée pour recalculer si formule change
   ]);
 
@@ -221,7 +222,7 @@ const ConfigResume = ({
     const sides = [];
 
     // On utilise le type 'aprons' pour la formule
-    if (config.apronFront) {
+    if (config.apronFront && sideExists("front", config)) {
       totalPrice += getLinearPartPrice(
         frontEffectiveHeight,
         config.length,
@@ -230,17 +231,17 @@ const ConfigResume = ({
       totalLengthMm += config.length;
       sides.push("Avant");
     }
-    if (config.apronLeft) {
+    if (config.apronLeft && sideExists("left", config)) {
       totalPrice += getLinearPartPrice(rawHeight, config.width, "aprons");
       totalLengthMm += config.width;
       sides.push("Gauche");
     }
-    if (config.apronBack) {
+    if (config.apronBack && sideExists("back", config)) {
       totalPrice += getLinearPartPrice(rawHeight, config.length, "aprons");
       totalLengthMm += config.length;
       sides.push("Arrière");
     }
-    if (config.apronRight) {
+    if (config.apronRight && sideExists("right", config)) {
       totalPrice += getLinearPartPrice(rawHeight, config.width, "aprons");
       totalLengthMm += config.width;
       sides.push("Droite");
@@ -262,6 +263,7 @@ const ConfigResume = ({
     config.apronBack,
     config.width,
     config.length,
+    config.corners,
     settings,
   ]);
 
