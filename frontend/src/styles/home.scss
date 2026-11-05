@@ -24,11 +24,16 @@
       object-fit: cover;
       background-size: cover;
       background-position: center;
+      // Fondu enchaîné sans passage au noir : le média entrant apparaît par-dessus,
+      // le sortant reste opaque dessous et ne disparaît qu'une fois couvert.
+      z-index: 0;
       opacity: 0;
-      transition: opacity 1.4s ease-in-out;
+      transition: opacity 0s linear 1.4s;
 
       &.active {
+        z-index: 1;
         opacity: 1;
+        transition: opacity 1.4s ease-in-out;
       }
     }
 
@@ -78,11 +83,13 @@
 
     .nav-links {
       display: flex;
+      align-items: center;
       gap: 28px;
 
       a {
         display: inline-block;
         padding: 10px 0; // zone de toucher confortable sur téléphone
+        white-space: nowrap;
         color: rgba($paper, 0.8);
         font-size: 0.92rem;
         font-weight: 600;
@@ -234,6 +241,11 @@
 
       .nav-links {
         gap: 18px;
+      }
+
+      // Le prénom ne tient pas à côté du logo sur un téléphone
+      .nav-user {
+        display: none;
       }
     }
 

@@ -128,7 +128,10 @@ const Home = () => {
         <div className="nav-links">
           <Link to="/contact">Contact</Link>
           {isAuthenticated ? (
-            <Link to="/my-orders">{user?.firstName ? `${user.firstName} · Mon espace` : "Mon espace"}</Link>
+            <Link to="/my-orders">
+              {user?.firstName && <span className="nav-user">{user.firstName} · </span>}
+              Mon espace
+            </Link>
           ) : (
             <Link to="/login">Espace pro</Link>
           )}
