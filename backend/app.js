@@ -44,9 +44,30 @@ app.use(express.urlencoded({ extended: false, limit: "100kb" }));
 mongoose.set("sanitizeFilter", true);
 mongoose.set("strictQuery", true);
 
-mongoose.connect(process.env.MONGO_URI).catch((error) => {
-  console.error("Connexion MongoDB impossible :", error.message);
+// Mongoose ne réessaie pas si la toute première connexion échoue (coupure réseau au
+// démarrage, Atlas momentanément injoignable) : l'API restait alors sans base jusqu'au
+// prochain redémarrage. On réessaie donc toutes les 5 s. Une fois connecté, le driver
+// gère lui-même les reconnexions.
+const MONGO_RETRY_MS = 5000;
+let mongoWasConnected = false;
+const connectMongo = () => {
+  mongoose
+    .connect(process.env.MONGO_URI, { serverSelectionTimeoutMS: 10000 })
+    .then(() => {
+      mongoWasConnected = true;
+      console.log("MongoDB connecté");
+    })
+    .catch((error) => {
+      console.error(`Connexion MongoDB impossible : ${error.message} — nouvel essai dans ${MONGO_RETRY_MS / 1000} s`);
+      setTimeout(connectMongo, MONGO_RETRY_MS).unref();
+    });
+};
+connectMongo();
+
+mongoose.connection.on("disconnected", () => {
+  if (mongoWasConnected) console.warn("MongoDB déconnecté, reconnexion en cours…");
 });
+mongoose.connection.on("reconnected", () => console.log("MongoDB reconnecté"));
 
 // --- ROUTES ---
 app.use("/api/auth", userRoutes);
