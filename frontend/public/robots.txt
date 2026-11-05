@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+Allow: /configurator
+Allow: /contact
+Allow: /cgv
+Allow: /politique-confidentialite
+
+# Bloquer les pages privées/admin
+Disallow: /admin
+Disallow: /admin/
+Disallow: /checkout
+Disallow: /order-confirmation/
+Disallow: /my-orders
+Disallow: /my-account
+Disallow: /my-quotes
+Disallow: /verify/
+Disallow: /login
+
+Sitemap: https://guegan-shop.fr/sitemap.xml
